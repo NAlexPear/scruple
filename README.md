@@ -26,6 +26,10 @@
   <a href="https://scruple.dev/guide/agent-skills">Install agent skills</a>
 </p>
 
+The documentation is also available as [an LLM index](https://scruple.dev/llms.txt),
+[one Markdown bundle](https://scruple.dev/llms-full.txt), and raw Markdown from the **Copy page**
+control on every documentation page.
+
 ## Where Scruple fits
 
 | Check                          | Typical performance             | Scope                                                                                  | Cost                                                     |
@@ -95,21 +99,16 @@ Use this only when the runtime or bundler supports erasable TypeScript syntax an
 ### Use Scruple with coding agents
 
 This repository includes agent skills for configuring Scruple, authoring rules and plugins, and
-building decision-provider adapters. Install all three globally with Amp:
+building decision-provider adapters. Use the cross-agent installer to choose skills and a supported
+coding-agent harness interactively:
 
 ```sh
-amp skill add NAlexPear/scruple/.agents/skills --global
-amp skill list
+npx skills add NAlexPear/scruple
 ```
 
-Or install them into the current project with the `skills` CLI:
-
-```sh
-npx skills add NAlexPear/scruple --skill '*' --agent amp --yes
-```
-
-See the [agent skills guide](https://scruple.dev/guide/agent-skills) for individual installation,
-verification, example prompts, and other supported coding agents.
+See the [agent skills guide](https://scruple.dev/guide/agent-skills) for non-interactive commands for
+Amp, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, and OpenCode, plus direct access to the
+bare skills.
 
 ### Configure rules
 

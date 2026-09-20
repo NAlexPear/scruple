@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 
 import { getRule } from "../rule-catalog.js";
+import MarkdownActions from "./MarkdownActions.vue";
 
 const props = defineProps<{ ruleId: string }>();
 const selectedExample = ref<"incorrect" | "correct">("incorrect");
@@ -41,6 +42,7 @@ const copyConfiguration = async () => {
         <span>{{ rule.category }}</span>
       </div>
       <h1>{{ rule.id }}</h1>
+      <MarkdownActions />
       <p>{{ rule.explanation }}</p>
       <div class="rule-tags">
         <span v-for="tag in rule.tags" :key="tag">{{ tag }}</span>

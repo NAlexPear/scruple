@@ -8,16 +8,16 @@ This directory contains installable skills for configuring Scruple and authoring
 
 ## Install
 
-Install all three globally with Amp:
+Choose the skills, harnesses, and scope interactively with the generic installer:
 
 ```sh
-amp skill add NAlexPear/scruple/.agents/skills --global
+npx skills add NAlexPear/scruple
 ```
 
-Install all three for Amp in the current project with the `skills` CLI:
+For a non-interactive install, specify the skill and harness, for example:
 
 ```sh
-npx skills add NAlexPear/scruple --skill '*' --agent amp --yes
+npx skills add NAlexPear/scruple --skill '*' --agent codex --yes
 ```
 
 List available skills before installing:
@@ -26,8 +26,8 @@ List available skills before installing:
 npx skills add NAlexPear/scruple --list
 ```
 
-See `apps/docs/guide/agent-skills.md` for individual installation, verification, updates, and example
-prompts.
+See `apps/docs/guide/agent-skills.md` for Amp, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot,
+and OpenCode options, direct bare-skill links, verification, updates, and example prompts.
 
 ## Regression evals
 

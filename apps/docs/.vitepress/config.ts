@@ -1,4 +1,5 @@
 import { defineConfig, type DefaultTheme } from "vitepress";
+import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
 import { getRule } from "./rule-catalog.js";
 
@@ -64,11 +65,31 @@ export default defineConfig({
   description: "Make good taste enforceable with named, tested code checks.",
   cleanUrls: true,
   vite: {
+    plugins: [
+      llmstxt({
+        domain: "https://scruple.dev",
+        customTemplateVariables: {
+          title: "Scruple",
+          description:
+            "Scruple turns engineering judgment into named, tested code checks that run from the command line.",
+          details:
+            "Use these docs to install and configure Scruple, choose rules and providers, or build plugins and provider adapters.",
+        },
+      }),
+    ],
     resolve: {
       conditions: ["source", "module", "browser", "development|production"],
     },
     server: {
       allowedHosts: [".onamp.dev"],
+    },
+  },
+  markdown: {
+    config(markdown) {
+      copyOrDownloadAsMarkdownButtons(
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The plugin bundles a second, structurally compatible markdown-it declaration.
+        markdown as unknown as Parameters<typeof copyOrDownloadAsMarkdownButtons>[0],
+      );
     },
   },
   transformPageData(pageData) {

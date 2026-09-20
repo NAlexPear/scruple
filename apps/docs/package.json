@@ -7,12 +7,13 @@
     "build": "vitepress build",
     "dev": "vitepress --host 0.0.0.0 --port 4173",
     "preview": "vitepress preview --host 0.0.0.0 --port 4173",
-    "test": "vitepress build",
+    "test": "vitepress build && node --test ../../tests/docs-llms.test.ts",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
     "vitepress": "^1.6.4",
+    "vitepress-plugin-llms": "^1.14.0",
     "vue": "^3.5.43",
     "vue-tsc": "^3.3.11"
   }

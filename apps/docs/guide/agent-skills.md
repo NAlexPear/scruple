@@ -3,76 +3,96 @@
 Scruple ships three [Agent Skills](https://agentskills.io/) that give coding agents its current
 extension contracts, design constraints, tests, and repository workflows.
 
-| Skill                         | Use it for                                                           |
-| ----------------------------- | -------------------------------------------------------------------- |
-| `configuring-scruple`         | Installation, `scruple.config.ts`, CLI, CI, and troubleshooting      |
-| `authoring-scruple-rules`     | Semantic rules, plugins, bounded evidence, tests, and eval fixtures  |
-| `authoring-scruple-providers` | `DecisionProvider` adapters, mapping, cancellation, usage, and tests |
-
 Skills provide instructions to your coding agent; they do not install Scruple packages or replace the
 `scruple` CLI. Review agent changes and run the verification commands the skill recommends.
 
-## Install with Amp
-
-Install all three into Amp's user-level skill directory:
-
-```sh
-amp skill add NAlexPear/scruple/.agents/skills --global
-```
-
-For a project-local installation, run this in the target repository:
-
-```sh
-amp skill add NAlexPear/scruple/.agents/skills --target .agents/skills
-```
-
-Point Amp at the `.agents/skills` parent directory as shown so it installs bundled references and evals
-alongside every `SKILL.md`.
-
-Verify discovery:
-
-```sh
-amp skill list
-amp skill info configuring-scruple
-amp skill info authoring-scruple-rules
-amp skill info authoring-scruple-providers
-```
-
-New Amp sessions discover global and project skills automatically.
-
 ## Install with `npx skills`
 
-The open-source [`skills` CLI](https://github.com/vercel-labs/skills) can discover the skills directly
-from this GitHub repository. List them without installing:
+The open-source [`skills` CLI](https://github.com/vercel-labs/skills) discovers the skills directly
+from this GitHub repository. Run the generic installer and choose the skills, harnesses, and scope
+interactively:
+
+```sh
+npx skills add NAlexPear/scruple
+```
+
+List the available skills without installing:
 
 ```sh
 npx skills add NAlexPear/scruple --list
 ```
 
-Install all three for Amp in the current project without interactive prompts:
+For a reproducible non-interactive project installation, name both the skills and target harness. This
+example installs every Scruple skill for Codex:
 
 ```sh
-npx skills add NAlexPear/scruple --skill '*' --agent amp --yes
+npx skills add NAlexPear/scruple --skill '*' --agent codex --yes
 ```
 
-Install one skill instead:
-
-```sh
-npx skills add NAlexPear/scruple \
-  --skill authoring-scruple-rules \
-  --agent amp \
-  --yes
-```
-
-Add `--global` for a user-level installation. Replace `amp` with another agent supported by the
-installer, or use `--agent '*'` to install for every detected agent. Project installations include a
+Install just one skill by replacing `'*'` with its name. Add `--global` for a user-level installation,
+or use `--agent '*'` to target every supported harness. Project installations include a
 `skills-lock.json` file so `npx skills experimental_install` can restore the pinned skills later.
 
-Verify project or global installation:
+## Popular harness targets
+
+Pass one or more of these exact values to `--agent`. Project scope is the default; `--global` selects
+the user-level directory.
+
+| Harness        | `--agent` value  | Project directory | Global directory             |
+| -------------- | ---------------- | ----------------- | ---------------------------- |
+| Amp            | `amp`            | `.agents/skills/` | `~/.config/agents/skills/`   |
+| Claude Code    | `claude-code`    | `.claude/skills/` | `~/.claude/skills/`          |
+| Codex          | `codex`          | `.agents/skills/` | `~/.codex/skills/`           |
+| Cursor         | `cursor`         | `.agents/skills/` | `~/.cursor/skills/`          |
+| Gemini CLI     | `gemini-cli`     | `.agents/skills/` | `~/.gemini/skills/`          |
+| GitHub Copilot | `github-copilot` | `.agents/skills/` | `~/.copilot/skills/`         |
+| OpenCode       | `opencode`       | `.agents/skills/` | `~/.config/opencode/skills/` |
+
+For example:
 
 ```sh
-npx skills list --agent amp
-npx skills list --global --agent amp
+npx skills add NAlexPear/scruple --skill '*' --agent claude-code --yes
+npx skills add NAlexPear/scruple --skill configuring-scruple --agent cursor --yes
+npx skills add NAlexPear/scruple --skill authoring-scruple-rules --agent gemini-cli --global --yes
+```
+
+Verify the installation for any target:
+
+```sh
+npx skills list --agent codex
+npx skills list --global --agent claude-code
+```
+
+Harnesses with their own installer can also consume the same source. For example, Amp can install the
+complete collection natively:
+
+```sh
+amp skill add NAlexPear/scruple/.agents/skills --global
+```
+
+Point native installers at the `.agents/skills` parent directory so references and evals remain beside
+each `SKILL.md`.
+
+## Bare skills
+
+The skills are ordinary directories following the Agent Skills standard. Use them directly, inspect
+them before installation, or copy a complete directory into the location expected by another harness:
+
+| Skill                                                                                                                      | Use it for                                                           |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [`configuring-scruple`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/configuring-scruple)                 | Installation, `scruple.config.ts`, CLI, CI, and troubleshooting      |
+| [`authoring-scruple-rules`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/authoring-scruple-rules)         | Semantic rules, plugins, bounded evidence, tests, and eval fixtures  |
+| [`authoring-scruple-providers`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/authoring-scruple-providers) | `DecisionProvider` adapters, mapping, cancellation, usage, and tests |
+
+Preserve each whole directory rather than copying only `SKILL.md`; its `reference/` and `evals/`
+content is part of the skill.
+
+To copy the bare skills into a checkout that uses the shared `.agents/skills` project directory:
+
+```sh
+git clone --depth 1 https://github.com/NAlexPear/scruple.git /tmp/scruple
+mkdir -p .agents/skills
+cp -R /tmp/scruple/.agents/skills/{configuring-scruple,authoring-scruple-rules,authoring-scruple-providers} .agents/skills/
 ```
 
 ## Use the skills
@@ -110,16 +130,12 @@ variables, and review the provider's data-handling and billing terms before send
 
 ## Update or remove
 
-With Amp, rerun installation with `--overwrite`, or remove a named skill:
-
-```sh
-amp skill add NAlexPear/scruple/.agents/skills --global --overwrite
-amp skill remove configuring-scruple
-```
-
-With `npx skills`:
+Update or remove an installation managed by `npx skills`:
 
 ```sh
 npx skills update configuring-scruple
 npx skills remove configuring-scruple --yes
 ```
+
+For a native or manual installation, use that harness's update workflow or replace the copied skill
+directory with the current version.

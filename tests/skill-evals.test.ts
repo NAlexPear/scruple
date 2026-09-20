@@ -88,7 +88,18 @@ await test("skill installation is documented with every published skill", async 
   for (const skill of skills) {
     assert.match(documentation, new RegExp(`\\b${skill}\\b`, "u"));
   }
-  assert.match(documentation, /amp skill add NAlexPear\/scruple\/\.agents\/skills/u);
   assert.match(documentation, /npx skills add NAlexPear\/scruple/u);
-  assert.match(documentation, /--agent amp/u);
+  for (const agent of [
+    "amp",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "github-copilot",
+    "opencode",
+  ]) {
+    assert.match(documentation, new RegExp(`\\b${agent}\\b`, "u"));
+  }
+  assert.match(documentation, /Bare skills/u);
+  assert.match(documentation, /\.agents\/skills\/configuring-scruple/u);
 });
