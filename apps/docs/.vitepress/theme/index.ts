@@ -2,6 +2,7 @@ import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { h } from "vue";
 
+import ProviderPicker from "./ProviderPicker.vue";
 import RuleDetail from "./RuleDetail.vue";
 import ScrupleMark from "./ScrupleMark.vue";
 
@@ -13,9 +14,9 @@ const theme: Theme = {
   Layout: () =>
     h(DefaultTheme.Layout, null, {
       "nav-bar-title-before": () => h(ScrupleMark, { class: "nav-mark", compact: true }),
-      "nav-bar-content-before": () => h(ScrupleMark, { class: "nav-tail", tailOnly: true }),
     }),
   enhanceApp({ app }) {
+    app.component("ProviderPicker", ProviderPicker);
     app.component("RuleDetail", RuleDetail);
     app.component("ScrupleMark", ScrupleMark);
   },
