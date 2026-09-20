@@ -23,10 +23,12 @@
   },
   "devDependencies": {
     "@scruple/core": "workspace:*",
+    "@scruple/example-prefer-database-join": "workspace:*",
+    "@scruple/example-unhelpful-comment": "workspace:*",
+    "@scruple/example-vacuous-test": "workspace:*",
     "@scruple/parser-oxc": "workspace:*",
     "@scruple/provider-jev": "workspace:*",
     "@scruple/provider-laya": "workspace:*",
-    "@scruple/rules": "workspace:*",
     "@types/node": "^24.5.2",
     "@types/picomatch": "^4.0.3",
     "oxfmt": "^0.68.0",

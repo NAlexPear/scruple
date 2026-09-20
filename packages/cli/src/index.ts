@@ -113,7 +113,7 @@ async function loadConfig(path: string): Promise<ScrupleConfig> {
   const jiti = createJiti(import.meta.url, { interopDefault: true });
   const config: unknown = await jiti.import(path, { default: true });
   if (!isScrupleConfig(config)) {
-    throw new Error("Config must define parser, provider, and rules");
+    throw new Error("Config must define parser, provider, and plugins");
   }
   return config;
 }
@@ -130,7 +130,7 @@ function isScrupleConfig(value: unknown): value is ScrupleConfig {
     typeof parser["supports"] === "function" &&
     isRecord(provider) &&
     typeof provider["evaluate"] === "function" &&
-    Array.isArray(value["rules"])
+    Array.isArray(value["plugins"])
   );
 }
 
@@ -152,7 +152,7 @@ function printStylish(diagnostics: Diagnostic[]): void {
     const probability =
       diagnostic.probability === undefined ? "" : ` (${Math.round(diagnostic.probability * 100)}%)`;
     process.stdout.write(
-      `  ${position} ${severity} ${diagnostic.message}${probability}  ${diagnostic.ruleId}\n`,
+      `  ${position} ${severity} ${diagnostic.message}${probability}  ${diagnostic.pluginId}\n`,
     );
   }
 }

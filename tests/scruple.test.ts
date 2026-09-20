@@ -3,11 +3,13 @@ import type {
   DecisionProvider,
   DecisionResponse,
   ScrupleConfig,
-  SemanticRule,
+  SemanticPlugin,
 } from "@scruple/core";
 import { runScruple } from "@scruple/core";
+import { preferDatabaseJoinPlugin } from "@scruple/example-prefer-database-join";
+import { unhelpfulCommentPlugin } from "@scruple/example-unhelpful-comment";
+import { vacuousTestPlugin } from "@scruple/example-vacuous-test";
 import { oxcParser } from "@scruple/parser-oxc";
-import { preferDatabaseJoinRule, unhelpfulCommentRule, vacuousTestRule } from "@scruple/rules";
 import { describe, expect, it } from "vitest";
 
 describe("OXC parser", () => {
@@ -53,7 +55,7 @@ describe("semantic rule engine", () => {
       parser: oxcParser(),
       provider,
       concurrency: 2,
-      rules: [unhelpfulCommentRule(), vacuousTestRule(), preferDatabaseJoinRule()],
+      plugins: [unhelpfulCommentPlugin(), vacuousTestPlugin(), preferDatabaseJoinPlugin()],
     };
     const source = `import { db } from "./db";
 
@@ -72,7 +74,7 @@ async function joinedUsers() {
     const result = await runScruple(config, [{ filename: "example.test.ts", source }]);
 
     expect(result.errors).toEqual([]);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.ruleId)).toEqual([
+    expect(result.diagnostics.map((diagnostic) => diagnostic.pluginId)).toEqual([
       "unhelpful-comment",
       "vacuous-test",
       "prefer-database-join",
@@ -99,13 +101,29 @@ async function joinedUsers() {
     };
 
     const result = await runScruple(
-      { parser: oxcParser(), provider, rules: [makeRule("one"), makeRule("two")] },
+      { parser: oxcParser(), provider, plugins: [makePlugin("one"), makePlugin("two")] },
       [{ filename: "one.ts", source: "function example() { return 1; }" }],
     );
 
     expect(result.errors).toEqual([]);
     expect(result.stats).toMatchObject({ candidates: 2, requests: 1 });
     expect(requests).toBe(1);
+  });
+
+  it("rejects duplicate plugin IDs so diagnostics remain unambiguous", async () => {
+    const result = await runScruple(
+      {
+        parser: oxcParser(),
+        provider: fixtureProvider(),
+        plugins: [makePlugin("duplicate"), makePlugin("duplicate")],
+      },
+      [{ filename: "one.ts", source: "function example() { return 1; }" }],
+    );
+
+    expect(result.errors).toMatchObject([
+      { message: "Plugin ID is configured more than once: duplicate" },
+    ]);
+    expect(result.stats).toMatchObject({ candidates: 1, requests: 1 });
   });
 });
 
@@ -150,7 +168,7 @@ function fixtureProvider(): DecisionProvider {
   };
 }
 
-function makeRule(id: string): SemanticRule {
+function makePlugin(id: string): SemanticPlugin {
   return {
     id,
     description: id,

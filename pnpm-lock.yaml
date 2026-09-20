@@ -112,6 +112,15 @@ importers:
       '@scruple/core':
         specifier: workspace:*
         version: link:packages/core
+      '@scruple/example-prefer-database-join':
+        specifier: workspace:*
+        version: link:packages/example-prefer-database-join
+      '@scruple/example-unhelpful-comment':
+        specifier: workspace:*
+        version: link:packages/example-unhelpful-comment
+      '@scruple/example-vacuous-test':
+        specifier: workspace:*
+        version: link:packages/example-vacuous-test
       '@scruple/parser-oxc':
         specifier: workspace:*
         version: link:packages/parser-oxc
@@ -121,9 +130,6 @@ importers:
       '@scruple/provider-laya':
         specifier: workspace:*
         version: link:packages/provider-laya
-      '@scruple/rules':
-        specifier: workspace:*
-        version: link:packages/rules
       '@types/node':
         specifier: ^24.5.2
         version: 24.13.6
@@ -166,6 +172,24 @@ importers:
 
   packages/core: {}
 
+  packages/example-prefer-database-join:
+    dependencies:
+      '@scruple/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/example-unhelpful-comment:
+    dependencies:
+      '@scruple/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/example-vacuous-test:
+    dependencies:
+      '@scruple/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/parser-oxc:
     dependencies:
       '@scruple/core':
@@ -185,12 +209,6 @@ importers:
         version: 0.6.0
 
   packages/provider-laya:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/rules:
     dependencies:
       '@scruple/core':
         specifier: workspace:*
