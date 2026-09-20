@@ -23,7 +23,7 @@ export interface JevProviderOptions {
   fetch?: Fetch;
 }
 
-export function jevProvider(options: JevProviderOptions): DecisionProvider {
+export const jevProvider = (options: JevProviderOptions): DecisionProvider => {
   if (options.apiKey.trim().length === 0) {
     throw new TypeError("Jev apiKey must not be empty");
   }
@@ -72,9 +72,9 @@ export function jevProvider(options: JevProviderOptions): DecisionProvider {
       };
     },
   };
-}
+};
 
-function toQuestions(questions: Record<string, DecisionQuestion>): Questions {
+const toQuestions = (questions: Record<string, DecisionQuestion>): Questions => {
   const converted: Questions = {};
   for (const [name, question] of Object.entries(questions)) {
     if (question.type === "choice") {
@@ -117,11 +117,11 @@ function toQuestions(questions: Record<string, DecisionQuestion>): Questions {
     }
   }
   return converted;
-}
+};
 
-function toEntry(value: JsonValue): EntryType {
+const toEntry = (value: JsonValue): EntryType => {
   if (typeof value === "number" || typeof value === "boolean") {
     return { value };
   }
   return value;
-}
+};

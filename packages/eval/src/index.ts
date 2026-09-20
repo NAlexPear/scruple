@@ -68,7 +68,7 @@ export interface RunEvaluationOptions {
   repetition: number;
 }
 
-export function parseEvalFixtures(value: unknown): EvalFixture[] {
+export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
   if (!Array.isArray(value)) {
     throw new TypeError("Evaluation fixtures must be an array");
   }
@@ -92,15 +92,15 @@ export function parseEvalFixtures(value: unknown): EvalFixture[] {
     ids.add(fixture.id);
     return fixture;
   });
-}
+};
 
-export async function runEvalCase(
+export const runEvalCase = async (
   fixture: EvalFixture,
   parser: SourceParser,
   plugins: PluginMap,
   ruleConfiguration: RuleConfiguration,
   provider: DecisionProvider,
-): Promise<EvalCaseResult> {
+): Promise<EvalCaseResult> => {
   let model = provider.id;
   let modelCalls = 0;
   const trackingProvider: DecisionProvider = {
@@ -142,9 +142,9 @@ export async function runEvalCase(
       outputTokens: result.stats.outputTokens,
     },
   };
-}
+};
 
-export async function runEvaluation(options: RunEvaluationOptions): Promise<EvalRunReport> {
+export const runEvaluation = async (options: RunEvaluationOptions): Promise<EvalRunReport> => {
   const cases = await Promise.all(
     options.fixtures.map((fixture) => {
       if (!hasRule(options.plugins, fixture.ruleId)) {
@@ -183,42 +183,42 @@ export async function runEvaluation(options: RunEvaluationOptions): Promise<Eval
       outputTokens: sum(cases, (result) => result.usage.outputTokens),
     },
   };
-}
+};
 
-export function hasEvalFailures(runs: readonly EvalRunReport[]): boolean {
+export const hasEvalFailures = (runs: readonly EvalRunReport[]): boolean => {
   return runs.some((run) => run.failures.length > 0);
-}
+};
 
-function percentile(values: readonly number[], fraction: number): number {
+const percentile = (values: readonly number[], fraction: number): number => {
   const sorted = values.toSorted((left, right) => left - right);
   const index = Math.max(0, Math.ceil(sorted.length * fraction) - 1);
   return sorted[index] ?? 0;
-}
+};
 
-function sum(
+const sum = (
   results: readonly EvalCaseResult[],
   select: (result: EvalCaseResult) => number,
-): number {
+): number => {
   return results.reduce((total, result) => total + select(result), 0);
-}
+};
 
-function requiredString(value: Record<string, unknown>, key: string, index: number): string {
+const requiredString = (value: Record<string, unknown>, key: string, index: number): string => {
   const entry = value[key];
   if (typeof entry !== "string" || entry.length === 0) {
     throw new Error(`Evaluation fixture ${index} requires a nonempty ${key}`);
   }
   return entry;
-}
+};
 
-function requiredBoolean(value: Record<string, unknown>, key: string, index: number): boolean {
+const requiredBoolean = (value: Record<string, unknown>, key: string, index: number): boolean => {
   const entry = value[key];
   if (typeof entry !== "boolean") {
     throw new TypeError(`Evaluation fixture ${index} requires a boolean ${key}`);
   }
   return entry;
-}
+};
 
-function requiredStrings(value: Record<string, unknown>, key: string, index: number): string[] {
+const requiredStrings = (value: Record<string, unknown>, key: string, index: number): string[] => {
   const entry = value[key];
   if (!Array.isArray(entry)) {
     throw new TypeError(`Evaluation fixture ${index} requires a string array ${key}`);
@@ -228,17 +228,17 @@ function requiredStrings(value: Record<string, unknown>, key: string, index: num
     throw new TypeError(`Evaluation fixture ${index} requires a string array ${key}`);
   }
   return strings;
-}
+};
 
-function hasRule(plugins: PluginMap, ruleId: string): boolean {
+const hasRule = (plugins: PluginMap, ruleId: string): boolean => {
   const separator = ruleId.indexOf("/");
   if (separator <= 0) {
     return false;
   }
   const plugin = plugins[ruleId.slice(0, separator)];
   return plugin?.rules[ruleId.slice(separator + 1)] !== undefined;
-}
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
-}
+};

@@ -33,7 +33,7 @@ export type CommentsPlugin = ScruplePlugin<{
   "require-actionable-todos": RuleFactory<ProbabilityRuleOptions>;
 }>;
 
-export function comments(): CommentsPlugin {
+export const comments = (): CommentsPlugin => {
   return definePlugin({
     rules: {
       "no-useless-comments": noUselessComments,
@@ -44,9 +44,9 @@ export function comments(): CommentsPlugin {
       "require-actionable-todos": requireActionableTodos,
     },
   });
-}
+};
 
-function noUselessComments(options: NoUselessCommentsOptions = {}): SemanticRule {
+const noUselessComments = (options: NoUselessCommentsOptions = {}): SemanticRule => {
   const threshold = options.threshold ?? 0.9;
   return {
     description: "Comments should add information that the code does not already express.",
@@ -75,9 +75,9 @@ function noUselessComments(options: NoUselessCommentsOptions = {}): SemanticRule
       });
     },
   };
-}
+};
 
-function noMisleadingComments(options: ProbabilityRuleOptions = {}): SemanticRule {
+const noMisleadingComments = (options: ProbabilityRuleOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
   return choiceRule({
     description: "Comments should accurately describe the code they accompany.",
@@ -98,9 +98,9 @@ function noMisleadingComments(options: ProbabilityRuleOptions = {}): SemanticRul
     minConfidence,
     message: "This comment appears to contradict the code it describes.",
   });
-}
+};
 
-function noCommentedOutCode(options: ProbabilityRuleOptions = {}): SemanticRule {
+const noCommentedOutCode = (options: ProbabilityRuleOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
   return choiceRule({
     description: "Comments should not preserve disabled implementation code.",
@@ -123,9 +123,9 @@ function noCommentedOutCode(options: ProbabilityRuleOptions = {}): SemanticRule 
     minConfidence,
     message: "Remove this commented-out code; version control already preserves it.",
   });
-}
+};
 
-function noChangeHistoryComments(options: ProbabilityRuleOptions = {}): SemanticRule {
+const noChangeHistoryComments = (options: ProbabilityRuleOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
   return choiceRule({
     description:
@@ -152,9 +152,9 @@ function noChangeHistoryComments(options: ProbabilityRuleOptions = {}): Semantic
     minConfidence,
     message: "Describe the current constraint instead of recording change history in this comment.",
   });
-}
+};
 
-function preferConciseComments(options: PreferConciseCommentsOptions = {}): SemanticRule {
+const preferConciseComments = (options: PreferConciseCommentsOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = probabilityOptions(options, 0.9, 0.65);
   const minCharacters = options.minCharacters ?? 100;
   return choiceRule({
@@ -177,9 +177,9 @@ function preferConciseComments(options: PreferConciseCommentsOptions = {}): Sema
     minConfidence,
     message: "Make this comment more concise while preserving its useful information.",
   });
-}
+};
 
-function requireActionableTodos(options: ProbabilityRuleOptions = {}): SemanticRule {
+const requireActionableTodos = (options: ProbabilityRuleOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = probabilityOptions(options, 0.8, 0.7);
   return choiceRule({
     description: "TODO comments should give a maintainer enough context to act.",
@@ -201,7 +201,7 @@ function requireActionableTodos(options: ProbabilityRuleOptions = {}): SemanticR
     minConfidence,
     message: "Make this TODO actionable by stating the work, reason, or removal condition.",
   });
-}
+};
 
 interface ChoiceRuleDefinition {
   description: string;
@@ -216,7 +216,7 @@ interface ChoiceRuleDefinition {
   message: string;
 }
 
-function choiceRule(definition: ChoiceRuleDefinition): SemanticRule {
+const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
   return {
     description: definition.description,
     collect(document) {
@@ -240,9 +240,9 @@ function choiceRule(definition: ChoiceRuleDefinition): SemanticRule {
       });
     },
   };
-}
+};
 
-function commentState(comment: CommentTarget, document: ParsedDocument): JsonValue {
+const commentState = (comment: CommentTarget, document: ParsedDocument): JsonValue => {
   return {
     language: document.language,
     comment: {
@@ -256,84 +256,84 @@ function commentState(comment: CommentTarget, document: ParsedDocument): JsonVal
         nearbySource(document.source, comment.range.start, comment.range.end),
     },
   };
-}
+};
 
-function ordinaryComments(document: ParsedDocument): CommentTarget[] {
+const ordinaryComments = (document: ParsedDocument): CommentTarget[] => {
   return document.comments.filter(
     (comment) => isBaseCandidate(comment) && !isTodoCandidate(comment),
   );
-}
+};
 
-function disabledCodeComments(document: ParsedDocument): CommentTarget[] {
+const disabledCodeComments = (document: ParsedDocument): CommentTarget[] => {
   return document.comments.filter(
     (comment) =>
       comment.value.trim().length > 0 && !isIgnoredComment(comment) && !isTodoCandidate(comment),
   );
-}
+};
 
-function isBaseCandidate(comment: CommentTarget): boolean {
+const isBaseCandidate = (comment: CommentTarget): boolean => {
   const value = comment.value.trim();
   if (value.length < 8) {
     return false;
   }
   return !isIgnoredComment(comment);
-}
+};
 
-function isIgnoredComment(comment: CommentTarget): boolean {
+const isIgnoredComment = (comment: CommentTarget): boolean => {
   return /^(?:eslint|oxlint|prettier|istanbul|c8|tslint|@ts-|SPDX-|Copyright\b|Generated\b|Code generated\b)/iu.test(
     comment.value.trim(),
   );
-}
+};
 
-function isTodoCandidate(comment: CommentTarget): boolean {
+const isTodoCandidate = (comment: CommentTarget): boolean => {
   return /^(?:TODO|FIXME|HACK)\b/iu.test(comment.value.trim());
-}
+};
 
-function isChangeHistoryCandidate(comment: CommentTarget): boolean {
+const isChangeHistoryCandidate = (comment: CommentTarget): boolean => {
   return /\b(?:before|changed|formerly|no longer|old implementation|older|previously|removed|replaced|used to|was using|were using)\b/iu.test(
     comment.value,
   );
-}
+};
 
-function nearbySource(source: string, start: number, end: number): string {
+const nearbySource = (source: string, start: number, end: number): string => {
   const radius = 500;
   return source.slice(Math.max(0, start - radius), Math.min(source.length, end + radius));
-}
+};
 
-function probabilityOptions(
+const probabilityOptions = (
   options: ProbabilityRuleOptions,
   defaultThreshold: number,
   defaultMinConfidence: number,
-): { threshold: number; minConfidence: number } {
+): { threshold: number; minConfidence: number } => {
   return {
     threshold: options.threshold ?? defaultThreshold,
     minConfidence: options.minConfidence ?? defaultMinConfidence,
   };
-}
+};
 
-function isFinding(
+const isFinding = (
   answer: DecisionAnswer,
   finding: string,
   threshold: number,
   minConfidence: number,
-): answer is ChoiceAnswer {
+): answer is ChoiceAnswer => {
   return (
     answer.type === "choice" &&
     answer.choice === finding &&
     (answer.probabilities[finding] ?? 0) >= threshold &&
     answer.confidence >= minConfidence
   );
-}
+};
 
-function diagnostic(
+const diagnostic = (
   candidate: RuleCandidate,
   message: string,
   scores: { probability?: number; confidence?: number },
-) {
+) => {
   return {
     message,
     filename: candidate.target.filename,
     location: candidate.target.location,
     ...scores,
   };
-}
+};

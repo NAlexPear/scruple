@@ -17,11 +17,11 @@ export type TestsPlugin = ScruplePlugin<{
   "no-vacuous-tests": RuleFactory<NoVacuousTestsOptions>;
 }>;
 
-export function tests(): TestsPlugin {
+export const tests = (): TestsPlugin => {
   return definePlugin({ rules: { "no-vacuous-tests": noVacuousTests } });
-}
+};
 
-function noVacuousTests(options: NoVacuousTestsOptions = {}): SemanticRule {
+const noVacuousTests = (options: NoVacuousTestsOptions = {}): SemanticRule => {
   const threshold = options.threshold ?? 0.85;
   const minConfidence = options.minConfidence ?? 0.5;
 
@@ -69,13 +69,13 @@ function noVacuousTests(options: NoVacuousTestsOptions = {}): SemanticRule {
       };
     },
   };
-}
+};
 
-function functionState(fn: FunctionTarget, document: ParsedDocument): JsonValue {
+const functionState = (fn: FunctionTarget, document: ParsedDocument): JsonValue => {
   return {
     language: document.language,
     imports: document.imports,
     function: fn.source,
     calls: fn.calls.map((call) => call.callee),
   };
-}
+};

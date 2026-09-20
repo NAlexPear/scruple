@@ -24,7 +24,7 @@ const configNames = [
   "scruple.config.mjs",
 ];
 
-export async function runCli(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
+export const runCli = async (argv: readonly string[] = process.argv.slice(2)): Promise<number> => {
   const { values, positionals } = parseArgs({
     args: [...argv],
     allowPositionals: true,
@@ -88,9 +88,9 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2)): P
   } finally {
     await config.provider.close?.();
   }
-}
+};
 
-function findConfig(cwd: string, explicit: string | undefined): string {
+const findConfig = (cwd: string, explicit: string | undefined): string => {
   if (explicit !== undefined) {
     const path = resolve(cwd, explicit);
     if (!existsSync(path)) {
@@ -106,18 +106,18 @@ function findConfig(cwd: string, explicit: string | undefined): string {
     }
   }
   throw new Error(`No Scruple config found. Expected one of: ${configNames.join(", ")}`);
-}
+};
 
-async function loadConfig(path: string): Promise<ScrupleConfig> {
+const loadConfig = async (path: string): Promise<ScrupleConfig> => {
   const jiti = createJiti(import.meta.url, { interopDefault: true });
   const config: unknown = await jiti.import(path, { default: true });
   if (!isScrupleConfig(config)) {
     throw new Error("Config must define parser, provider, plugins, and rules");
   }
   return config;
-}
+};
 
-function isScrupleConfig(value: unknown): value is ScrupleConfig {
+const isScrupleConfig = (value: unknown): value is ScrupleConfig => {
   if (!isRecord(value)) {
     return false;
   }
@@ -134,13 +134,13 @@ function isScrupleConfig(value: unknown): value is ScrupleConfig {
     Object.values(plugins).every((plugin) => isRecord(plugin) && isRecord(plugin["rules"])) &&
     isRecord(value["rules"])
   );
-}
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
-}
+};
 
-function printStylish(diagnostics: Diagnostic[]): void {
+const printStylish = (diagnostics: Diagnostic[]): void => {
   let currentFile = "";
   for (const diagnostic of diagnostics) {
     if (diagnostic.filename !== currentFile) {
@@ -157,16 +157,16 @@ function printStylish(diagnostics: Diagnostic[]): void {
       `  ${position} ${severity} ${diagnostic.message}${probability}  ${diagnostic.ruleId}\n`,
     );
   }
-}
+};
 
-function jsonErrorReplacer(key: string, value: unknown): unknown {
+const jsonErrorReplacer = (key: string, value: unknown): unknown => {
   if (key === "cause" && value instanceof Error) {
     return { name: value.name, message: value.message };
   }
   return value;
-}
+};
 
-function usage(): string {
+const usage = (): string => {
   return `Scruple — semantic rules for code
 
 Usage:
@@ -182,4 +182,4 @@ Exit codes:
   1  At least one error-severity finding
   2  Configuration, parsing, or provider failure
 `;
-}
+};

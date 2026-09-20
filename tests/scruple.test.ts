@@ -13,6 +13,92 @@ import { oxcParser } from "@scruple/parser-oxc";
 import { relationalDatabases } from "@scruple/relational-databases";
 import { tests as testRules } from "@scruple/tests";
 
+const fixtureProvider = (): DecisionProvider => {
+  return {
+    id: "fixture",
+    evaluate(request): Promise<DecisionResponse> {
+      const answers: Record<string, DecisionAnswer> = {};
+      for (const [id, question] of Object.entries(request.questions)) {
+        if (question.type === "noul") {
+          answers[id] = { type: "noul", noul: 0.99 };
+        } else if ("vacuous" in question.criteria) {
+          answers[id] = {
+            type: "choice",
+            choice: "vacuous",
+            confidence: 0.9,
+            probabilities: {
+              meaningful_verification: 0.02,
+              vacuous: 0.96,
+              insufficient_context: 0.02,
+            },
+          };
+        } else {
+          answers[id] = {
+            type: "choice",
+            choice: "database_pushdown",
+            confidence: 0.85,
+            probabilities: {
+              database_pushdown: 0.9,
+              intentionally_in_memory: 0.05,
+              insufficient_context: 0.05,
+            },
+          };
+        }
+      }
+      return Promise.resolve({
+        model: "fixture-1",
+        answers,
+        usage: { inputTokens: 10, outputTokens: 0 },
+      });
+    },
+  };
+};
+
+const makeRule = (id: string): SemanticRule => {
+  return {
+    description: id,
+    collect(document) {
+      const target = document.functions[0];
+      if (target === undefined) {
+        return [];
+      }
+      return [
+        {
+          target,
+          state: { function: target.source },
+          question: { type: "noul", instructions: id },
+        },
+      ];
+    },
+    diagnose: () => null,
+  };
+};
+
+const findingProvider = (finding: string | undefined): DecisionProvider => {
+  return {
+    id: "finding-fixture",
+    evaluate(request): Promise<DecisionResponse> {
+      const answers: Record<string, DecisionAnswer> = {};
+      for (const [id, question] of Object.entries(request.questions)) {
+        if (question.type === "noul") {
+          answers[id] = { type: "noul", noul: 0.99 };
+        } else {
+          if (finding === undefined) {
+            throw new Error("Choice fixtures require a finding");
+          }
+          answers[id] = {
+            type: "choice",
+            choice: finding,
+            confidence: 0.99,
+            probabilities: { [finding]: 0.99 },
+          };
+        }
+      }
+      return Promise.resolve({ model: "fixture", answers });
+    },
+  };
+};
+
 await test("OXC normalizes comments, tests, functions, imports, and calls", () => {
   const parser = oxcParser();
   const source = `import { db } from "./db";
@@ -301,89 +387,3 @@ await test("all comments rules produce their own configured diagnostics", async 
     }),
   );
 });
-
-function fixtureProvider(): DecisionProvider {
-  return {
-    id: "fixture",
-    evaluate(request): Promise<DecisionResponse> {
-      const answers: Record<string, DecisionAnswer> = {};
-      for (const [id, question] of Object.entries(request.questions)) {
-        if (question.type === "noul") {
-          answers[id] = { type: "noul", noul: 0.99 };
-        } else if ("vacuous" in question.criteria) {
-          answers[id] = {
-            type: "choice",
-            choice: "vacuous",
-            confidence: 0.9,
-            probabilities: {
-              meaningful_verification: 0.02,
-              vacuous: 0.96,
-              insufficient_context: 0.02,
-            },
-          };
-        } else {
-          answers[id] = {
-            type: "choice",
-            choice: "database_pushdown",
-            confidence: 0.85,
-            probabilities: {
-              database_pushdown: 0.9,
-              intentionally_in_memory: 0.05,
-              insufficient_context: 0.05,
-            },
-          };
-        }
-      }
-      return Promise.resolve({
-        model: "fixture-1",
-        answers,
-        usage: { inputTokens: 10, outputTokens: 0 },
-      });
-    },
-  };
-}
-
-function makeRule(id: string): SemanticRule {
-  return {
-    description: id,
-    collect(document) {
-      const target = document.functions[0];
-      if (target === undefined) {
-        return [];
-      }
-      return [
-        {
-          target,
-          state: { function: target.source },
-          question: { type: "noul", instructions: id },
-        },
-      ];
-    },
-    diagnose: () => null,
-  };
-}
-
-function findingProvider(finding: string | undefined): DecisionProvider {
-  return {
-    id: "finding-fixture",
-    evaluate(request): Promise<DecisionResponse> {
-      const answers: Record<string, DecisionAnswer> = {};
-      for (const [id, question] of Object.entries(request.questions)) {
-        if (question.type === "noul") {
-          answers[id] = { type: "noul", noul: 0.99 };
-        } else {
-          if (finding === undefined) {
-            throw new Error("Choice fixtures require a finding");
-          }
-          answers[id] = {
-            type: "choice",
-            choice: finding,
-            confidence: 0.99,
-            probabilities: { [finding]: 0.99 },
-          };
-        }
-      }
-      return Promise.resolve({ model: "fixture", answers });
-    },
-  };
-}

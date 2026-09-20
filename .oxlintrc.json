@@ -10,6 +10,7 @@
   "rules": {
     "eslint/curly": "error",
     "eslint/eqeqeq": "error",
+    "eslint/func-style": ["error", "expression"],
     "eslint/no-console": "error",
     "eslint/max-lines": "off",
     "eslint/max-lines-per-function": "off",

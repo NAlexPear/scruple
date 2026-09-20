@@ -30,7 +30,7 @@ Examples:
   pnpm eval --provider jev --provider laya --model jev-1.13.0 --model auto
 `;
 
-export function parseEvalOptions(argv: readonly string[]): EvalOptions {
+export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
   const { values } = parseArgs({
     args: [...argv],
     options: {
@@ -69,4 +69,4 @@ export function parseEvalOptions(argv: readonly string[]): EvalOptions {
     };
   });
   return { help: values.help, repetitions, specs };
-}
+};

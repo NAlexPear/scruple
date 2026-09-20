@@ -27,11 +27,11 @@ const defaultCollectionOperationPatterns = [
   /(?:^|\.)(?:map|filter|find|reduce|forEach|some|every)$/u,
 ];
 
-export function relationalDatabases(): RelationalDatabasesPlugin {
+export const relationalDatabases = (): RelationalDatabasesPlugin => {
   return definePlugin({ rules: { "prefer-database-join": preferDatabaseJoin } });
-}
+};
 
-function preferDatabaseJoin(options: PreferDatabaseJoinOptions = {}): SemanticRule {
+const preferDatabaseJoin = (options: PreferDatabaseJoinOptions = {}): SemanticRule => {
   const threshold = options.threshold ?? 0.8;
   const minConfidence = options.minConfidence ?? 0.5;
   const databasePatterns = options.databaseCallPatterns ?? defaultDatabaseCallPatterns;
@@ -97,24 +97,24 @@ function preferDatabaseJoin(options: PreferDatabaseJoinOptions = {}): SemanticRu
       };
     },
   };
-}
+};
 
-function functionState(fn: FunctionTarget, document: ParsedDocument): JsonValue {
+const functionState = (fn: FunctionTarget, document: ParsedDocument): JsonValue => {
   return {
     language: document.language,
     imports: document.imports,
     function: fn.source,
     calls: fn.calls.map((call) => call.callee),
   };
-}
+};
 
-function isImplementationFunction(fn: FunctionTarget): boolean {
+const isImplementationFunction = (fn: FunctionTarget): boolean => {
   return fn.kind === "function" && fn.source.length > 0;
-}
+};
 
-function matchesAny(value: string, patterns: RegExp[]): boolean {
+const matchesAny = (value: string, patterns: RegExp[]): boolean => {
   return patterns.some((pattern) => {
     pattern.lastIndex = 0;
     return pattern.test(value);
   });
-}
+};

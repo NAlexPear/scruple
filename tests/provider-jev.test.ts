@@ -3,6 +3,14 @@ import test from "node:test";
 
 import { jevProvider } from "@scruple/provider-jev";
 
+const restoreEnvironment = (name: string, value: string | undefined): void => {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+};
+
 await test("Jev provider uses its explicit API key and sends provider-neutral questions", async (t) => {
   let requestBody: unknown;
   const originalApiKey = process.env["TYPESAFE_API_KEY"];
@@ -50,11 +58,3 @@ await test("Jev provider uses its explicit API key and sends provider-neutral qu
     usage: { inputTokens: 12, outputTokens: 3 },
   });
 });
-
-function restoreEnvironment(name: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[name];
-  } else {
-    process.env[name] = value;
-  }
-}

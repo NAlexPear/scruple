@@ -53,7 +53,7 @@ export const rules = [
   },
 ];
 
-export function filterRules(query = "", category = "all") {
+export const filterRules = (query = "", category = "all") => {
   const normalized = query.trim().toLowerCase();
   return rules.filter((rule) => {
     const categoryMatches = category === "all" || rule.category === category;
@@ -62,9 +62,9 @@ export function filterRules(query = "", category = "all") {
       `${rule.id} ${rule.title} ${rule.description}`.toLowerCase().includes(normalized);
     return categoryMatches && queryMatches;
   });
-}
+};
 
-export function setupContent(step, provider) {
+export const setupContent = (step, provider) => {
   const providerPackage = provider === "jev" ? "@scruple/provider-jev" : "@scruple/provider-laya";
   if (step === "install") {
     return {
@@ -131,4 +131,4 @@ export default defineConfig({
 # Machine-readable diagnostics
 pnpm exec scruple check --format json`,
   };
-}
+};

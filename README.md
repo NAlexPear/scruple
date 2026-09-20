@@ -146,13 +146,14 @@ source → parser → normalized targets → enabled plugin rules → decision p
 pnpm install
 pnpm fix
 pnpm check
+pnpm test
 ```
 
 `pnpm fix` applies safe Oxlint fixes and Oxfmt formatting. `pnpm check` verifies formatting, linting,
-types, builds, and the deterministic Node test suite without modifying source files. Public packages
-are emitted as unbundled ESM with declarations, source maps, and TypeScript source. The compiled
-`scruple` bin leaves dependencies external so parser, provider, and rule plugins resolve from the
-consuming project.
+types, and builds without modifying source files. `pnpm test` runs the deterministic Node unit test
+suite. Public packages are emitted as unbundled ESM with declarations, source maps, and TypeScript
+source. The compiled `scruple` bin leaves dependencies external so parser, provider, and rule plugins
+resolve from the consuming project.
 
 Run the documentation site locally with `pnpm docs:dev`; its interaction tests run as part of
 `pnpm check` or independently with `pnpm docs:test`.
@@ -182,6 +183,7 @@ Scruple uses one version for every public package. Prepare and verify a release 
 ```sh
 pnpm release:version 0.1.0
 pnpm check
+pnpm test
 git add package.json packages/*/package.json
 git commit -m "🔖 Release v0.1.0"
 git tag -a v0.1.0 -m "🔖 Release v0.1.0"

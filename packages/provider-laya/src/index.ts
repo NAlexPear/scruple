@@ -42,7 +42,7 @@ interface BridgeMessage {
   error?: string;
 }
 
-export function layaProvider(options: LayaProviderOptions = {}): DecisionProvider {
+export const layaProvider = (options: LayaProviderOptions = {}): DecisionProvider => {
   const bridge = new LayaBridge(options);
   const model = options.model ?? "auto";
   return {
@@ -52,7 +52,7 @@ export function layaProvider(options: LayaProviderOptions = {}): DecisionProvide
       bridge.close();
     },
   };
-}
+};
 
 class LayaBridge {
   readonly #options: NormalizedLayaProviderOptions;
@@ -240,7 +240,7 @@ for line in sys.stdin:
         print(json.dumps({"id": request_id, "ok": False, "error": str(error)}), flush=True)
 `;
 
-function isBridgeMessage(value: unknown): value is BridgeMessage {
+const isBridgeMessage = (value: unknown): value is BridgeMessage => {
   if (!isRecord(value) || typeof value["id"] !== "number" || typeof value["ok"] !== "boolean") {
     return false;
   }
@@ -262,9 +262,9 @@ function isBridgeMessage(value: unknown): value is BridgeMessage {
     isUsage(result["usage"]) &&
     isRouting(result["routing"])
   );
-}
+};
 
-function isDecisionAnswer(value: unknown): value is DecisionAnswer {
+const isDecisionAnswer = (value: unknown): value is DecisionAnswer => {
   if (!isRecord(value) || typeof value["type"] !== "string") {
     return false;
   }
@@ -285,28 +285,28 @@ function isDecisionAnswer(value: unknown): value is DecisionAnswer {
     isNumberRecord(value["probabilities"]) &&
     isRecord(value["legend"])
   );
-}
+};
 
-function isUsage(value: unknown): boolean {
+const isUsage = (value: unknown): boolean => {
   return (
     value === undefined ||
     (isRecord(value) &&
       (value["input_tokens"] === undefined || typeof value["input_tokens"] === "number") &&
       (value["output_tokens"] === undefined || typeof value["output_tokens"] === "number"))
   );
-}
+};
 
-function isRouting(value: unknown): boolean {
+const isRouting = (value: unknown): boolean => {
   return (
     value === undefined ||
     (isRecord(value) && (value["model"] === undefined || typeof value["model"] === "string"))
   );
-}
+};
 
-function isNumberRecord(value: unknown): value is Record<string, number> {
+const isNumberRecord = (value: unknown): value is Record<string, number> => {
   return isRecord(value) && Object.values(value).every((item) => typeof item === "number");
-}
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
-}
+};

@@ -76,6 +76,55 @@ await test("evaluation corpus has unique, reachable positive and negative cases"
   }
 });
 
+const makeTestPlugin = (): ScruplePlugin => {
+  return definePlugin({
+    rules: {
+      "bad-rule": () => ({
+        description: "Fixture rule",
+        collect(document) {
+          const target = document.functions[0];
+          return target === undefined
+            ? []
+            : [
+                {
+                  target,
+                  state: { source: target.source },
+                  question: { type: "noul", instructions: "Is this bad?" },
+                },
+              ];
+        },
+        diagnose(answer, candidate) {
+          return answer.type === "noul" && answer.noul > 0.5
+            ? {
+                message: "Bad fixture",
+                filename: candidate.target.filename,
+                location: candidate.target.location,
+              }
+            : null;
+        },
+      }),
+    },
+  });
+};
+
+const makeScoringProvider = (): DecisionProvider => {
+  return {
+    id: "fixture",
+    evaluate(request): Promise<DecisionResponse> {
+      const source = JSON.stringify(request.state);
+      const answers: Record<string, DecisionAnswer> = {};
+      for (const id of Object.keys(request.questions)) {
+        answers[id] = { type: "noul", noul: source.includes("bad") ? 0.9 : 0.1 };
+      }
+      return Promise.resolve({
+        model: "resolved-model",
+        answers,
+        usage: { inputTokens: 7, outputTokens: 3 },
+      });
+    },
+  };
+};
+
 await test("evaluation runner scores findings and aggregates usage", async () => {
   const fixtures: EvalFixture[] = [
     {
@@ -113,52 +162,3 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
   assert.equal(report.cases[0]?.model, "resolved-model");
   assert.equal(hasEvalFailures([report]), false);
 });
-
-function makeTestPlugin(): ScruplePlugin {
-  return definePlugin({
-    rules: {
-      "bad-rule": () => ({
-        description: "Fixture rule",
-        collect(document) {
-          const target = document.functions[0];
-          return target === undefined
-            ? []
-            : [
-                {
-                  target,
-                  state: { source: target.source },
-                  question: { type: "noul", instructions: "Is this bad?" },
-                },
-              ];
-        },
-        diagnose(answer, candidate) {
-          return answer.type === "noul" && answer.noul > 0.5
-            ? {
-                message: "Bad fixture",
-                filename: candidate.target.filename,
-                location: candidate.target.location,
-              }
-            : null;
-        },
-      }),
-    },
-  });
-}
-
-function makeScoringProvider(): DecisionProvider {
-  return {
-    id: "fixture",
-    evaluate(request): Promise<DecisionResponse> {
-      const source = JSON.stringify(request.state);
-      const answers: Record<string, DecisionAnswer> = {};
-      for (const id of Object.keys(request.questions)) {
-        answers[id] = { type: "noul", noul: source.includes("bad") ? 0.9 : 0.1 };
-      }
-      return Promise.resolve({
-        model: "resolved-model",
-        answers,
-        usage: { inputTokens: 7, outputTokens: 3 },
-      });
-    },
-  };
-}

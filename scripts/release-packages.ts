@@ -14,7 +14,7 @@ export interface PublicPackage {
   workspaceDependencies: readonly string[];
 }
 
-export function loadPublicPackages(root: string): PublicPackage[] {
+export const loadPublicPackages = (root: string): PublicPackage[] => {
   const packagesDirectory = join(root, "packages");
   return readdirSync(packagesDirectory, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -39,9 +39,9 @@ export function loadPublicPackages(root: string): PublicPackage[] {
       ];
     })
     .toSorted((left, right) => left.name.localeCompare(right.name));
-}
+};
 
-export function sortForPublication(packages: readonly PublicPackage[]): PublicPackage[] {
+export const sortForPublication = (packages: readonly PublicPackage[]): PublicPackage[] => {
   const remaining = new Map(packages.map((entry) => [entry.name, entry]));
   const published = new Set<string>();
   const sorted: PublicPackage[] = [];
@@ -59,9 +59,9 @@ export function sortForPublication(packages: readonly PublicPackage[]): PublicPa
     }
   }
   return sorted;
-}
+};
 
-export function validatePackageContract(root: string): string[] {
+export const validatePackageContract = (root: string): string[] => {
   const rootManifest = readJsonObject(join(root, "package.json"));
   const rootVersion = requireString(rootManifest, "version", "package.json");
   const packages = loadPublicPackages(root);
@@ -137,17 +137,17 @@ export function validatePackageContract(root: string): string[] {
     }
     return errors;
   });
-}
+};
 
-function workspaceDependencies(manifest: Readonly<Record<string, unknown>>): string[] {
+const workspaceDependencies = (manifest: Readonly<Record<string, unknown>>): string[] => {
   return dependencyEntries(manifest)
     .flatMap(([name, range]) => (range.startsWith("workspace:") ? [name] : []))
     .toSorted();
-}
+};
 
-function dependencyEntries(
+const dependencyEntries = (
   manifest: Readonly<Record<string, unknown>>,
-): readonly (readonly [string, string])[] {
+): readonly (readonly [string, string])[] => {
   const fields = ["dependencies", "optionalDependencies", "peerDependencies"];
   return fields
     .flatMap((field) => {
@@ -166,37 +166,37 @@ function dependencyEntries(
       });
     })
     .toSorted(([left], [right]) => left.localeCompare(right));
-}
+};
 
-function readJsonObject(path: string): Record<string, unknown> {
+const readJsonObject = (path: string): Record<string, unknown> => {
   const value: unknown = JSON.parse(readFileSync(path, "utf8"));
   if (!isRecord(value)) {
     throw new TypeError(`${path} must contain a JSON object`);
   }
   return value;
-}
+};
 
-function requireString(
+const requireString = (
   value: Readonly<Record<string, unknown>>,
   field: string,
   source: string,
-): string {
+): string => {
   const entry = value[field];
   if (typeof entry !== "string" || entry.length === 0) {
     throw new TypeError(`${source}: ${field} must be a nonempty string`);
   }
   return entry;
-}
+};
 
-function check(errors: string[], accepted: boolean, message: string): void {
+const check = (errors: string[], accepted: boolean, message: string): void => {
   if (!accepted) {
     errors.push(message);
   }
-}
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+};
 
 const command = process.argv[2];
 if (command === "manifest") {

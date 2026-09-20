@@ -211,15 +211,15 @@ export type DefinedScrupleConfig<Plugins extends PluginMap> = Omit<
   rules: RulesForPlugins<Plugins>;
 };
 
-export function defineConfig<const Plugins extends PluginMap>(
+export const defineConfig = <const Plugins extends PluginMap>(
   config: DefinedScrupleConfig<Plugins>,
-): DefinedScrupleConfig<Plugins> {
+): DefinedScrupleConfig<Plugins> => {
   return config;
-}
+};
 
-export function definePlugin<const Plugin extends ScruplePlugin>(plugin: Plugin): Plugin {
+export const definePlugin = <const Plugin extends ScruplePlugin>(plugin: Plugin): Plugin => {
   return plugin;
-}
+};
 
 export interface SourceFile {
   filename: string;
@@ -262,11 +262,11 @@ interface EvaluationBatch {
   pending: PendingCandidate[];
 }
 
-export async function runScruple(
+export const runScruple = async (
   config: ScrupleConfig,
   files: SourceFile[],
   signal?: AbortSignal,
-): Promise<RunResult> {
+): Promise<RunResult> => {
   const errors: OperationalError[] = [];
   const allPending: PendingCandidate[] = [];
   const activeRules = resolveRules(config, errors);
@@ -368,9 +368,9 @@ export async function runScruple(
       outputTokens,
     },
   };
-}
+};
 
-function resolveRules(config: ScrupleConfig, errors: OperationalError[]): ActiveRule[] {
+const resolveRules = (config: ScrupleConfig, errors: OperationalError[]): ActiveRule[] => {
   const activeRules: ActiveRule[] = [];
 
   for (const [namespace, plugin] of Object.entries(config.plugins)) {
@@ -424,13 +424,13 @@ function resolveRules(config: ScrupleConfig, errors: OperationalError[]): Active
   }
 
   return activeRules;
-}
+};
 
-function parseRuleConfiguration(
+const parseRuleConfiguration = (
   ruleId: string,
   configured: RuleConfiguration,
   errors: OperationalError[],
-): { severity: RuleSeverity; options: unknown } | undefined {
+): { severity: RuleSeverity; options: unknown } | undefined => {
   if (typeof configured === "string") {
     if (isRuleSeverity(configured)) {
       return { severity: configured, options: undefined };
@@ -445,13 +445,13 @@ function parseRuleConfiguration(
 
   errors.push({ message: `Invalid configuration for rule ${ruleId}` });
   return undefined;
-}
+};
 
-function isRuleSeverity(value: unknown): value is RuleSeverity {
+const isRuleSeverity = (value: unknown): value is RuleSeverity => {
   return value === "off" || value === "warn" || value === "error";
-}
+};
 
-function groupByState(pending: PendingCandidate[]): EvaluationBatch[] {
+const groupByState = (pending: PendingCandidate[]): EvaluationBatch[] => {
   const groups = new Map<string, EvaluationBatch>();
   for (const item of pending) {
     const key = stableStringify(item.candidate.state);
@@ -463,9 +463,9 @@ function groupByState(pending: PendingCandidate[]): EvaluationBatch[] {
     }
   }
   return [...groups.values()];
-}
+};
 
-function stableStringify(value: JsonValue): string {
+const stableStringify = (value: JsonValue): string => {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(",")}]`;
   }
@@ -476,13 +476,13 @@ function stableStringify(value: JsonValue): string {
       .join(",")}}`;
   }
   return JSON.stringify(value);
-}
+};
 
-async function runConcurrent<T>(
+const runConcurrent = async <T>(
   values: T[],
   concurrency: number,
   work: (value: T) => Promise<void>,
-): Promise<void> {
+): Promise<void> => {
   const safeConcurrency = Math.max(1, Math.floor(concurrency));
   const iterator = values.values();
   const runWorker = async (): Promise<void> => {
@@ -494,25 +494,25 @@ async function runConcurrent<T>(
   };
   const workers = Array.from({ length: Math.min(safeConcurrency, values.length) }, runWorker);
   await Promise.all(workers);
-}
+};
 
-function sanitizeId(id: string): string {
+const sanitizeId = (id: string): string => {
   return id.replaceAll(/[^a-zA-Z0-9_-]/gu, "_");
-}
+};
 
-function compareDiagnostics(left: Diagnostic, right: Diagnostic): number {
+const compareDiagnostics = (left: Diagnostic, right: Diagnostic): number => {
   return (
     left.filename.localeCompare(right.filename) ||
     left.location.start.line - right.location.start.line ||
     left.location.start.column - right.location.start.column ||
     left.ruleId.localeCompare(right.ruleId)
   );
-}
+};
 
-function errorMessage(error: unknown): string {
+const errorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : String(error);
-}
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
-}
+};

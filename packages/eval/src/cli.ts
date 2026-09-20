@@ -46,7 +46,7 @@ try {
   process.exitCode = 2;
 }
 
-function createProvider(spec: EvalProviderSpec): DecisionProvider {
+const createProvider = (spec: EvalProviderSpec): DecisionProvider => {
   if (spec.provider === "jev") {
     const apiKey = process.env["TYPESAFE_API_KEY"];
     if (apiKey === undefined || apiKey.length === 0) {
@@ -58,13 +58,13 @@ function createProvider(spec: EvalProviderSpec): DecisionProvider {
     throw new Error(`Unsupported Laya model: ${spec.model}`);
   }
   return layaProvider({ model: spec.model });
-}
+};
 
-async function runSpec(
+const runSpec = async (
   spec: EvalProviderSpec,
   repetitions: number,
   fixtures: readonly EvalFixture[],
-): Promise<EvalRunReport[]> {
+): Promise<EvalRunReport[]> => {
   const provider = createProvider(spec);
   try {
     return await Promise.all(
@@ -83,8 +83,8 @@ async function runSpec(
   } finally {
     await provider.close?.();
   }
-}
+};
 
-function isLayaModel(model: string): model is LayaModel {
+const isLayaModel = (model: string): model is LayaModel => {
   return ["auto", "english", "multilingual", "typed-decisions"].includes(model);
-}
+};

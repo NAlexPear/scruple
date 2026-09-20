@@ -41,7 +41,7 @@ const traceData = {
   },
 };
 
-function renderSetup() {
+const renderSetup = () => {
   const content = setupContent(setupState.step, setupState.provider);
   document.querySelector("#step-kicker").textContent = content.kicker;
   document.querySelector("#step-title").textContent = content.title;
@@ -49,7 +49,7 @@ function renderSetup() {
   document.querySelector("#code-filename").textContent = content.filename;
   document.querySelector("#setup-code").textContent = content.code;
   document.querySelector("#provider-choices").hidden = setupState.step === "run";
-}
+};
 
 document.querySelectorAll(".setup-tab").forEach((button) => {
   button.addEventListener("click", () => {
@@ -87,7 +87,7 @@ document.querySelectorAll(".copy-button").forEach((button) => {
   });
 });
 
-function renderTrace(name) {
+const renderTrace = (name) => {
   const trace = traceData[name];
   document.querySelector("#trace-source").innerHTML = trace.source;
   document.querySelector("#trace-question").textContent = trace.question;
@@ -98,7 +98,7 @@ function renderTrace(name) {
   document.querySelector("#outcome-rule").textContent = trace.rule;
   document.querySelector("#outcome-icon").textContent = trace.icon;
   document.querySelector("#outcome-stage").classList.toggle("abstained", trace.abstain);
-}
+};
 
 document.querySelectorAll(".trace-option").forEach((button) => {
   button.addEventListener("click", () => {
@@ -115,7 +115,7 @@ const ruleList = document.querySelector("#rule-list");
 const ruleSearch = document.querySelector("#rule-search");
 let activeFilter = "all";
 
-function renderRules() {
+const renderRules = () => {
   const visibleRules = filterRules(ruleSearch.value, activeFilter);
   ruleList.innerHTML = visibleRules
     .map(
@@ -130,7 +130,7 @@ function renderRules() {
     )
     .join("");
   document.querySelector("#empty-state").hidden = visibleRules.length > 0;
-}
+};
 
 ruleSearch.addEventListener("input", renderRules);
 document.querySelectorAll(".filter").forEach((button) => {
@@ -158,7 +158,7 @@ const searchItems = [
 const dialog = document.querySelector("#search-dialog");
 const docsSearch = document.querySelector("#docs-search");
 
-function renderSearch() {
+const renderSearch = () => {
   const query = docsSearch.value.toLowerCase();
   const matches = searchItems.filter((item) =>
     `${item.title} ${item.detail}`.toLowerCase().includes(query),
@@ -173,7 +173,7 @@ function renderSearch() {
   document.querySelectorAll("#search-results a").forEach((link) => {
     link.addEventListener("click", () => dialog.close());
   });
-}
+};
 
 document.querySelector(".search-trigger").addEventListener("click", () => {
   dialog.showModal();

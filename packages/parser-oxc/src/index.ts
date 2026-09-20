@@ -40,7 +40,7 @@ export interface OxcParserOptions {
   testCallees?: string[];
 }
 
-export function oxcParser(options: OxcParserOptions = {}): SourceParser {
+export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
   const configuredTestCallees = new Set(options.testCallees ?? testCallees);
 
   return {
@@ -86,24 +86,24 @@ export function oxcParser(options: OxcParserOptions = {}): SourceParser {
       } satisfies ParsedDocument;
     },
   };
-}
+};
 
-function collectImports(program: AstNode, source: string): string[] {
+const collectImports = (program: AstNode, source: string): string[] => {
   const body = Array.isArray(program.body) ? program.body : [];
   return body
     .filter((value) => isNode(value))
     .filter((node) => node.type === "ImportDeclaration")
     .map((node) => source.slice(node.start, node.end));
-}
+};
 
-function collectFunctions(
+const collectFunctions = (
   program: AstNode,
   source: string,
   filename: string,
   language: string,
   locate: (range: SourceRange) => SourceLocation,
   configuredTestCallees: Set<string>,
-): FunctionTarget[] {
+): FunctionTarget[] => {
   const functions: FunctionTarget[] = [];
   const stack: FunctionTarget[] = [];
 
@@ -154,16 +154,16 @@ function collectFunctions(
   });
 
   return functions;
-}
+};
 
-function convertComment(
+const convertComment = (
   comment: Comment,
   source: string,
   filename: string,
   language: string,
   locate: (range: SourceRange) => SourceLocation,
   functions: FunctionTarget[],
-): CommentTarget {
+): CommentTarget => {
   const range = { start: comment.start, end: comment.end };
   const enclosing = functions
     .filter((fn) => fn.range.start <= range.start && fn.range.end >= range.end)
@@ -183,9 +183,9 @@ function convertComment(
     target.enclosingSource = enclosing.source;
   }
   return target;
-}
+};
 
-function convertError(error: OxcError): ParseIssue {
+const convertError = (error: OxcError): ParseIssue => {
   const label = error.labels[0];
   const severity: string = error.severity;
   return {
@@ -193,16 +193,16 @@ function convertError(error: OxcError): ParseIssue {
     severity: severity === "Error" ? "error" : "warning",
     ...(label ? { range: { start: label.start, end: label.end } } : {}),
   };
-}
+};
 
-function walk(
+const walk = (
   node: AstNode,
   parent: AstNode | undefined,
   visitor: {
     enter(node: AstNode, parent: AstNode | undefined): void;
     leave(node: AstNode, parent: AstNode | undefined): void;
   },
-): void {
+): void => {
   visitor.enter(node, parent);
   for (const key of visitorKeys[node.type] ?? []) {
     const value = node[key];
@@ -217,13 +217,13 @@ function walk(
     }
   }
   visitor.leave(node, parent);
-}
+};
 
-function getTestDetails(
+const getTestDetails = (
   node: AstNode,
   parent: AstNode | undefined,
   configuredTestCallees: Set<string>,
-): { name?: string } | undefined {
+): { name?: string } | undefined => {
   if (parent === undefined || parent.type !== "CallExpression") {
     return undefined;
   }
@@ -245,9 +245,9 @@ function getTestDetails(
   const firstArgument = args.find((value) => isNode(value));
   const value = firstArgument?.type === "Literal" ? firstArgument.value : undefined;
   return typeof value === "string" ? { name: value } : {};
-}
+};
 
-function functionName(node: AstNode, parent: AstNode | undefined): string | undefined {
+const functionName = (node: AstNode, parent: AstNode | undefined): string | undefined => {
   const ownId = isNode(node.id) ? identifierName(node.id) : undefined;
   if (ownId !== undefined) {
     return ownId;
@@ -266,9 +266,9 @@ function functionName(node: AstNode, parent: AstNode | undefined): string | unde
     return identifierName(parent.key);
   }
   return undefined;
-}
+};
 
-function getCalleeName(value: unknown): string | undefined {
+const getCalleeName = (value: unknown): string | undefined => {
   if (!isNode(value)) {
     return undefined;
   }
@@ -287,9 +287,9 @@ function getCalleeName(value: unknown): string | undefined {
     return property ?? object;
   }
   return undefined;
-}
+};
 
-function identifierName(node: AstNode): string | undefined {
+const identifierName = (node: AstNode): string | undefined => {
   if (typeof node.name === "string") {
     return node.name;
   }
@@ -297,9 +297,9 @@ function identifierName(node: AstNode): string | undefined {
     return node.value;
   }
   return undefined;
-}
+};
 
-function createLocator(source: string): (range: SourceRange) => SourceLocation {
+const createLocator = (source: string): ((range: SourceRange) => SourceLocation) => {
   const lineStarts = [0];
   for (let index = 0; index < source.length; index += 1) {
     if (source[index] === "\n") {
@@ -311,9 +311,9 @@ function createLocator(source: string): (range: SourceRange) => SourceLocation {
     start: positionAt(lineStarts, range.start),
     end: positionAt(lineStarts, range.end),
   });
-}
+};
 
-function positionAt(lineStarts: number[], offset: number): { line: number; column: number } {
+const positionAt = (lineStarts: number[], offset: number): { line: number; column: number } => {
   let low = 0;
   let high = lineStarts.length - 1;
   while (low <= high) {
@@ -326,9 +326,9 @@ function positionAt(lineStarts: number[], offset: number): { line: number; colum
   }
   const lineIndex = Math.max(0, high);
   return { line: lineIndex + 1, column: offset - lineStarts[lineIndex]! + 1 };
-}
+};
 
-function isNode(value: unknown): value is AstNode {
+const isNode = (value: unknown): value is AstNode => {
   if (!isRecord(value)) {
     return false;
   }
@@ -337,26 +337,26 @@ function isNode(value: unknown): value is AstNode {
     typeof value["start"] === "number" &&
     typeof value["end"] === "number"
   );
-}
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
-}
+};
 
-function rangeOf(node: AstNode): SourceRange {
+const rangeOf = (node: AstNode): SourceRange => {
   return { start: node.start, end: node.end };
-}
+};
 
-function rangeLength(range: SourceRange): number {
+const rangeLength = (range: SourceRange): number => {
   return range.end - range.start;
-}
+};
 
-function extension(filename: string): string {
+const extension = (filename: string): string => {
   const match = /\.[^.\\/]+$/u.exec(filename.toLowerCase());
   return match?.[0] ?? "";
-}
+};
 
-function languageFor(filename: string): string {
+const languageFor = (filename: string): string => {
   const ext = extension(filename);
   if (ext === ".ts" || ext === ".mts" || ext === ".cts") {
     return "typescript";
@@ -368,4 +368,4 @@ function languageFor(filename: string): string {
     return "jsx";
   }
   return "javascript";
-}
+};

@@ -48,6 +48,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Check project
         run: pnpm check
+      - name: Run unit tests
+        run: pnpm test
 
   package:
     needs: check

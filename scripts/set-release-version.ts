@@ -1,6 +1,18 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+const readManifest = (path: string): Record<string, unknown> => {
+  const value: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (!isRecord(value)) {
+    throw new TypeError(`${path} must contain a JSON object`);
+  }
+  return value;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
 const version = process.argv[2];
 if (version === undefined || !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u.test(version)) {
   throw new Error("Usage: pnpm release:version <semver>");
@@ -28,15 +40,3 @@ for (const path of manifestPaths) {
 }
 
 process.stdout.write(`Set ${manifestPaths.length - 1} public packages to v${version}.\n`);
-
-function readManifest(path: string): Record<string, unknown> {
-  const value: unknown = JSON.parse(readFileSync(path, "utf8"));
-  if (!isRecord(value)) {
-    throw new TypeError(`${path} must contain a JSON object`);
-  }
-  return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
