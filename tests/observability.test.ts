@@ -185,6 +185,22 @@ export async function distinct() {
     throw error;
   }
 }
+
+export async function textualMention() {
+  try { await charge(); } catch (error) {
+    logger.error("error while charging");
+    telemetry.captureException(new ChargeError("error"));
+    throw error;
+  }
+}
+
+export async function distinctCause() {
+  try { await charge(); } catch (error) {
+    logger.error(error);
+    telemetry.captureException(error.cause);
+    throw error;
+  }
+}
 `;
   const rule = observability().rules["no-duplicate-error-reporting"]();
   const candidates = rule.collect(oxcParser().parse("errors.ts", source));

@@ -126,8 +126,22 @@ const noQueryInLoop = (options: DatabaseRuleOptions = {}): SemanticRule => {
         const iterationCalls = fn.calls.filter((call) =>
           matchesAny(call.callee, iterationCallPatterns),
         );
-        const hasLoop = loopSourcePattern.test(fn.source);
-        const suspectedCalls = hasLoop ? callsAfterFirstLoop(fn, directCalls) : nestedCalls;
+        const lexicalLoop = loopSourcePattern.test(fn.source);
+        const suspectedCalls =
+          document.facts === undefined
+            ? lexicalLoop
+              ? callsAfterFirstLoop(fn, directCalls)
+              : nestedCalls
+            : [...directCalls, ...nestedCalls].filter((call) => isCallInIteration(call, document));
+        const hasLoop =
+          document.facts === undefined
+            ? lexicalLoop
+            : suspectedCalls.some(
+                (call) =>
+                  structuredCall(call, document)?.control.some(
+                    (region) => region.kind === "loop",
+                  ) === true,
+              );
         if (suspectedCalls.length === 0 || (!hasLoop && iterationCalls.length === 0)) {
           return [];
         }
@@ -390,6 +404,24 @@ const callsAfterFirstLoop = (fn: FunctionTarget, calls: CallCapture[]): CallCapt
   }
   const loopStart = fn.range.start + match.index;
   return calls.filter((call) => call.range.start >= loopStart);
+};
+
+const isCallInIteration = (call: CallCapture, document: ParsedDocument): boolean => {
+  return (
+    structuredCall(call, document)?.control.some(
+      (region) =>
+        region.kind === "loop" ||
+        (region.kind === "callback" &&
+          region.callee !== undefined &&
+          matchesAny(region.callee, iterationCallPatterns)),
+    ) ?? false
+  );
+};
+
+const structuredCall = (call: CallCapture, document: ParsedDocument) => {
+  return document.facts?.calls.find(
+    (fact) => fact.range.start === call.range.start && fact.range.end === call.range.end,
+  );
 };
 
 const isDatabaseCall = (

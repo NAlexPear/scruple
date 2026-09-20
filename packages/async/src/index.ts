@@ -10,6 +10,7 @@ import type {
   RuleFactory,
   ScruplePlugin,
   SemanticRule,
+  StructuredCallFact,
 } from "@scruple/core";
 import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
@@ -76,9 +77,10 @@ const noSerialIndependentWork = (options: AsyncRuleOptions = {}): SemanticRule =
   return choiceRule(resolved, {
     description: "Independent asynchronous work should not wait in series.",
     select: (document) =>
-      selectFunctions(document, resolved, (fn) =>
-        fn.async && directlyAwaitedCalls(fn).length >= 2 ? directlyAwaitedCalls(fn) : [],
-      ),
+      selectFunctions(document, resolved, (fn) => {
+        const calls = directlyAwaitedCalls(fn, document);
+        return fn.async && calls.length >= 2 ? calls : [];
+      }),
     question: {
       instructions:
         "Does this function unnecessarily await independent operations in series? Require clear local evidence that starting at least two directly awaited operations together preserves results, side effects, failure ordering, whether later work runs after an earlier failure, resource limits, transactions, locks, rate limits, and required ordering. Locally normalized failures or known non-failing operations can establish compatible failure behavior. A later call using an earlier result is dependent. Choose `insufficient_context` rather than infer effects or failure contracts hidden behind callees.",
@@ -286,11 +288,24 @@ const selectFunctions = (
     });
 };
 
-const directlyAwaitedCalls = (fn: FunctionTarget): CallCapture[] => {
+const directlyAwaitedCalls = (fn: FunctionTarget, document: ParsedDocument): CallCapture[] => {
   return fn.calls.filter((call) => {
+    const fact = structuredCallFact(call, document);
+    if (fact !== undefined) {
+      return fact.awaited;
+    }
     const relativeStart = call.range.start - fn.range.start;
     return /\bawait\s*$/u.test(fn.source.slice(0, relativeStart));
   });
+};
+
+const structuredCallFact = (
+  call: CallCapture,
+  document: ParsedDocument,
+): StructuredCallFact | undefined => {
+  return document.facts?.calls.find(
+    (fact) => fact.range.start === call.range.start && fact.range.end === call.range.end,
+  );
 };
 
 const nativePromiseCalls = (

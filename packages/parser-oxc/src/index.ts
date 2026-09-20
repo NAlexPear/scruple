@@ -12,6 +12,10 @@ import type {
   FunctionTarget,
   ParsedDocument,
   ParseIssue,
+  StructuredArgumentFact,
+  StructuredCallFact,
+  StructuredFacts,
+  StructuredValueKind,
   SourceLocation,
   SourceParser,
   SourceRange,
@@ -40,6 +44,8 @@ type AstNode = Record<string, unknown> & {
   init?: unknown;
   declarations?: unknown;
   specifiers?: unknown;
+  computed?: unknown;
+  finalizer?: unknown;
   local?: unknown;
   imported?: unknown;
   source?: unknown;
@@ -101,6 +107,7 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
         functions,
       );
       const apiBoundaries = collectApiBoundaries(program, source, filename, language, locate);
+      const facts = collectStructuredFacts(program, source);
       const comments = result.comments.map((comment) =>
         convertComment(comment, source, filename, language, locate, functions),
       );
@@ -114,6 +121,7 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
         functions,
         errorHandlers,
         apiBoundaries,
+        facts,
         issues: result.errors.map(convertError),
       } satisfies ParsedDocument;
     },
@@ -784,6 +792,246 @@ const uniqueByRange = <Value extends { range: SourceRange }>(values: Value[]): V
     return true;
   });
 };
+
+interface AstAncestor {
+  node: AstNode;
+  parent?: AstNode;
+}
+
+const loopNodeTypes = new Set([
+  "DoWhileStatement",
+  "ForInStatement",
+  "ForOfStatement",
+  "ForStatement",
+  "WhileStatement",
+]);
+const conditionalNodeTypes = new Set([
+  "ConditionalExpression",
+  "IfStatement",
+  "SwitchCase",
+  "SwitchStatement",
+]);
+
+const collectStructuredFacts = (program: AstNode, source: string): StructuredFacts => {
+  const calls: StructuredCallFact[] = [];
+  const members: StructuredFacts["members"] = [];
+  let dynamicMembers = false;
+
+  const visit = (node: AstNode, ancestors: AstAncestor[]): void => {
+    const parent = ancestors.at(-1)?.node;
+    if (node.type === "CallExpression") {
+      const argumentNodes = Array.isArray(node.arguments)
+        ? node.arguments.filter((value): value is AstNode => isNode(value))
+        : [];
+      const args = argumentNodes.map((argument) => argumentFact(argument, source));
+      const fact: StructuredCallFact = {
+        range: rangeOf(node),
+        source: source.slice(node.start, node.end),
+        arguments: args,
+        references: uniqueStrings(args.flatMap((argument) => argument.references)),
+        awaited: parent?.type === "AwaitExpression",
+        control: controlRegions(node, ancestors),
+      };
+      const callee = getCalleeName(node.callee);
+      if (callee !== undefined) {
+        fact.callee = callee;
+      }
+      calls.push(fact);
+    }
+    if (isMemberExpression(node)) {
+      const path = getStaticMemberPath(node);
+      if (path === undefined) {
+        dynamicMembers = true;
+      } else {
+        members.push({ path, range: rangeOf(node), source: source.slice(node.start, node.end) });
+      }
+    }
+
+    const entry: AstAncestor = parent === undefined ? { node } : { node, parent };
+    for (const key of visitorKeys[node.type] ?? []) {
+      const value = node[key];
+      if (Array.isArray(value)) {
+        for (const child of value) {
+          if (isNode(child)) {
+            visit(child, [...ancestors, entry]);
+          }
+        }
+      } else if (isNode(value)) {
+        visit(value, [...ancestors, entry]);
+      }
+    }
+  };
+
+  visit(program, []);
+  return {
+    calls: calls.toSorted((left, right) => left.range.start - right.range.start),
+    members: uniqueByRange(members).toSorted((left, right) => left.range.start - right.range.start),
+    completeness: {
+      calls: "complete",
+      control: "complete",
+      members: dynamicMembers ? "partial" : "complete",
+      reasons: dynamicMembers
+        ? ["Dynamic computed member paths are not normalized as static member facts."]
+        : [],
+    },
+  };
+};
+
+const argumentFact = (node: AstNode, source: string): StructuredArgumentFact => {
+  return {
+    kind: structuredValueKind(node),
+    range: rangeOf(node),
+    source: source.slice(node.start, node.end),
+    references: collectReferencePaths(node),
+  };
+};
+
+const structuredValueKind = (node: AstNode): StructuredValueKind => {
+  if (node.type === "ArrayExpression") {
+    return "array";
+  }
+  if (node.type === "CallExpression" || node.type === "NewExpression") {
+    return "call";
+  }
+  if (functionTypes.has(node.type)) {
+    return "function";
+  }
+  if (node.type === "Identifier") {
+    return "identifier";
+  }
+  if (node.type === "Literal") {
+    return "literal";
+  }
+  if (isMemberExpression(node)) {
+    return "member";
+  }
+  if (node.type === "ObjectExpression") {
+    return "object";
+  }
+  if (node.type === "SpreadElement") {
+    return "spread";
+  }
+  if (node.type === "TemplateLiteral") {
+    return "template";
+  }
+  return "other";
+};
+
+const collectReferencePaths = (root: AstNode): string[] => {
+  const references: string[] = [];
+  const visit = (node: AstNode): void => {
+    if (isMemberExpression(node)) {
+      const path = getStaticMemberPath(node);
+      if (path !== undefined) {
+        references.push(path);
+        return;
+      }
+      if (isNode(node.object)) {
+        visit(node.object);
+      }
+      if (node.computed === true && isNode(node.property)) {
+        visit(node.property);
+      }
+      return;
+    }
+    if (node.type === "Identifier") {
+      const name = identifierName(node);
+      if (name !== undefined) {
+        references.push(name);
+      }
+      return;
+    }
+    if (functionTypes.has(node.type)) {
+      if (isNode(node.body)) {
+        visit(node.body);
+      }
+      return;
+    }
+    for (const key of visitorKeys[node.type] ?? []) {
+      if ((node.type === "Property" || node.type === "ObjectProperty") && key === "key") {
+        continue;
+      }
+      const value = node[key];
+      if (Array.isArray(value)) {
+        for (const child of value) {
+          if (isNode(child)) {
+            visit(child);
+          }
+        }
+      } else if (isNode(value)) {
+        visit(value);
+      }
+    }
+  };
+  visit(root);
+  return uniqueStrings(references);
+};
+
+const controlRegions = (call: AstNode, ancestors: AstAncestor[]) => {
+  const regions: StructuredCallFact["control"] = [];
+  for (const ancestor of ancestors) {
+    const node = ancestor.node;
+    if (loopNodeTypes.has(node.type)) {
+      regions.push({ kind: "loop", range: rangeOf(node) });
+    }
+    if (conditionalNodeTypes.has(node.type)) {
+      regions.push({ kind: "conditional", range: rangeOf(node) });
+    }
+    if (node.type === "CatchClause") {
+      regions.push({ kind: "catch", range: rangeOf(node) });
+    }
+    if (
+      node.type === "TryStatement" &&
+      isNode(node.finalizer) &&
+      node.finalizer.start <= call.start &&
+      node.finalizer.end >= call.end
+    ) {
+      regions.push({ kind: "finally", range: rangeOf(node.finalizer) });
+    }
+    if (functionTypes.has(node.type) && ancestor.parent?.type === "CallExpression") {
+      const args = Array.isArray(ancestor.parent.arguments) ? ancestor.parent.arguments : [];
+      if (args.includes(node)) {
+        const region = { kind: "callback" as const, range: rangeOf(node) };
+        const callee = getCalleeName(ancestor.parent.callee);
+        regions.push(callee === undefined ? region : { ...region, callee });
+      }
+    }
+  }
+  return regions.filter(
+    (region, index) =>
+      regions.findIndex(
+        (candidate) =>
+          candidate.kind === region.kind &&
+          candidate.range.start === region.range.start &&
+          candidate.range.end === region.range.end,
+      ) === index,
+  );
+};
+
+const isMemberExpression = (node: AstNode): boolean => {
+  return node.type === "MemberExpression" || node.type.endsWith("MemberExpression");
+};
+
+const getStaticMemberPath = (node: AstNode): string | undefined => {
+  if (!isMemberExpression(node) || !isNode(node.object) || !isNode(node.property)) {
+    return undefined;
+  }
+  const object =
+    node.object.type === "Identifier"
+      ? identifierName(node.object)
+      : isMemberExpression(node.object)
+        ? getStaticMemberPath(node.object)
+        : undefined;
+  const property =
+    node.computed === true
+      ? node.property.type === "Literal" && typeof node.property.value === "string"
+        ? node.property.value
+        : undefined
+      : identifierName(node.property);
+  return object === undefined || property === undefined ? undefined : `${object}.${property}`;
+};
+
+const uniqueStrings = (values: string[]): string[] => [...new Set(values)];
 
 const collectFunctions = (
   program: AstNode,

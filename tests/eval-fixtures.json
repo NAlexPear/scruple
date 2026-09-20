@@ -90,6 +90,16 @@
     "tags": ["negative", "serial-await", "required-ordering"]
   },
   {
+    "id": "async-commented-direct-awaits",
+    "filename": "inputs.ts",
+    "source": "import { readFile } from \"node:fs/promises\";\nexport async function loadInputs() {\n  const config = await /* independent config */ readFile(\"config.json\", \"utf8\");\n  const schema = await /* independent schema */ readFile(\"schema.json\", \"utf8\");\n  return { config, schema };\n}\n",
+    "rule_id": "async/no-serial-independent-work",
+    "expected_finding": true,
+    "expected_candidates": 1,
+    "rationale": "Both calls are directly awaited despite comments between the await operators and call expressions, and the known read-only operations are independent.",
+    "tags": ["positive", "serial-await", "shared-facts"]
+  },
+  {
     "id": "async-unbounded-request-items",
     "filename": "jobs.ts",
     "source": "export async function processJobs(jobs: Job[]) {\n  return Promise.all(jobs.map((job) => worker.process(job)));\n}\n",
@@ -1121,7 +1131,7 @@
   {
     "id": "error-message-controls-branch",
     "filename": "errors.ts",
-    "source": "try { return await load(); } catch (error) {\n  if (error.message.includes(\"not found\")) return undefined;\n  throw error;\n}\n",
+    "source": "export async function loadSafely() {\n  try { return await load(); } catch (error) {\n    if (error.message.includes(\"not found\")) return undefined;\n    throw error;\n  }\n}\n",
     "rule_id": "errors/no-message-based-error-dispatch",
     "expected_finding": true,
     "rationale": "A substring match on human-readable message text determines recovery behavior.",
@@ -1130,12 +1140,32 @@
   {
     "id": "error-message-only-logged",
     "filename": "errors.ts",
-    "source": "try { return await load(); } catch (error) { logger.error(error.message); throw error; }\n",
+    "source": "export async function loadSafely() { try { return await load(); } catch (error) { logger.error(error.message); throw error; } }\n",
     "rule_id": "errors/no-message-based-error-dispatch",
     "expected_finding": false,
     "expected_choice": "stable_or_non_dispatch_use",
     "rationale": "The message is emitted for reporting and does not choose control flow.",
     "tags": ["negative", "error-message", "logging"]
+  },
+  {
+    "id": "error-message-text-mentioned-in-log",
+    "filename": "errors.ts",
+    "source": "export async function loadSafely() { try { return await load(); } catch (error) { logger.info(\"Do not parse error.message here\"); throw error; } }\n",
+    "rule_id": "errors/no-message-based-error-dispatch",
+    "expected_finding": false,
+    "expected_candidates": 0,
+    "rationale": "The text error.message appears only inside a string literal and is not a member access or dispatch operation.",
+    "tags": ["negative", "error-message", "selector", "shared-facts"]
+  },
+  {
+    "id": "error-message-regex-controls-branch",
+    "filename": "errors.ts",
+    "source": "export async function loadSafely() { try { return await load(); } catch (error) { if (/timed out/iu.test(error.message)) return retry(); throw error; } }\n",
+    "rule_id": "errors/no-message-based-error-dispatch",
+    "expected_finding": true,
+    "expected_candidates": 1,
+    "rationale": "The regular expression tests the caught error's message and uses the result to select retry behavior.",
+    "tags": ["positive", "error-message", "dispatch", "shared-facts"]
   },
   {
     "id": "telemetry-name-includes-order-id",
@@ -1177,6 +1207,26 @@
     "tags": ["negative", "duplicate-reporting", "policy", "insufficient-context"]
   },
   {
+    "id": "reporting-calls-only-mention-catch-name-in-text",
+    "filename": "telemetry.ts",
+    "source": "try { await charge(); } catch (error) { logger.error(\"error while charging\"); telemetry.captureException(new ChargeError(\"error\")); throw error; }\n",
+    "rule_id": "observability/no-duplicate-error-reporting",
+    "expected_finding": false,
+    "expected_candidates": 0,
+    "rationale": "Neither reporting call receives the caught exception; the catch binding appears only in string literals.",
+    "tags": ["negative", "duplicate-reporting", "selector", "shared-facts"]
+  },
+  {
+    "id": "caught-error-reported-in-structured-and-direct-forms",
+    "filename": "telemetry.ts",
+    "source": "try { await charge(); } catch (error) { logger.error({ error, operation: \"charge\" }); telemetry.captureException(error); throw error; }\n",
+    "rule_id": "observability/no-duplicate-error-reporting",
+    "expected_finding": true,
+    "expected_candidates": 1,
+    "rationale": "The same caught exception is sent first as structured log data and then directly to exception telemetry.",
+    "tags": ["positive", "duplicate-reporting", "structured", "shared-facts"]
+  },
+  {
     "id": "database-query-per-user",
     "filename": "posts.ts",
     "source": "import { db } from \"./db.js\";\nexport async function load(users: User[]) {\n  return Promise.all(users.map((user) => db.post.findMany({ where: { userId: user.id } })));\n}\n",
@@ -1194,6 +1244,26 @@
     "expected_choice": "batched_or_bounded",
     "rationale": "The tuple type visibly bounds the fan-out to exactly two independent queries.",
     "tags": ["negative", "database", "bounded"]
+  },
+  {
+    "id": "database-query-after-unrelated-loop",
+    "filename": "posts.ts",
+    "source": "import { db } from \"./db.js\";\nexport async function load(ids: string[]) {\n  for (const id of ids) validate(id);\n  return db.post.findMany({ where: { userId: { in: ids } } });\n}\n",
+    "rule_id": "relational-databases/no-query-in-loop",
+    "expected_finding": false,
+    "expected_candidates": 0,
+    "rationale": "The database call executes once after the loop and already uses one set-based IN query.",
+    "tags": ["negative", "database", "selector", "shared-facts"]
+  },
+  {
+    "id": "database-query-in-conditional-loop-body",
+    "filename": "posts.ts",
+    "source": "import { db } from \"./db.js\";\nexport async function load(ids: string[]) {\n  const posts = [];\n  for (const id of ids) {\n    if (id.length > 0) posts.push(...await db.post.findMany({ where: { userId: id } }));\n  }\n  return posts;\n}\n",
+    "rule_id": "relational-databases/no-query-in-loop",
+    "expected_finding": true,
+    "expected_candidates": 1,
+    "rationale": "The database query remains inside the loop even though a conditional guards individual iterations.",
+    "tags": ["positive", "database", "loop", "shared-facts"]
   },
   {
     "id": "transaction-uses-global-client",

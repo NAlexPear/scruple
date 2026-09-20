@@ -4,6 +4,7 @@ import type {
   DecisionRuleOptions,
   ErrorHandlerTarget,
   JsonValue,
+  ParsedDocument,
   RuleCandidate,
   RuleFactory,
   ScruplePlugin,
@@ -94,7 +95,8 @@ const noMessageBasedErrorDispatch = (
     description: "Error handling should use stable discriminators instead of message text.",
     options,
     defaultThreshold: 0.85,
-    select: (handlers) => handlers.filter((handler) => hasMessageDispatchEvidence(handler)),
+    select: (handlers, document) =>
+      handlers.filter((handler) => hasMessageDispatchEvidence(handler, document)),
     instructions:
       "Classify whether this catch handler uses human-readable error message text to choose program behavior. Equality, substring, prefix, suffix, regular-expression, or switch matching on a message is fragile dispatch. Stable alternatives include a documented error code, class/instanceof check, typed discriminant, or documented standardized name. Logging, telemetry, display, serialization, and tests of presentation text are not message-based dispatch merely because they read the message. If the message is passed to an opaque classifier or the external API may expose no stable discriminator, choose insufficient_context rather than inferring its contract.",
     criteria: {
@@ -116,7 +118,7 @@ interface ErrorHandlerChoiceRuleDefinition {
   description: string;
   options: NoSwallowedErrorsOptions;
   defaultThreshold: number;
-  select(handlers: ErrorHandlerTarget[]): ErrorHandlerTarget[];
+  select(handlers: ErrorHandlerTarget[], document: ParsedDocument): ErrorHandlerTarget[];
   instructions: string;
   criteria: Record<string, JsonValue>;
   finding: string;
@@ -131,7 +133,7 @@ const errorHandlerChoiceRule = (definition: ErrorHandlerChoiceRuleDefinition): S
   return {
     description: definition.description,
     collect(document) {
-      return definition.select(document.errorHandlers).map((handler) => ({
+      return definition.select(document.errorHandlers, document).map((handler) => ({
         target: handler,
         state: errorHandlerState(handler, document.source, document.imports),
         question: {
@@ -169,10 +171,22 @@ const directRethrowPattern = (binding: string): RegExp => {
   return new RegExp(`^throw\\s+${escapeRegularExpression(binding)}\\s*;?$`, "u");
 };
 
-const hasMessageDispatchEvidence = (handler: ErrorHandlerTarget): boolean => {
+const hasMessageDispatchEvidence = (
+  handler: ErrorHandlerTarget,
+  document: ParsedDocument,
+): boolean => {
   const binding = handler.binding;
   if (binding === undefined || !identifierPattern.test(binding)) {
     return false;
+  }
+  if (document.facts !== undefined) {
+    const path = `${binding}.message`;
+    return document.facts.members.some(
+      (member) =>
+        member.path === path &&
+        member.range.start >= handler.range.start &&
+        member.range.end <= handler.range.end,
+    );
   }
   const messageAccess = new RegExp(
     `\\b${escapeRegularExpression(binding)}\\s*(?:\\?\\.|\\.)\\s*message\\b`,

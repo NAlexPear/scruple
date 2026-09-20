@@ -58,7 +58,10 @@ export async function settled(items: Item[]) {
         callee: "Promise.all",
         source: "Promise.all(items.map((item) => run(item)))",
       },
-      { callee: "items.map", source: "items.map((item) => run(item))" },
+      {
+        callee: "items.map",
+        source: "items.map((item) => run(item))",
+      },
     ],
     calls_truncated: false,
     evidence_scope:
@@ -85,6 +88,11 @@ export async function two() {
   const second = await loadTwo(first);
   return second;
 }
+export async function commented() {
+  const first = await /* first */ loadOne();
+  const second = await /* second */ loadTwo();
+  return { first, second };
+}
 export function notAsync() {
   return loadOne();
 }
@@ -92,8 +100,11 @@ export function notAsync() {
   );
   const candidates = asyncRules().rules["no-serial-independent-work"]().collect(document);
 
-  assert.equal(candidates.length, 1);
-  assert.equal(candidates[0]?.target.source.includes("function two"), true);
+  assert.equal(candidates.length, 2);
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source.split("(")[0]),
+    ["async function two", "async function commented"],
+  );
 });
 
 await test("cancellation selection requires an AbortSignal and a known cancellable platform call", () => {

@@ -168,6 +168,7 @@ await test("no-message-based-error-dispatch selects message uses but leaves judg
 try { second(); } catch (error) { logger.error(error.message); throw error; }
 try { third(); } catch (error) { if (error.code === "ENOENT") return undefined; throw error; }
 try { fourth(); } catch (cause) { return classify(cause?.message); }
+try { fifth(); } catch (error) { logger.info("Do not parse error.message here"); throw error; }
 `,
   );
   const rule = errors().rules["no-message-based-error-dispatch"]();

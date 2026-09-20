@@ -16,6 +16,7 @@ export interface EvalFixture {
   source: string;
   ruleId: string;
   expectedFinding: boolean;
+  expectedCandidates?: number;
   expectedChoice?: string;
   expectedAbstention?: boolean;
   rationale: string;
@@ -27,6 +28,8 @@ export interface EvalCaseResult {
   ruleId: string;
   expectedFinding: boolean;
   actualFinding: boolean;
+  expectedCandidates?: number;
+  actualCandidates: number;
   expectedChoice?: string;
   actualChoices: string[];
   expectedAbstention?: boolean;
@@ -92,6 +95,7 @@ export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
       source: requiredString(entry, "source", index),
       ruleId: requiredString(entry, "rule_id", index),
       expectedFinding: requiredBoolean(entry, "expected_finding", index),
+      ...optionalExpectedCandidates(entry, index),
       ...optionalExpectedChoice(entry, index),
       ...optionalExpectedAbstention(entry, index),
       rationale: requiredString(entry, "rationale", index),
@@ -138,6 +142,7 @@ export const runEvalCase = async (
   const actualFinding = result.diagnostics.some(
     (diagnostic) => diagnostic.ruleId === fixture.ruleId,
   );
+  const actualCandidates = result.stats.candidates;
   const errors = result.errors.map((error) => error.message);
   const actualChoices = answers.flatMap((answer) =>
     answer.type === "choice" ? [answer.choice] : [],
@@ -155,6 +160,10 @@ export const runEvalCase = async (
     ruleId: fixture.ruleId,
     expectedFinding: fixture.expectedFinding,
     actualFinding,
+    ...(fixture.expectedCandidates === undefined
+      ? {}
+      : { expectedCandidates: fixture.expectedCandidates }),
+    actualCandidates,
     ...(fixture.expectedChoice === undefined ? {} : { expectedChoice: fixture.expectedChoice }),
     actualChoices,
     ...(fixture.expectedAbstention === undefined
@@ -164,6 +173,8 @@ export const runEvalCase = async (
     accepted:
       errors.length === 0 &&
       actualFinding === fixture.expectedFinding &&
+      (fixture.expectedCandidates === undefined ||
+        actualCandidates === fixture.expectedCandidates) &&
       choiceAccepted &&
       abstentionAccepted,
     diagnostics: result.diagnostics.length,
@@ -264,6 +275,20 @@ const optionalExpectedChoice = (
     throw new TypeError(`Evaluation fixture ${index} requires a nonempty expected_choice`);
   }
   return { expectedChoice: entry };
+};
+
+const optionalExpectedCandidates = (
+  value: Record<string, unknown>,
+  index: number,
+): { expectedCandidates?: number } => {
+  const entry = value["expected_candidates"];
+  if (entry === undefined) {
+    return {};
+  }
+  if (typeof entry !== "number" || !Number.isSafeInteger(entry) || entry < 0) {
+    throw new TypeError(`Evaluation fixture ${index} requires a nonnegative expected_candidates`);
+  }
+  return { expectedCandidates: entry };
 };
 
 const optionalExpectedAbstention = (

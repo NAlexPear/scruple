@@ -176,7 +176,7 @@ const noDuplicateErrorReporting = (options: ObservabilityRuleOptions = {}): Sema
     description: "The same exception should not be reported repeatedly in one error boundary.",
     collect(document) {
       return document.errorHandlers.flatMap((handler) => {
-        const duplicateCalls = selectedDuplicateReportingCalls(handler);
+        const duplicateCalls = selectedDuplicateReportingCalls(handler, document);
         const targetCall = duplicateCalls.at(-1);
         if (targetCall === undefined) {
           return [];
@@ -300,14 +300,28 @@ const isOperationContextCandidate = (entry: SelectedCall): boolean => {
   return operationalCallPattern.test(entry.call.source);
 };
 
-const selectedDuplicateReportingCalls = (handler: ErrorHandlerTarget): CallCapture[] => {
-  if (handler.binding === undefined) {
+const selectedDuplicateReportingCalls = (
+  handler: ErrorHandlerTarget,
+  document: ParsedDocument,
+): CallCapture[] => {
+  const binding = handler.binding;
+  if (binding === undefined) {
     return [];
   }
-  const bindingPattern = new RegExp(`\\b${escapeRegExp(handler.binding)}\\b`, "u");
   const calls = handler.calls.filter((call) => {
     errorReportingPattern.lastIndex = 0;
-    return errorReportingPattern.test(call.callee) && bindingPattern.test(call.source);
+    if (!errorReportingPattern.test(call.callee)) {
+      return false;
+    }
+    const fact = document.facts?.calls.find(
+      (candidate) =>
+        candidate.range.start === call.range.start && candidate.range.end === call.range.end,
+    );
+    if (fact !== undefined) {
+      return fact.references.includes(binding);
+    }
+    const bindingPattern = new RegExp(`\\b${escapeRegExp(binding)}\\b`, "u");
+    return bindingPattern.test(call.source);
   });
   return calls.length >= 2 ? calls : [];
 };

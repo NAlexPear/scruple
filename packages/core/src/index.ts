@@ -32,6 +32,63 @@ export interface CallCapture {
   source: string;
 }
 
+export type StructuredValueKind =
+  | "array"
+  | "call"
+  | "function"
+  | "identifier"
+  | "literal"
+  | "member"
+  | "object"
+  | "spread"
+  | "template"
+  | "other";
+
+export interface StructuredArgumentFact {
+  kind: StructuredValueKind;
+  range: SourceRange;
+  source: string;
+  /** Identifier and static member paths referenced by this argument. */
+  references: string[];
+}
+
+export type ControlRegionKind = "callback" | "catch" | "conditional" | "finally" | "loop";
+
+export interface ControlRegionFact {
+  kind: ControlRegionKind;
+  range: SourceRange;
+  /** Present for inline callbacks passed to a statically named call. */
+  callee?: string;
+}
+
+export interface StructuredCallFact {
+  range: SourceRange;
+  source: string;
+  callee?: string;
+  arguments: StructuredArgumentFact[];
+  /** Identifier and static member paths referenced by all arguments. */
+  references: string[];
+  awaited: boolean;
+  control: ControlRegionFact[];
+}
+
+export interface MemberAccessFact {
+  path: string;
+  range: SourceRange;
+  source: string;
+}
+
+export interface StructuredFacts {
+  calls: StructuredCallFact[];
+  members: MemberAccessFact[];
+  completeness: {
+    calls: "complete";
+    control: "complete";
+    members: "complete" | "partial";
+    reasons: string[];
+  };
+}
+
 export interface FunctionTarget extends CodeTarget {
   kind: "function" | "test";
   name?: string;
@@ -126,6 +183,8 @@ export interface ParsedDocument {
   errorHandlers: ErrorHandlerTarget[];
   /** Present when the parser supports normalized server API boundary extraction. */
   apiBoundaries?: ApiBoundaryTarget[];
+  /** Present when the parser supports deterministic expression and control-region facts. */
+  facts?: StructuredFacts;
   issues: ParseIssue[];
 }
 

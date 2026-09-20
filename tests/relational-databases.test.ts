@@ -95,6 +95,11 @@ export async function loadPosts(users: User[]) {
 export async function loadPosts(userIds: string[]) {
   return db.post.findMany({ where: { userId: { in: userIds } } });
 }`);
+  const queryAfterLoop = parse(`import { db } from "./db.js";
+export async function loadPosts(userIds: string[]) {
+  for (const userId of userIds) validate(userId);
+  return db.post.findMany({ where: { userId: { in: userIds } } });
+}`);
   const nonDatabaseLoop = parse(`export async function resolve(values: Promise<string>[]) {
   return Promise.all(values.map(async (value) => value.trim()));
 }`);
@@ -102,6 +107,7 @@ export async function loadPosts(userIds: string[]) {
   assert.equal(rule.collect(statementLoop).length, 1);
   assert.equal(rule.collect(callbackLoop).length, 1);
   assert.equal(rule.collect(bulkQuery).length, 0);
+  assert.equal(rule.collect(queryAfterLoop).length, 0);
   assert.equal(rule.collect(nonDatabaseLoop).length, 0);
 });
 

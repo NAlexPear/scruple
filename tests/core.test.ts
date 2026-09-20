@@ -149,3 +149,95 @@ app.get("/users", externalHandler);`,
     reasons: ["The route handler is not a unique inline or same-file function implementation."],
   });
 });
+
+await test("normalizes shared call, argument, reference, and control facts", () => {
+  const document = oxcParser().parse(
+    "facts.ts",
+    `export async function load(ids: string[], signal: AbortSignal) {
+  signal.addEventListener("abort", onAbort, { once: true });
+  for (const id of ids) {
+    if (id.length > 0) await db.user.find({ where: { id } });
+  }
+  return ids.map(async (id) => await hydrate(id));
+}`,
+  );
+
+  assert.deepEqual(document.facts?.completeness, {
+    calls: "complete",
+    control: "complete",
+    members: "complete",
+    reasons: [],
+  });
+  assert.deepEqual(
+    document.facts?.calls.map((call) => ({
+      callee: call.callee,
+      arguments: call.arguments.map((argument) => ({
+        kind: argument.kind,
+        source: argument.source,
+        references: argument.references,
+      })),
+      references: call.references,
+      awaited: call.awaited,
+      control: call.control.map((region) => ({ kind: region.kind, callee: region.callee })),
+    })),
+    [
+      {
+        callee: "signal.addEventListener",
+        arguments: [
+          { kind: "literal", source: '"abort"', references: [] },
+          { kind: "identifier", source: "onAbort", references: ["onAbort"] },
+          { kind: "object", source: "{ once: true }", references: [] },
+        ],
+        references: ["onAbort"],
+        awaited: false,
+        control: [],
+      },
+      {
+        callee: "db.user.find",
+        arguments: [{ kind: "object", source: "{ where: { id } }", references: ["id"] }],
+        references: ["id"],
+        awaited: true,
+        control: [
+          { kind: "loop", callee: undefined },
+          { kind: "conditional", callee: undefined },
+        ],
+      },
+      {
+        callee: "ids.map",
+        arguments: [
+          {
+            kind: "function",
+            source: "async (id) => await hydrate(id)",
+            references: ["hydrate", "id"],
+          },
+        ],
+        references: ["hydrate", "id"],
+        awaited: false,
+        control: [],
+      },
+      {
+        callee: "hydrate",
+        arguments: [{ kind: "identifier", source: "id", references: ["id"] }],
+        references: ["id"],
+        awaited: true,
+        control: [{ kind: "callback", callee: "ids.map" }],
+      },
+    ],
+  );
+  assert.equal(
+    document.facts?.members.some((member) => member.path === "db.user.find"),
+    true,
+  );
+
+  const dynamic = oxcParser().parse("dynamic.ts", "export const value = object[key];");
+  assert.deepEqual(dynamic.facts?.completeness, {
+    calls: "complete",
+    control: "complete",
+    members: "partial",
+    reasons: ["Dynamic computed member paths are not normalized as static member facts."],
+  });
+  assert.equal(
+    dynamic.facts?.members.some((member) => member.path === "object.key"),
+    false,
+  );
+});

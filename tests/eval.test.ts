@@ -14,6 +14,12 @@ import { parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
+const candidateCountMatches = (fixture: EvalFixture, actual: number): boolean => {
+  return fixture.expectedCandidates === undefined
+    ? actual > 0
+    : actual === fixture.expectedCandidates;
+};
+
 await test("evaluation options pair providers and models by position", () => {
   assert.deepEqual(
     parseEvalOptions([
@@ -67,11 +73,15 @@ await test("evaluation corpus has unique, reachable positive and negative cases"
     const rule = factory();
     assert.ok("collect" in rule, `${fixture.ruleId} must be a semantic rule`);
     const candidates = rule.collect(parser.parse(fixture.filename, fixture.source));
-    assert.ok(candidates.length > 0, `${fixture.id} must reach ${fixture.ruleId}`);
+    assert.equal(
+      candidateCountMatches(fixture, candidates.length),
+      true,
+      `${fixture.id} candidate count for ${fixture.ruleId}`,
+    );
   }
 });
 
-await test("evaluation fixtures accept optional exact-choice and abstention expectations", () => {
+await test("evaluation fixtures accept optional candidate, exact-choice, and abstention expectations", () => {
   const [fixture] = parseEvalFixtures([
     {
       id: "ambiguous",
@@ -79,6 +89,7 @@ await test("evaluation fixtures accept optional exact-choice and abstention expe
       source: "function ambiguous() {}",
       rule_id: "test/choice-rule",
       expected_finding: false,
+      expected_candidates: 1,
       expected_choice: "insufficient_context",
       expected_abstention: true,
       rationale: "The evidence is intentionally incomplete.",
@@ -88,6 +99,7 @@ await test("evaluation fixtures accept optional exact-choice and abstention expe
 
   assert.equal(fixture?.expectedChoice, "insufficient_context");
   assert.equal(fixture?.expectedAbstention, true);
+  assert.equal(fixture?.expectedCandidates, 1);
   assert.throws(
     () =>
       parseEvalFixtures([
@@ -119,6 +131,22 @@ await test("evaluation fixtures accept optional exact-choice and abstention expe
         },
       ]),
     /boolean expected_abstention/u,
+  );
+  assert.throws(
+    () =>
+      parseEvalFixtures([
+        {
+          id: "invalid-candidates",
+          filename: "fixture.ts",
+          source: "function fixture() {}",
+          rule_id: "test/choice-rule",
+          expected_finding: false,
+          expected_candidates: -1,
+          rationale: "Invalid fixture.",
+          tags: ["invalid"],
+        },
+      ]),
+    /nonnegative expected_candidates/u,
   );
 });
 
@@ -260,6 +288,10 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
 
   assert.deepEqual(report.summary, { total: 2, passed: 2, failed: 0 });
   assert.equal(report.repetition, 2);
+  assert.deepEqual(
+    report.cases.map((result) => result.actualCandidates),
+    [1, 1],
+  );
   assert.deepEqual(report.usage, { inputTokens: 14, modelCalls: 2, outputTokens: 6 });
   assert.equal(report.cases[0]?.model, "resolved-model");
   assert.equal(hasEvalFailures([report]), false);
@@ -299,4 +331,30 @@ await test("evaluation runner distinguishes exact safe decisions from abstention
   });
   assert.equal(wrongSafeChoice.summary.failed, 1);
   assert.equal(wrongSafeChoice.cases[0]?.actualFinding, false);
+});
+
+await test("evaluation runner scores deterministic candidate selection", async () => {
+  const report = await runEvaluation({
+    fixtures: [
+      {
+        id: "not-selected",
+        filename: "empty.ts",
+        source: "const value = 1;",
+        ruleId: "test/bad-rule",
+        expectedFinding: false,
+        expectedCandidates: 1,
+        rationale: "Exercise selector scoring independently of provider output.",
+        tags: ["selector"],
+      },
+    ],
+    parser: oxcParser(),
+    plugins: { test: makeTestPlugin() },
+    provider: makeScoringProvider(),
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.equal(report.cases[0]?.actualCandidates, 0);
+  assert.equal(report.summary.failed, 1);
 });
