@@ -69,6 +69,9 @@ export default defineConfig({
     build: {
       target: "esnext",
     },
+    resolve: {
+      conditions: ["source", "module", "browser", "development|production"],
+    },
     optimizeDeps: {
       exclude: ["oxc-parser", "@oxc-parser/binding-wasm32-wasi"],
       esbuildOptions: {
