@@ -71,6 +71,57 @@ await test("evaluation corpus has unique, reachable positive and negative cases"
   }
 });
 
+await test("evaluation fixtures accept optional exact-choice and abstention expectations", () => {
+  const [fixture] = parseEvalFixtures([
+    {
+      id: "ambiguous",
+      filename: "ambiguous.ts",
+      source: "function ambiguous() {}",
+      rule_id: "test/choice-rule",
+      expected_finding: false,
+      expected_choice: "insufficient_context",
+      expected_abstention: true,
+      rationale: "The evidence is intentionally incomplete.",
+      tags: ["abstention"],
+    },
+  ]);
+
+  assert.equal(fixture?.expectedChoice, "insufficient_context");
+  assert.equal(fixture?.expectedAbstention, true);
+  assert.throws(
+    () =>
+      parseEvalFixtures([
+        {
+          id: "invalid-choice",
+          filename: "fixture.ts",
+          source: "function fixture() {}",
+          rule_id: "test/choice-rule",
+          expected_finding: false,
+          expected_choice: false,
+          rationale: "Invalid fixture.",
+          tags: ["invalid"],
+        },
+      ]),
+    /nonempty expected_choice/u,
+  );
+  assert.throws(
+    () =>
+      parseEvalFixtures([
+        {
+          id: "invalid-abstention",
+          filename: "fixture.ts",
+          source: "function fixture() {}",
+          rule_id: "test/choice-rule",
+          expected_finding: false,
+          expected_abstention: "yes",
+          rationale: "Invalid fixture.",
+          tags: ["invalid"],
+        },
+      ]),
+    /boolean expected_abstention/u,
+  );
+});
+
 const makeTestPlugin = (): ScruplePlugin => {
   return definePlugin({
     rules: {
@@ -120,6 +171,62 @@ const makeScoringProvider = (): DecisionProvider => {
   };
 };
 
+const makeChoicePlugin = (): ScruplePlugin => {
+  return definePlugin({
+    rules: {
+      "choice-rule": () => ({
+        description: "Choice fixture rule",
+        collect(document) {
+          const target = document.functions[0];
+          return target === undefined
+            ? []
+            : [
+                {
+                  target,
+                  state: { source: target.source },
+                  question: {
+                    type: "choice" as const,
+                    instructions: "Classify the fixture.",
+                    criteria: {
+                      finding: "The fixture is a finding.",
+                      safe: "The fixture is safe.",
+                      insufficient_context: "The evidence is incomplete.",
+                    },
+                  },
+                },
+              ];
+        },
+        diagnose(answer, candidate) {
+          return answer.type === "choice" && answer.choice === "finding"
+            ? {
+                message: "Choice finding",
+                filename: candidate.target.filename,
+                location: candidate.target.location,
+              }
+            : null;
+        },
+      }),
+    },
+  });
+};
+
+const choiceProvider = (choice: string): DecisionProvider => {
+  return {
+    id: "choice-fixture",
+    evaluate(request): Promise<DecisionResponse> {
+      return Promise.resolve({
+        model: "choice-model",
+        answers: Object.fromEntries(
+          Object.keys(request.questions).map((id) => [
+            id,
+            { type: "choice", choice, confidence: 1, probabilities: { [choice]: 1 } },
+          ]),
+        ),
+      });
+    },
+  };
+};
+
 await test("evaluation runner scores findings and aggregates usage", async () => {
   const fixtures: EvalFixture[] = [
     {
@@ -156,4 +263,40 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
   assert.deepEqual(report.usage, { inputTokens: 14, modelCalls: 2, outputTokens: 6 });
   assert.equal(report.cases[0]?.model, "resolved-model");
   assert.equal(hasEvalFailures([report]), false);
+});
+
+await test("evaluation runner distinguishes exact safe decisions from abstentions", async () => {
+  const base: EvalFixture = {
+    id: "choice",
+    filename: "choice.ts",
+    source: "function choice() { return 1; }",
+    ruleId: "test/choice-rule",
+    expectedFinding: false,
+    rationale: "Exercise exact decision scoring.",
+    tags: ["choice"],
+  };
+  const options = {
+    parser: oxcParser(),
+    plugins: { test: makeChoicePlugin() },
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  };
+
+  const abstention = await runEvaluation({
+    ...options,
+    fixtures: [{ ...base, expectedChoice: "insufficient_context", expectedAbstention: true }],
+    provider: choiceProvider("insufficient_context"),
+  });
+  assert.equal(abstention.summary.passed, 1);
+  assert.deepEqual(abstention.cases[0]?.actualChoices, ["insufficient_context"]);
+  assert.equal(abstention.cases[0]?.actualAbstention, true);
+
+  const wrongSafeChoice = await runEvaluation({
+    ...options,
+    fixtures: [{ ...base, expectedChoice: "safe", expectedAbstention: false }],
+    provider: choiceProvider("insufficient_context"),
+  });
+  assert.equal(wrongSafeChoice.summary.failed, 1);
+  assert.equal(wrongSafeChoice.cases[0]?.actualFinding, false);
 });

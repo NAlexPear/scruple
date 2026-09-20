@@ -1,4 +1,5 @@
 import type {
+  DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
   PluginMap,
@@ -15,6 +16,8 @@ export interface EvalFixture {
   source: string;
   ruleId: string;
   expectedFinding: boolean;
+  expectedChoice?: string;
+  expectedAbstention?: boolean;
   rationale: string;
   tags: string[];
 }
@@ -24,6 +27,10 @@ export interface EvalCaseResult {
   ruleId: string;
   expectedFinding: boolean;
   actualFinding: boolean;
+  expectedChoice?: string;
+  actualChoices: string[];
+  expectedAbstention?: boolean;
+  actualAbstention: boolean;
   accepted: boolean;
   diagnostics: number;
   errors: string[];
@@ -85,6 +92,8 @@ export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
       source: requiredString(entry, "source", index),
       ruleId: requiredString(entry, "rule_id", index),
       expectedFinding: requiredBoolean(entry, "expected_finding", index),
+      ...optionalExpectedChoice(entry, index),
+      ...optionalExpectedAbstention(entry, index),
       rationale: requiredString(entry, "rationale", index),
       tags: requiredStrings(entry, "tags", index),
     };
@@ -105,12 +114,14 @@ export const runEvalCase = async (
 ): Promise<EvalCaseResult> => {
   let model = provider.id;
   let modelCalls = 0;
+  const answers: DecisionAnswer[] = [];
   const trackingProvider: DecisionProvider = {
     id: provider.id,
     async evaluate(request, signal): Promise<DecisionResponse> {
       modelCalls += 1;
       const response = await provider.evaluate(request, signal);
       model = response.model;
+      answers.push(...Object.values(response.answers));
       return response;
     },
   };
@@ -128,12 +139,33 @@ export const runEvalCase = async (
     (diagnostic) => diagnostic.ruleId === fixture.ruleId,
   );
   const errors = result.errors.map((error) => error.message);
+  const actualChoices = answers.flatMap((answer) =>
+    answer.type === "choice" ? [answer.choice] : [],
+  );
+  const actualAbstention =
+    actualChoices.length > 0 && actualChoices.every((choice) => choice === "insufficient_context");
+  const choiceAccepted =
+    fixture.expectedChoice === undefined ||
+    (actualChoices.length > 0 &&
+      actualChoices.every((choice) => choice === fixture.expectedChoice));
+  const abstentionAccepted =
+    fixture.expectedAbstention === undefined || fixture.expectedAbstention === actualAbstention;
   return {
     id: fixture.id,
     ruleId: fixture.ruleId,
     expectedFinding: fixture.expectedFinding,
     actualFinding,
-    accepted: errors.length === 0 && actualFinding === fixture.expectedFinding,
+    ...(fixture.expectedChoice === undefined ? {} : { expectedChoice: fixture.expectedChoice }),
+    actualChoices,
+    ...(fixture.expectedAbstention === undefined
+      ? {}
+      : { expectedAbstention: fixture.expectedAbstention }),
+    actualAbstention,
+    accepted:
+      errors.length === 0 &&
+      actualFinding === fixture.expectedFinding &&
+      choiceAccepted &&
+      abstentionAccepted,
     diagnostics: result.diagnostics.length,
     errors,
     latencyMs: performance.now() - started,
@@ -218,6 +250,34 @@ const requiredBoolean = (value: Record<string, unknown>, key: string, index: num
     throw new TypeError(`Evaluation fixture ${index} requires a boolean ${key}`);
   }
   return entry;
+};
+
+const optionalExpectedChoice = (
+  value: Record<string, unknown>,
+  index: number,
+): { expectedChoice?: string } => {
+  const entry = value["expected_choice"];
+  if (entry === undefined) {
+    return {};
+  }
+  if (typeof entry !== "string" || entry.length === 0) {
+    throw new TypeError(`Evaluation fixture ${index} requires a nonempty expected_choice`);
+  }
+  return { expectedChoice: entry };
+};
+
+const optionalExpectedAbstention = (
+  value: Record<string, unknown>,
+  index: number,
+): { expectedAbstention?: boolean } => {
+  const entry = value["expected_abstention"];
+  if (entry === undefined) {
+    return {};
+  }
+  if (typeof entry !== "boolean") {
+    throw new TypeError(`Evaluation fixture ${index} requires a boolean expected_abstention`);
+  }
+  return { expectedAbstention: entry };
 };
 
 const requiredStrings = (value: Record<string, unknown>, key: string, index: number): string[] => {
