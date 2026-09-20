@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Scruple — semantic code checks, grounded in evidence." />
+    <meta name="theme-color" content="#171a17" />
+    <title>Scruple — semantic code checks</title>
+    <link rel="icon" href="assets/scruple-mark.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+    <header class="topbar">
+      <a class="brand" href="#overview" aria-label="Scruple home">
+        <img src="assets/scruple-mark.png" alt="" />
+        <span>scruple</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#guide">Guide</a>
+        <a href="#rules">Rules</a>
+        <a href="#architecture">Architecture</a>
+      </nav>
+      <div class="top-actions">
+        <button class="search-trigger" type="button" aria-haspopup="dialog">
+          <span>Search docs</span><kbd>⌘ K</kbd>
+        </button>
+        <a
+          class="github-link"
+          href="https://github.com/NAlexPear/scruple"
+          target="_blank"
+          rel="noreferrer"
+          >GitHub ↗</a
+        >
+      </div>
+    </header>
+
+    <main id="content">
+      <section class="hero" id="overview">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span> semantic checks for code that compiles</div>
+          <h1>Ground every<br />judgment in <em>evidence.</em></h1>
+          <p class="hero-lede">
+            Scruple asks narrow, typed questions about your code—then turns high-confidence answers
+            into stable diagnostics your team can trust.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#guide">Get started <span>→</span></a>
+            <a class="button button-secondary" href="#trace">Trace a decision</a>
+          </div>
+        </div>
+
+        <div class="hero-visual" role="img" aria-label="A Scruple diagnostic example">
+          <div class="window-chrome">
+            <div class="window-dots"><i></i><i></i><i></i></div>
+            <span>src/cache.ts</span>
+            <span class="window-state">01 finding</span>
+          </div>
+          <pre
+            class="code-scene"
+            aria-hidden="true"
+          ><span class="ln">1</span> <span class="kw">export async function</span> <span class="fn">warmCache</span>() {
+<span class="ln">2</span>   <span class="comment">// Set ready to true</span>
+<span class="ln">3</span>   ready = <span class="bool">true</span>;
+<span class="ln">4</span> }
+<span class="ln">5</span></pre>
+          <div class="diagnostic-card">
+            <div class="diag-head">
+              <span class="warning-icon">!</span><strong>Comment restates the code</strong
+              ><span class="severity">warning</span>
+            </div>
+            <p>Remove it, or explain why the cache must be marked ready here.</p>
+            <code>comments/no-useless-comments</code>
+          </div>
+          <div class="evidence-tag tag-one">focused excerpt</div>
+          <div class="evidence-tag tag-two">typed answer</div>
+        </div>
+      </section>
+
+      <section class="principles band" aria-label="Scruple principles">
+        <article>
+          <span class="principle-num">01</span>
+          <div>
+            <h2>Focused evidence</h2>
+            <p>Rules receive normalized, bounded context—not a serialized syntax tree.</p>
+          </div>
+        </article>
+        <article>
+          <span class="principle-num">02</span>
+          <div>
+            <h2>Typed decisions</h2>
+            <p>Providers answer a schema, not an open-ended prompt.</p>
+          </div>
+        </article>
+        <article>
+          <span class="principle-num">03</span>
+          <div>
+            <h2>Stable diagnostics</h2>
+            <p>Rules own every message and can abstain when evidence is weak.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="section guide" id="guide">
+        <div class="section-intro">
+          <div class="eyebrow"><span></span> quickstart</div>
+          <h2>From install to insight<br />in three deliberate steps.</h2>
+          <p>
+            Choose a decision provider, register the policy packs you trust, and enable only the
+            rules your project needs.
+          </p>
+        </div>
+
+        <div class="setup-shell">
+          <div class="setup-tabs" role="tablist" aria-label="Setup steps">
+            <button class="setup-tab active" role="tab" aria-selected="true" data-step="install">
+              <span>1</span> Install
+            </button>
+            <button class="setup-tab" role="tab" aria-selected="false" data-step="configure">
+              <span>2</span> Configure
+            </button>
+            <button class="setup-tab" role="tab" aria-selected="false" data-step="run">
+              <span>3</span> Run
+            </button>
+          </div>
+          <div class="setup-content">
+            <div class="setup-copy">
+              <span class="step-kicker" id="step-kicker">Step one</span>
+              <h3 id="step-title">Add Scruple to your project</h3>
+              <p id="step-description">
+                Install the CLI, core contracts, parser, one provider, and the rule packs you want
+                to use.
+              </p>
+              <div
+                class="choice-row"
+                id="provider-choices"
+                role="group"
+                aria-label="Decision provider"
+              >
+                <button class="choice active" type="button" data-provider="jev">
+                  Jev <small>hosted</small>
+                </button>
+                <button class="choice" type="button" data-provider="laya">
+                  Laya <small>local</small>
+                </button>
+              </div>
+              <div class="callout">
+                <strong>Why explicit packages?</strong>
+                <p>
+                  Scruple keeps parsing, decisions, and policy independent. Your config makes every
+                  dependency visible.
+                </p>
+              </div>
+            </div>
+            <div class="code-panel">
+              <div class="code-toolbar">
+                <span id="code-filename">terminal</span
+                ><button class="copy-button" type="button" data-copy-target="setup-code">
+                  Copy
+                </button>
+              </div>
+              <pre><code id="setup-code"></code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section trace-section" id="trace">
+        <div class="trace-copy">
+          <div class="eyebrow light"><span></span> decision trace</div>
+          <h2>See exactly how a finding earns its place.</h2>
+          <p>
+            Explore representative traces from Scruple’s rule packs. The provider answers a
+            constrained question; the rule decides whether to diagnose.
+          </p>
+          <div class="trace-picker" role="listbox" aria-label="Example trace">
+            <button
+              class="trace-option active"
+              type="button"
+              data-trace="comment"
+              role="option"
+              aria-selected="true"
+            >
+              <span class="trace-symbol">//</span
+              ><span
+                ><strong>Restated comment</strong><small>comments/no-useless-comments</small></span
+              ><b>→</b>
+            </button>
+            <button
+              class="trace-option"
+              type="button"
+              data-trace="test"
+              role="option"
+              aria-selected="false"
+            >
+              <span class="trace-symbol">✓</span
+              ><span><strong>Vacuous test</strong><small>tests/no-vacuous-tests</small></span
+              ><b>→</b>
+            </button>
+            <button
+              class="trace-option"
+              type="button"
+              data-trace="abstain"
+              role="option"
+              aria-selected="false"
+            >
+              <span class="trace-symbol">?</span
+              ><span
+                ><strong>Unclear join</strong
+                ><small>relational-databases/prefer-database-join</small></span
+              ><b>→</b>
+            </button>
+          </div>
+        </div>
+
+        <div class="trace-board">
+          <div class="trace-stage">
+            <div class="stage-label"><span>1</span> Evidence</div>
+            <pre id="trace-source"></pre>
+          </div>
+          <div class="trace-connector">
+            <span></span><small>normalized target</small><span></span>
+          </div>
+          <div class="trace-stage decision-stage">
+            <div class="stage-label"><span>2</span> Typed decision</div>
+            <div class="decision-question" id="trace-question"></div>
+            <div class="decision-answer">
+              <span id="trace-answer-label"></span><strong id="trace-answer"></strong>
+            </div>
+          </div>
+          <div class="trace-connector">
+            <span></span><small>threshold + rule logic</small><span></span>
+          </div>
+          <div class="trace-stage outcome-stage" id="outcome-stage">
+            <div class="stage-label"><span>3</span> Deterministic outcome</div>
+            <div class="outcome-icon" id="outcome-icon">!</div>
+            <h3 id="outcome-title"></h3>
+            <p id="outcome-description"></p>
+            <code id="outcome-rule"></code>
+          </div>
+        </div>
+      </section>
+
+      <section class="section rules-section" id="rules">
+        <div class="rules-heading">
+          <div>
+            <div class="eyebrow"><span></span> rule catalog</div>
+            <h2>Policy stays<br />plugged in—not baked in.</h2>
+          </div>
+          <p>
+            Scruple’s engine ships without opinions. These independently publishable packs show what
+            semantic checks can look like.
+          </p>
+        </div>
+        <div class="rule-controls">
+          <label class="rule-search"
+            ><span>⌕</span
+            ><input id="rule-search" type="search" placeholder="Find a rule…" autocomplete="off"
+          /></label>
+          <div class="filter-group" role="group" aria-label="Filter rule category">
+            <button class="filter active" type="button" data-filter="all">
+              All <span>8</span>
+            </button>
+            <button class="filter" type="button" data-filter="comments">
+              Comments <span>6</span>
+            </button>
+            <button class="filter" type="button" data-filter="tests">Tests <span>1</span></button>
+            <button class="filter" type="button" data-filter="database">
+              Database <span>1</span>
+            </button>
+          </div>
+        </div>
+        <div class="rule-list" id="rule-list"></div>
+        <p class="empty-state" id="empty-state" hidden>No rules match that search.</p>
+      </section>
+
+      <section class="section architecture" id="architecture">
+        <div class="architecture-copy">
+          <div class="eyebrow light"><span></span> architecture</div>
+          <h2>Swap the machinery.<br />Keep the contract.</h2>
+          <p>
+            Scruple’s narrow interfaces keep policy independent from how code is parsed and where
+            decisions happen.
+          </p>
+          <a href="https://github.com/NAlexPear/scruple" target="_blank" rel="noreferrer"
+            >Explore the repository <span>↗</span></a
+          >
+        </div>
+        <div
+          class="pipeline"
+          role="img"
+          aria-label="Scruple architecture flow from source files through normalized evidence and plugin rules to typed decisions and stable diagnostics"
+        >
+          <div class="pipeline-node">
+            <small>INPUT</small><strong>Source files</strong><code>*.ts · *.tsx</code>
+          </div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-node featured">
+            <small>PARSER</small><strong>Normalized evidence</strong>
+            <div class="node-choice"><span>OXC</span><i>swappable</i></div>
+          </div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-node">
+            <small>POLICY</small><strong>Plugin rules</strong><code>collect → diagnose</code>
+          </div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-node featured">
+            <small>PROVIDER</small><strong>Typed decisions</strong>
+            <div class="node-choice"><span>Jev / Laya</span><i>swappable</i></div>
+          </div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-node">
+            <small>OUTPUT</small><strong>Diagnostics</strong><code>stable · owned</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="closing">
+        <img src="assets/scruple-mark.png" alt="" />
+        <div>
+          <p>Ready to question the code<br />that already compiles?</p>
+          <span>Start with one rule. Keep only the signal.</span>
+        </div>
+        <a class="button button-primary" href="#guide">Read the quickstart <span>→</span></a>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand footer-brand" href="#overview"
+        ><img src="assets/scruple-mark-inverse.png" alt="" /><span>scruple</span></a
+      >
+      <p>Semantic code checks, grounded in evidence.<br />MIT licensed project by NAlexPear.</p>
+      <div>
+        <a href="#guide">Guide</a><a href="#rules">Rules</a
+        ><a href="https://github.com/NAlexPear/scruple">GitHub ↗</a>
+      </div>
+    </footer>
+
+    <dialog class="search-dialog" id="search-dialog">
+      <form method="dialog" class="search-box">
+        <label
+          ><span>⌕</span
+          ><input
+            id="docs-search"
+            type="search"
+            placeholder="Search the docs…"
+            autocomplete="off"
+          /><kbd>esc</kbd></label
+        >
+        <div class="search-results" id="search-results"></div>
+        <p class="search-hint">Navigate with your mouse · Enter to open</p>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">Copied to clipboard</div>
+  </body>
+</html>

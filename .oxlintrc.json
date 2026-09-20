@@ -24,6 +24,24 @@
     "node": true,
     "vitest": true
   },
+  "overrides": [
+    {
+      "files": ["**/apps/docs/*.js", "**/apps/docs/tests/*.js"],
+      "plugins": ["eslint", "unicorn", "oxc", "import", "promise", "node"],
+      "env": {
+        "browser": true
+      },
+      "rules": {
+        "typescript/no-misused-promises": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/strict-void-return": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["**/dist/**", "**/node_modules/**"],
   "options": {
     "denyWarnings": true,

@@ -154,6 +154,9 @@ are emitted as unbundled ESM with declarations, source maps, and TypeScript sour
 `scruple` bin leaves dependencies external so parser, provider, and rule plugins resolve from the
 consuming project.
 
+Run the documentation site locally with `pnpm docs:dev`; its interaction tests run as part of
+`pnpm check` or independently with `pnpm docs:test`.
+
 Live model evaluations are separate from deterministic checks:
 
 ```sh
