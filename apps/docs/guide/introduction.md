@@ -34,7 +34,6 @@ Start with one plugin and a few rules. Review the findings, adjust the required 
 ## Next steps
 
 - Follow the [quickstart](./quickstart.md) to run your first check.
-- [Prototype a rule in the Rule Lab](../playground.md) against editable TypeScript examples.
 - [Write a plugin](./writing-a-plugin.md) to check your team's standards.
 - Learn how Scruple limits [what each rule can see and ask](../concepts/evidence-and-decisions.md).
 - Browse the [plugin rule libraries](../plugins/index.md).

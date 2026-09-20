@@ -33,10 +33,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
   },
   {
     text: "Custom rules",
-    items: [
-      { text: "Rule Lab", link: "/playground" },
-      { text: "Write a plugin", link: "/guide/writing-a-plugin" },
-    ],
+    items: [{ text: "Write a plugin", link: "/guide/writing-a-plugin" }],
   },
   {
     text: "Providers",
@@ -66,58 +63,11 @@ export default defineConfig({
   description: "Make good taste enforceable with named, tested code checks.",
   cleanUrls: true,
   vite: {
-    build: {
-      target: "esnext",
-    },
     resolve: {
       conditions: ["source", "module", "browser", "development|production"],
     },
-    optimizeDeps: {
-      exclude: ["oxc-parser", "@oxc-parser/binding-wasm32-wasi"],
-      esbuildOptions: {
-        target: "esnext",
-      },
-    },
-    worker: {
-      format: "es",
-    },
-    plugins: [
-      {
-        name: "scruple-cross-origin-isolation",
-        configureServer(server) {
-          server.middlewares.use((request, response, next) => {
-            response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-            response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-            if (request.url?.startsWith("/playground") === true) {
-              response.setHeader("Content-Security-Policy", playgroundContentSecurityPolicy);
-            }
-            next();
-          });
-        },
-        configurePreviewServer(server) {
-          server.middlewares.use((request, response, next) => {
-            response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-            response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-            if (request.url?.startsWith("/playground") === true) {
-              response.setHeader("Content-Security-Policy", playgroundContentSecurityPolicy);
-            }
-            next();
-          });
-        },
-      },
-    ],
     server: {
       allowedHosts: [".onamp.dev"],
-      headers: {
-        "Cross-Origin-Embedder-Policy": "require-corp",
-        "Cross-Origin-Opener-Policy": "same-origin",
-      },
-    },
-    preview: {
-      headers: {
-        "Cross-Origin-Embedder-Policy": "require-corp",
-        "Cross-Origin-Opener-Policy": "same-origin",
-      },
     },
   },
   transformPageData(pageData) {
@@ -139,7 +89,6 @@ export default defineConfig({
     nav: [
       { text: "Docs", link: "/guide/introduction" },
       { text: "Plugins", link: "/plugins/" },
-      { text: "Playground", link: "/playground" },
       { text: "Write a rule", link: "/guide/writing-a-plugin" },
       { text: "GitHub", link: "https://github.com/NAlexPear/scruple" },
     ],
@@ -157,15 +106,3 @@ export default defineConfig({
     },
   },
 });
-
-const playgroundContentSecurityPolicy = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "worker-src 'self'",
-  "connect-src 'self' ws: wss:",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https://api.iconify.design",
-  "object-src 'none'",
-  "base-uri 'self'",
-].join("; ");
