@@ -2,6 +2,8 @@
 import type { ChoiceAnswer, Diagnostic, RuleCandidate } from "@scruple/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
+import CodeEditor from "./CodeEditor.vue";
+import HighlightedCode from "./HighlightedCode.vue";
 import {
   decodePlaygroundState,
   encodePlaygroundState,
@@ -440,7 +442,7 @@ const identifier = (value: string): string => {
   return /^\d/u.test(joined) ? `rule${joined}` : joined;
 };
 
-const formatJson = (value: unknown): string => JSON.stringify(value, null, 2);
+const formatJson = (value: unknown): string => JSON.stringify(value, null, 2) ?? "";
 
 onMounted(async () => {
   createWorker();
@@ -543,11 +545,10 @@ onBeforeUnmount(() => {
             aria-label="Fixture filename"
           />
         </header>
-        <textarea
+        <CodeEditor
           v-if="selectedFixture"
           v-model="selectedFixture.source"
-          aria-label="TypeScript fixture source"
-          spellcheck="false"
+          label="TypeScript fixture source"
         />
       </article>
 
@@ -556,7 +557,7 @@ onBeforeUnmount(() => {
           <div><span>02</span> Semantic rule</div>
           <span>TypeScript expression</span>
         </header>
-        <textarea v-model="ruleSource" aria-label="Semantic rule source" spellcheck="false" />
+        <CodeEditor v-model="ruleSource" label="Semantic rule source" />
       </article>
 
       <article class="lab-panel results-panel">
@@ -608,13 +609,17 @@ onBeforeUnmount(() => {
             <code>{{ candidate.target.source }}</code>
           </button>
         </div>
-        <pre
+        <HighlightedCode
           v-else-if="resultTab === 'evidence'"
-        ><code>{{ formatJson(selectedCandidate?.state) }}</code></pre>
-        <pre
+          :source="formatJson(selectedCandidate?.state)"
+          language="json"
+        />
+        <HighlightedCode
           v-else-if="resultTab === 'question'"
-        ><code>{{ formatJson(selectedCandidate?.question) }}</code></pre>
-        <pre v-else><code>{{ formatJson(analysis.document) }}</code></pre>
+          :source="formatJson(selectedCandidate?.question)"
+          language="json"
+        />
+        <HighlightedCode v-else :source="formatJson(analysis.document)" language="json" />
       </article>
     </section>
 
@@ -916,19 +921,6 @@ onBeforeUnmount(() => {
   text-align: right;
 }
 
-.lab-panel textarea {
-  width: 100%;
-  min-height: 0;
-  padding: 22px;
-  resize: none;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #e2e5dd;
-  font: 400 12px/1.75 var(--vp-font-family-mono);
-  tab-size: 2;
-}
-
 .result-tabs {
   display: flex;
   grid-column: 1 / -1;
@@ -969,6 +961,41 @@ onBeforeUnmount(() => {
 .export-drawer pre code {
   color: #c7cec3;
   font: 400 10px/1.65 var(--vp-font-family-mono);
+}
+
+.rule-lab :deep(.shj-syn-cmnt) {
+  color: #8b949e;
+  font-style: italic;
+}
+
+.rule-lab :deep(.shj-syn-err),
+.rule-lab :deep(.shj-syn-kwd) {
+  color: #ff7b72;
+}
+
+.rule-lab :deep(.shj-syn-class) {
+  color: #ffa657;
+}
+
+.rule-lab :deep(.shj-syn-insert) {
+  color: #98c379;
+}
+
+.rule-lab :deep(.shj-syn-str) {
+  color: #a5d6ff;
+}
+
+.rule-lab :deep(.shj-syn-type),
+.rule-lab :deep(.shj-syn-oper),
+.rule-lab :deep(.shj-syn-num),
+.rule-lab :deep(.shj-syn-section),
+.rule-lab :deep(.shj-syn-var),
+.rule-lab :deep(.shj-syn-bool) {
+  color: #79c0ff;
+}
+
+.rule-lab :deep(.shj-syn-func) {
+  color: #d2a8ff;
 }
 
 .candidate-list {

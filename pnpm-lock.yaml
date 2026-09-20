@@ -188,6 +188,9 @@ importers:
       '@oxc-parser/binding-wasm32-wasi':
         specifier: 0.150.0
         version: 0.150.0
+      '@speed-highlight/core':
+        specifier: 1.2.24
+        version: 1.2.24
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

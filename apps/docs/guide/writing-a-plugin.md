@@ -10,6 +10,8 @@ A plugin is a group of related rules. Each rule:
 
 The model answers the question. It does not choose what to inspect or write the warning.
 
+Start in the [Rule Lab](../playground.md) to prototype a rule before creating a package. You can edit TypeScript fixtures, inspect the candidates and bounded evidence your rule selects, try finding, safe, and ambiguous answers, and export starter rule, test, and evaluation files.
+
 ## Start with a narrow policy
 
 Before writing code, write one sentence that separates a finding from a safe case. If the rule needs information the parser does not provide, add that information to the parser or report nothing. Do not guess by searching raw source text.
