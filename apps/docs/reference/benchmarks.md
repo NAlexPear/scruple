@@ -32,15 +32,11 @@ Costs separate API or license charges from the computer that runs the benchmark.
 
 The Jev estimate uses TypeSafe's published price of $0.042 per million input tokens, with output tokens free. The concurrency-64 run used 2,013,880 input tokens:
 
-```text
-2,013,880 × $0.042 / 1,000,000 = $0.08458296
-```
+2,013,880 × $0.042 ÷ 1,000,000 = **$0.08458296**
 
 The GPT-4.1 estimate uses OpenAI's published price of $2.00 per million input tokens and $8.00 per million output tokens. The measured calls used 10,362 input and 1,493 output tokens:
 
-```text
-(10,362 × $2 / 1,000,000) + (1,493 × $8 / 1,000,000) = $0.032668
-```
+(10,362 × $2 ÷ 1,000,000) + (1,493 × $8 ÷ 1,000,000) = **$0.032668**
 
 These estimates exclude the unmeasured warmups, taxes, and any account discounts. At the published rates, the measured Jev API cost per case was about 49 times lower than the direct GPT-4.1 cost per case. Prices can change. Check the current [Jev pricing](https://docs.typesafe.ai/models), [GPT-4.1 pricing](https://developers.openai.com/api/docs/models/gpt-4.1), [Semgrep Community Edition](https://semgrep.dev/products/community-edition), [CodeQL license terms](https://docs.github.com/en/code-security/codeql-cli/about-the-codeql-cli), and [SonarQube plans](https://www.sonarsource.com/plans-and-pricing/) before making a purchasing decision.
 
