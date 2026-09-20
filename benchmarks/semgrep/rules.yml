@@ -1,0 +1,47 @@
+rules:
+  - id: scruple-benchmark.javascript.empty-catch
+    languages: [javascript, typescript]
+    message: Empty catch blocks can swallow failures.
+    severity: WARNING
+    pattern: |-
+      try { ... } catch ($ERROR) {}
+
+  - id: scruple-benchmark.javascript.generic-error-message
+    languages: [javascript, typescript]
+    message: This generic error event does not identify the failed operation.
+    severity: WARNING
+    patterns:
+      - pattern: $LOGGER.error($MESSAGE)
+      - metavariable-regex:
+          metavariable: $MESSAGE
+          regex: ^["'`]Something went wrong["'`]$
+
+  - id: scruple-benchmark.javascript.request-role-authorization
+    languages: [javascript, typescript]
+    message: Do not authorize access with a role supplied in the request body.
+    severity: ERROR
+    pattern: |-
+      if ($REQUEST.body.role !== $ROLE) throw $ERROR
+
+  - id: scruple-benchmark.javascript.tautological-assert-equal
+    languages: [javascript, typescript]
+    message: This assertion compares the same literal value and cannot verify behavior.
+    severity: WARNING
+    patterns:
+      - pattern: $ASSERT.equal($LEFT, $RIGHT)
+      - metavariable-comparison:
+          metavariable: $LEFT
+          comparison: str($LEFT) == str($RIGHT)
+
+  - id: scruple-benchmark.javascript.unredacted-sensitive-log-field
+    languages: [javascript, typescript]
+    message: A sensitive field is logged without a visible redaction marker.
+    severity: ERROR
+    patterns:
+      - pattern: |-
+          $LOGGER.$METHOD({ ..., $FIELD: $VALUE, ... })
+      - metavariable-regex:
+          metavariable: $FIELD
+          regex: (?i).*(token|password|secret|authorization).*
+      - pattern-not: |-
+          $LOGGER.$METHOD({ ..., $FIELD: "[REDACTED]", ... })

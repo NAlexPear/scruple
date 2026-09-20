@@ -19,6 +19,16 @@
       "types": "./dist/benchmark-options.d.ts",
       "import": "./dist/benchmark-options.js"
     },
+    "./semgrep-benchmark": {
+      "source": "./src/semgrep-benchmark.ts",
+      "types": "./dist/semgrep-benchmark.d.ts",
+      "import": "./dist/semgrep-benchmark.js"
+    },
+    "./semgrep-benchmark-options": {
+      "source": "./src/semgrep-benchmark-options.ts",
+      "types": "./dist/semgrep-benchmark-options.d.ts",
+      "import": "./dist/semgrep-benchmark-options.js"
+    },
     "./options": {
       "source": "./src/options.ts",
       "types": "./dist/options.d.ts",

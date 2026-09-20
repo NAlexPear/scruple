@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "id": "useless-restates-assignment",
+      "sourceSha256": "f1321b5d0dce92cf55546cb8b172c891ec768b25a2ac13e072fe03614da64c8f",
+      "coverage": "unsupported",
+      "reason": "Judging whether prose adds intent requires semantic comparison with nearby code."
+    },
+    {
+      "id": "swallowed-empty-catch",
+      "sourceSha256": "17acf69f75a78479415d2aaa8d9915c1ac958b25bcbed66779604876435d6950",
+      "coverage": "benchmark_owned",
+      "ruleId": "scruple-benchmark.javascript.empty-catch"
+    },
+    {
+      "id": "async-independent-loads-serialized",
+      "sourceSha256": "376d13cf5e865029af2790c334e5890456aaf426ffb650fc0396a8838239ecb1",
+      "coverage": "unsupported",
+      "reason": "The fixture depends on proving that the two awaited operations are independent."
+    },
+    {
+      "id": "unactionable-generic-error",
+      "sourceSha256": "469733165fce9cbda06470164986f8d5714fb3c26475bfcb9873d6ef37561d45",
+      "coverage": "benchmark_owned",
+      "ruleId": "scruple-benchmark.javascript.generic-error-message"
+    },
+    {
+      "id": "database-join-done-in-memory",
+      "sourceSha256": "8dd675192cbb67ba4ebcabc779cb03c5f883a213e22e919780e5c55a658e5dd2",
+      "coverage": "unsupported",
+      "reason": "The fixture requires identifying database collections and join intent across operations."
+    },
+    {
+      "id": "resource-file-handle-falls-through",
+      "sourceSha256": "75bb45359ce37848dc0c64cf54d54434a9ca15366c150a5fa59de2a3d407b96c",
+      "coverage": "unsupported",
+      "reason": "The closest local pattern would encode this fixture but would not establish resource ownership or cleanup on all paths."
+    },
+    {
+      "id": "authorization-gates-access-with-request-role",
+      "sourceSha256": "b966730fdd12593d70afe4d7f80f78c062d22b67a048006ab4df184f2b0b54fc",
+      "coverage": "benchmark_owned",
+      "ruleId": "scruple-benchmark.javascript.request-role-authorization"
+    },
+    {
+      "id": "vacuous-test-tautology",
+      "sourceSha256": "50ed67bcf2673f7ff88c595d6217d0a0a26175afbfeb601f93cce8fe20fbe72d",
+      "coverage": "benchmark_owned",
+      "ruleId": "scruple-benchmark.javascript.tautological-assert-equal"
+    },
+    {
+      "id": "validation-express-body-unchecked",
+      "sourceSha256": "929fc59ec8dba29eb4aebf95ba0fd37917d8b49db29321b91616174a75e8580b",
+      "coverage": "unsupported",
+      "reason": "The fixture expects absence of any validation before persistence, which is not represented by an equivalent default rule."
+    },
+    {
+      "id": "sensitive-log-redacted-token",
+      "sourceSha256": "69f2938d299884994eb1820a90bde132edbd1af8113b02e1601912e68cc1f761",
+      "coverage": "benchmark_owned",
+      "ruleId": "scruple-benchmark.javascript.unredacted-sensitive-log-field"
+    }
+  ]
+}
