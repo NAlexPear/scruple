@@ -62,4 +62,4 @@ Security linting is not a security guarantee. These rules are advisory review si
 vulnerabilities, and can report false positives. Use them alongside threat modeling, least-privilege
 design, code review, dependency and secret scanning, security tests, and runtime controls.
 
-Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).
+Follow the published [quickstart](https://scruple.dev/guide/quickstart), browse the [rule registry](https://scruple.dev/plugins/), compare [providers](https://scruple.dev/providers/), or [write a custom rule](https://scruple.dev/guide/writing-a-plugin).

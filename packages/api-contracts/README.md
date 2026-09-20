@@ -39,4 +39,4 @@ These rules do not infer behavior from re-exports, mounted routers, global middl
 unresolved helpers, or class visibility in other files. When the available code is not enough to
 decide, the provider can return `insufficient_context` instead of reporting a finding.
 
-Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).
+Follow the published [quickstart](https://scruple.dev/guide/quickstart), browse the [rule registry](https://scruple.dev/plugins/), compare [providers](https://scruple.dev/providers/), or [write a custom rule](https://scruple.dev/guide/writing-a-plugin).

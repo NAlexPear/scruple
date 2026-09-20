@@ -12,4 +12,4 @@ imports, calls, and local helper bodies. Nondeterminism and delay rules inspect 
 visible local helpers; same-named declarations from unrelated scopes are excluded, and ambiguous
 resolution is omitted rather than guessed.
 
-Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).
+Follow the published [quickstart](https://scruple.dev/guide/quickstart), browse the [rule registry](https://scruple.dev/plugins/), compare [providers](https://scruple.dev/providers/), or [write a custom rule](https://scruple.dev/guide/writing-a-plugin).

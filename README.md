@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://scruple.alexpear.workers.dev/">
+  <a href="https://scruple.dev/">
     <img src="apps/docs/public/assets/scruple-mark.svg" width="112" alt="Scruple pen-nib mark">
   </a>
 </p>
@@ -20,9 +20,9 @@
 </p>
 
 <p align="center">
-  <a href="https://scruple.alexpear.workers.dev/guide/quickstart">Get started</a> ·
-  <a href="https://scruple.alexpear.workers.dev/">Read the docs</a> ·
-  <a href="https://scruple.alexpear.workers.dev/plugins/">Browse the rules</a>
+  <a href="https://scruple.dev/guide/quickstart">Get started</a> ·
+  <a href="https://scruple.dev/">Read the docs</a> ·
+  <a href="https://scruple.dev/plugins/">Browse the rules</a>
 </p>
 
 ## Where Scruple fits
@@ -117,11 +117,11 @@ Use a full rule ID to suppress an exceptional target without disabling the rule 
 const status = deriveStatus();
 ```
 
-Scruple also supports `scruple-disable-line` and paired `scruple-disable` and `scruple-enable` region comments. Suppressed candidates are removed before provider evaluation. See [inline suppressions](https://scruple.alexpear.workers.dev/guide/configuration#inline-suppressions) for the complete syntax.
+Scruple also supports `scruple-disable-line` and paired `scruple-disable` and `scruple-enable` region comments. Suppressed candidates are removed before provider evaluation. See [inline suppressions](https://scruple.dev/guide/configuration#inline-suppressions) for the complete syntax.
 
 ## Plugins and rules
 
-Scruple has no core policy. Plugins provide independently publishable rule packs, and consumers choose which rules to enable. Browse the [plugin and rule registry](https://scruple.alexpear.workers.dev/plugins/) for every available plugin, rule, option, and default.
+Scruple has no core policy. Plugins provide independently publishable rule packs, and consumers choose which rules to enable. Browse the [plugin and rule registry](https://scruple.dev/plugins/) for every available plugin, rule, option, and default.
 
 ### Put your team's taste in the repository
 
@@ -132,7 +132,7 @@ Every team has standards that live in review comments. Scruple turns those repea
 - "Retries need a deadline."
 - "Explain why, not what."
 
-If a review comment starts with "we usually," it may belong in a Scruple rule. [Write your own rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).
+If a review comment starts with "we usually," it may belong in a Scruple rule. [Write your own rule](https://scruple.dev/guide/writing-a-plugin).
 
 A rule selects the code it needs and asks the provider a fixed question. It then compares the answer
 with fixed thresholds. If the answer passes, the rule reports its own diagnostic. Otherwise, it
