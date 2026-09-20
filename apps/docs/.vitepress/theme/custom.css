@@ -21,7 +21,7 @@
   --vp-font-family-base: "Manrope", system-ui, sans-serif;
   --vp-font-family-mono: "DM Mono", ui-monospace, monospace;
   --vp-layout-max-width: 1480px;
-  --vp-nav-bg-color: rgba(244, 241, 232, 0.5);
+  --vp-nav-bg-color: rgba(244, 241, 232, 0.92);
   --scruple-code-bg: #171a17;
   --scruple-code-divider: #353a34;
   --scruple-code-text: #edf0e9;
@@ -50,12 +50,30 @@
   --vp-button-brand-bg: #c7f36b;
   --vp-button-brand-hover-bg: #d3f88b;
   --vp-button-brand-text: #171a17;
-  --vp-nav-bg-color: rgba(21, 24, 20, 0.5);
+  --vp-nav-bg-color: rgba(21, 24, 20, 0.92);
 }
 
 .VPNavBar {
   border-bottom: 1px solid var(--vp-c-divider);
   background-color: var(--vp-nav-bg-color) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+.VPNavBarHamburger .container,
+.VPNavBarHamburger .top,
+.VPNavBarHamburger .middle,
+.VPNavBarHamburger .bottom {
+  width: 22px;
+}
+
+.VPNavBarHamburger .middle,
+.VPNavBarHamburger .bottom {
+  transform: none;
+}
+
+.VPNavBarHamburger.active .middle {
+  transform: translateX(22px) !important;
 }
 
 .nav-mark {
@@ -784,6 +802,13 @@
 
   .vp-doc [class*="language-"] > button.copy + span.lang {
     opacity: 0;
+  }
+}
+
+@media (max-width: 959px) {
+  .Layout > .VPNav {
+    z-index: 40;
+    position: sticky;
   }
 }
 
