@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "tasks": {
+    "useless-restates-assignment": "66b66d3f512266e40c3e4e769ab93e3ac396b2471be91aa9be66ab1633450487",
+    "swallowed-empty-catch": "d92e7e78b53730c02a524e2a3980a9bdc1b696ac917752be899f931ecd059321",
+    "async-independent-loads-serialized": "1319ff7d6b62c298dde5f75433943c0e156dbac23f8979734b56e6215c3338b5",
+    "unactionable-generic-error": "8bbf8f57b35ae348cea4b0d73390633eda23df9c58667f7727c6874a2e0f6a27",
+    "database-join-done-in-memory": "0c5579d8db6f23a10fc766b71714fe4a14dfa9bf592f9e3ce410232d02421301",
+    "resource-file-handle-falls-through": "af36a9fdb96b4d020d49e47808e85a1467151e05b3e4eca9d9221688d3e33a1f",
+    "authorization-gates-access-with-request-role": "2b56d2b3c950c50fe7f4836d7a12df6cc82dc194edd165dfa9a49fd18f88189c",
+    "vacuous-test-tautology": "2e57cef0eee09cf5dbea6ee679c3821ed93617a9e9ce32f02b718be303d7d1e4",
+    "validation-express-body-unchecked": "36434ce61033a219c5ee89476c307edc5bb79d7d220258ee6cc9062a7a3f8484",
+    "sensitive-log-redacted-token": "b0cef84b3cfc449b81dfedc6ecfb6aa07b70404ba3769ebd1e057b842706e849"
+  }
+}

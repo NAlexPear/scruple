@@ -1,0 +1,427 @@
+{
+  "generatedAt": "2026-09-20T15:33:53.802Z",
+  "environment": {
+    "node": "v26.8.2",
+    "platform": "linux",
+    "release": "6.1.158+",
+    "architecture": "x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+    "logicalCpuCount": 4,
+    "totalMemoryBytes": 8343158784
+  },
+  "report": {
+    "schemaVersion": 1,
+    "benchmark": "direct-hosted-llm",
+    "provider": "openai",
+    "requestedModel": "gpt-4.1-2025-04-14",
+    "prompt": {
+      "version": "scruple-direct-choice-v1",
+      "sha256": "578d1e769c5a63c1d82d24f90b3238d85537d573d8dbbe9dca85ee181df8b2df",
+      "system": "You classify one Scruple rule question using only the supplied bounded evidence. Select exactly one listed choice. Select insufficient_context only when the evidence does not support another choice. Do not inspect or infer facts from the wider repository."
+    },
+    "settings": {
+      "temperature": 0,
+      "concurrency": 2,
+      "repetitions": 2,
+      "warmups": 1
+    },
+    "workload": {
+      "fixtureCount": 10,
+      "fixtureIds": [
+        "useless-restates-assignment",
+        "swallowed-empty-catch",
+        "async-independent-loads-serialized",
+        "unactionable-generic-error",
+        "database-join-done-in-memory",
+        "resource-file-handle-falls-through",
+        "authorization-gates-access-with-request-role",
+        "vacuous-test-tautology",
+        "validation-express-body-unchecked",
+        "sensitive-log-redacted-token"
+      ],
+      "taskHashes": {
+        "useless-restates-assignment": "66b66d3f512266e40c3e4e769ab93e3ac396b2471be91aa9be66ab1633450487",
+        "swallowed-empty-catch": "d92e7e78b53730c02a524e2a3980a9bdc1b696ac917752be899f931ecd059321",
+        "async-independent-loads-serialized": "1319ff7d6b62c298dde5f75433943c0e156dbac23f8979734b56e6215c3338b5",
+        "unactionable-generic-error": "8bbf8f57b35ae348cea4b0d73390633eda23df9c58667f7727c6874a2e0f6a27",
+        "database-join-done-in-memory": "0c5579d8db6f23a10fc766b71714fe4a14dfa9bf592f9e3ce410232d02421301",
+        "resource-file-handle-falls-through": "af36a9fdb96b4d020d49e47808e85a1467151e05b3e4eca9d9221688d3e33a1f",
+        "authorization-gates-access-with-request-role": "2b56d2b3c950c50fe7f4836d7a12df6cc82dc194edd165dfa9a49fd18f88189c",
+        "vacuous-test-tautology": "2e57cef0eee09cf5dbea6ee679c3821ed93617a9e9ce32f02b718be303d7d1e4",
+        "validation-express-body-unchecked": "36434ce61033a219c5ee89476c307edc5bb79d7d220258ee6cc9062a7a3f8484",
+        "sensitive-log-redacted-token": "b0cef84b3cfc449b81dfedc6ecfb6aa07b70404ba3769ebd1e057b842706e849"
+      }
+    },
+    "cases": [
+      {
+        "id": "useless-restates-assignment",
+        "ruleId": "comments/no-useless-comments",
+        "repetition": 1,
+        "expectedChoice": "redundant",
+        "expectedFinding": true,
+        "actualChoice": "redundant",
+        "rationale": "The comment 'Set active to true' merely restates the obvious effect of the code 'user.active = true;' without adding any rationale, constraint, or non-obvious explanation. It does not provide additional maintainability value.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 631.1055569999999,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 366,
+          "outputTokens": 57
+        }
+      },
+      {
+        "id": "swallowed-empty-catch",
+        "ruleId": "errors/no-swallowed-errors",
+        "repetition": 1,
+        "expectedChoice": "swallowed",
+        "expectedFinding": true,
+        "actualChoice": "swallowed",
+        "rationale": "The catch block is empty and does not rethrow, report, or visibly handle the error. After catching, execution continues to markReady(), which suggests the function proceeds as if the cache.refresh() succeeded, regardless of whether an error occurred. There is no visible recovery contract or reporting, so the error is swallowed.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1739.3808790000003,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 526,
+          "outputTokens": 74
+        }
+      },
+      {
+        "id": "async-independent-loads-serialized",
+        "ruleId": "async/no-serial-independent-work",
+        "repetition": 1,
+        "expectedChoice": "serial_independent_work",
+        "expectedFinding": true,
+        "actualChoice": "serial_independent_work",
+        "rationale": "The function awaits two readFile calls for different files (\"config.json\" and \"schema.json\") in series. The comment states these are read-only operations on different files, and there is no evidence of data dependency, side effects, or required ordering between them. There is also no evidence that concurrent execution would alter observable behavior. Therefore, these operations are visibly independent and could be started together without affecting results or side effects.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 890.9830599999996,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 478,
+          "outputTokens": 98
+        }
+      },
+      {
+        "id": "unactionable-generic-error",
+        "ruleId": "observability/no-unactionable-errors",
+        "repetition": 1,
+        "expectedChoice": "unactionable",
+        "expectedFinding": true,
+        "actualChoice": "unactionable",
+        "rationale": "The logger.error call only logs the message \"Something went wrong\" without including the error object, stack trace, or any structured evidence about the failure. There is no visible evidence that the failed operation (gateway.charge) or the error/cause is preserved in the log. Based on the bounded context, this log is too generic to be actionable.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1031.8615479999999,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 573,
+          "outputTokens": 82
+        }
+      },
+      {
+        "id": "database-join-done-in-memory",
+        "ruleId": "relational-databases/prefer-database-join",
+        "repetition": 1,
+        "expectedChoice": "database_pushdown",
+        "expectedFinding": true,
+        "actualChoice": "database_pushdown",
+        "rationale": "The function fetches all users and all teams from the same database (db.user.findMany and db.team.findMany), then combines them in memory by mapping users and finding their team via teams.find. This is a classic in-memory join that could be pushed down to the database layer, which can reasonably express such a join.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1063.621881,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 483,
+          "outputTokens": 77
+        }
+      },
+      {
+        "id": "resource-file-handle-falls-through",
+        "ruleId": "resources/no-leaked-resources",
+        "repetition": 1,
+        "expectedChoice": "leaked_resource",
+        "expectedFinding": true,
+        "actualChoice": "leaked_resource",
+        "rationale": "The function acquires a file handle using 'open', reads its contents, and returns the contents without closing the file. There is no 'using', 'finally', or explicit close call, nor is the file handle transferred or managed by a visible abstraction. Thus, a visible execution path returns while still owning the resource.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1064.3667400000004,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 438,
+          "outputTokens": 76
+        }
+      },
+      {
+        "id": "authorization-gates-access-with-request-role",
+        "ruleId": "security/no-user-controlled-authorization",
+        "repetition": 1,
+        "expectedChoice": "user_controlled_authorization",
+        "expectedFinding": true,
+        "actualChoice": "user_controlled_authorization",
+        "rationale": "The function readAdminReport checks req.body.role for the value 'admin' to determine access. Since req.body is attacker-controlled and there is no visible verification or server-side lookup of the role, this constitutes using an attacker-controlled authority claim to make an authorization decision.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 958.9375779999991,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 653,
+          "outputTokens": 67
+        }
+      },
+      {
+        "id": "vacuous-test-tautology",
+        "ruleId": "tests/no-vacuous-tests",
+        "repetition": 1,
+        "expectedChoice": "vacuous",
+        "expectedFinding": true,
+        "actualChoice": "vacuous",
+        "rationale": "The test titled 'creates a user' only calls createUser and then asserts that true equals true, which is a tautology and does not verify that a user was actually created. There is no meaningful verification of the claimed behavior.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 983.0074800000002,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 553,
+          "outputTokens": 58
+        }
+      },
+      {
+        "id": "validation-express-body-unchecked",
+        "ruleId": "api-contracts/require-input-validation",
+        "repetition": 1,
+        "expectedChoice": "validation_required",
+        "expectedFinding": true,
+        "actualChoice": "validation_required",
+        "rationale": "The function createUser directly uses request.body.email and request.body.role (untrusted input) in a call to users.insert without any visible runtime validation or parsing. There is no evidence of schema validation, guards, or parsing in the visible code. Type annotations alone do not constitute runtime validation.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1093.991043,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 529,
+          "outputTokens": 69
+        }
+      },
+      {
+        "id": "sensitive-log-redacted-token",
+        "ruleId": "observability/no-sensitive-logs",
+        "repetition": 1,
+        "expectedChoice": "safe_or_redacted",
+        "expectedFinding": false,
+        "actualChoice": "safe_or_redacted",
+        "rationale": "The sessionToken field is explicitly set to \"[REDACTED]\" in the log call, indicating that any sensitive value is not emitted. The userId field alone does not prove sensitivity without further context, and there is no evidence in the visible code that it is sensitive. Therefore, the log call does not directly emit a visibly sensitive value.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 801.3725379999996,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 582,
+          "outputTokens": 84
+        }
+      },
+      {
+        "id": "useless-restates-assignment",
+        "ruleId": "comments/no-useless-comments",
+        "repetition": 2,
+        "expectedChoice": "redundant",
+        "expectedFinding": true,
+        "actualChoice": "redundant",
+        "rationale": "The comment 'Set active to true' merely restates the obvious effect of the code 'user.active = true;' without adding any rationale, constraint, warning, or non-obvious explanation. It does not provide additional maintainability value.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 661.2273399999995,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 366,
+          "outputTokens": 59
+        }
+      },
+      {
+        "id": "swallowed-empty-catch",
+        "ruleId": "errors/no-swallowed-errors",
+        "repetition": 2,
+        "expectedChoice": "swallowed",
+        "expectedFinding": true,
+        "actualChoice": "swallowed",
+        "rationale": "The catch block is empty and does not rethrow, report, or visibly handle the error in any way. After catching, execution continues to markReady(), which suggests the function proceeds as if the cache.refresh() succeeded. There is no visible recovery contract or reporting, so the error is swallowed according to the supplied criteria.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 993.3252260000008,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 526,
+          "outputTokens": 75
+        }
+      },
+      {
+        "id": "async-independent-loads-serialized",
+        "ruleId": "async/no-serial-independent-work",
+        "repetition": 2,
+        "expectedChoice": "serial_independent_work",
+        "expectedFinding": true,
+        "actualChoice": "serial_independent_work",
+        "rationale": "The function awaits two readFile calls for different files (\"config.json\" and \"schema.json\") in series. The comment states these are read-only operations on different files, and there is no evidence of data dependency, side effects, or required ordering between them. There is also no evidence that concurrent execution would alter observable behavior. Therefore, these operations are visibly independent and could be started together.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1276.159662,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 478,
+          "outputTokens": 92
+        }
+      },
+      {
+        "id": "unactionable-generic-error",
+        "ruleId": "observability/no-unactionable-errors",
+        "repetition": 2,
+        "expectedChoice": "unactionable",
+        "expectedFinding": true,
+        "actualChoice": "unactionable",
+        "rationale": "The logger.error call only logs the message \"Something went wrong\" without including the error object, stack trace, or any structured evidence about the failure. There is no visible indication that the failed operation (gateway.charge) or the error/cause is preserved in the log. Based on the bounded evidence, this log event is too generic and omits useful failure evidence needed to investigate the issue.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1032.4950360000003,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 573,
+          "outputTokens": 91
+        }
+      },
+      {
+        "id": "database-join-done-in-memory",
+        "ruleId": "relational-databases/prefer-database-join",
+        "repetition": 2,
+        "expectedChoice": "database_pushdown",
+        "expectedFinding": true,
+        "actualChoice": "database_pushdown",
+        "rationale": "The function fetches all users and all teams from the same database (db.user.findMany and db.team.findMany), then combines them in memory by mapping users and finding their team via teams.find. This is a classic in-memory join that could be pushed down to the database layer, which can reasonably express such a join.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 980.4986560000016,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 483,
+          "outputTokens": 77
+        }
+      },
+      {
+        "id": "resource-file-handle-falls-through",
+        "ruleId": "resources/no-leaked-resources",
+        "repetition": 2,
+        "expectedChoice": "leaked_resource",
+        "expectedFinding": true,
+        "actualChoice": "leaked_resource",
+        "rationale": "The function acquires a file handle using 'open', reads from it, and returns the contents without closing the file or using any resource management construct such as 'using', 'finally', or an explicit close. There is a visible execution path (the normal return) where the file handle remains open and owned by the function, resulting in a resource leak.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1247.561033,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 438,
+          "outputTokens": 83
+        }
+      },
+      {
+        "id": "authorization-gates-access-with-request-role",
+        "ruleId": "security/no-user-controlled-authorization",
+        "repetition": 2,
+        "expectedChoice": "user_controlled_authorization",
+        "expectedFinding": true,
+        "actualChoice": "user_controlled_authorization",
+        "rationale": "The function readAdminReport checks req.body.role for the value 'admin' to authorize access. Since req.body is attacker-controlled and there is no visible evidence of server-side validation or trusted provenance for this claim, the function makes an authorization decision based on an attacker-controlled authority claim.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 972.9372870000007,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 653,
+          "outputTokens": 70
+        }
+      },
+      {
+        "id": "vacuous-test-tautology",
+        "ruleId": "tests/no-vacuous-tests",
+        "repetition": 2,
+        "expectedChoice": "vacuous",
+        "expectedFinding": true,
+        "actualChoice": "vacuous",
+        "rationale": "The test titled 'creates a user' only calls createUser and then asserts that true equals true, which is a tautology and does not verify that a user was actually created. There is no meaningful verification of the claimed behavior.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 865.5839770000002,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 553,
+          "outputTokens": 58
+        }
+      },
+      {
+        "id": "validation-express-body-unchecked",
+        "ruleId": "api-contracts/require-input-validation",
+        "repetition": 2,
+        "expectedChoice": "validation_required",
+        "expectedFinding": true,
+        "actualChoice": "validation_required",
+        "rationale": "The function createUser directly uses request.body.email and request.body.role (untrusted input) in a call to users.insert without any visible runtime validation or parsing. There is no evidence of schema validation, guards, or parsing in the visible code. Type annotations alone do not constitute runtime validation. Therefore, validation is required.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 1003.6099299999987,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 529,
+          "outputTokens": 75
+        }
+      },
+      {
+        "id": "sensitive-log-redacted-token",
+        "ruleId": "observability/no-sensitive-logs",
+        "repetition": 2,
+        "expectedChoice": "safe_or_redacted",
+        "expectedFinding": false,
+        "actualChoice": "safe_or_redacted",
+        "rationale": "The sessionToken field is explicitly set to \"[REDACTED]\" in the log call, indicating that the sensitive value is not emitted. The userId field alone does not prove sensitive content without further context. Therefore, the log call does not directly emit a visibly sensitive value.",
+        "abstained": false,
+        "category": "detected/correct",
+        "latencyMs": 732.0402809999996,
+        "model": "gpt-4.1-2025-04-14",
+        "usage": {
+          "inputTokens": 582,
+          "outputTokens": 71
+        }
+      }
+    ],
+    "summary": {
+      "categories": {
+        "detected/correct": 20,
+        "applicable miss": 0,
+        "unsupported capability": 0
+      },
+      "correctness": {
+        "correct": 20,
+        "denominator": 20,
+        "rate": 1
+      },
+      "recall": {
+        "correctFindings": 18,
+        "denominator": 18,
+        "rate": 1
+      },
+      "abstentions": 0,
+      "operationalErrors": 0,
+      "latencyMs": {
+        "mean": 1001.2033366000003,
+        "p50": 983.0074800000002,
+        "p95": 1276.159662
+      },
+      "throughputCasesPerSecond": 1.9422358486450844,
+      "usage": {
+        "inputTokens": 10362,
+        "outputTokens": 1493
+      }
+    }
+  }
+}

@@ -24,6 +24,16 @@
       "types": "./dist/codeql-benchmark.d.ts",
       "import": "./dist/codeql-benchmark.js"
     },
+    "./llm-benchmark": {
+      "source": "./src/llm-benchmark.ts",
+      "types": "./dist/llm-benchmark.d.ts",
+      "import": "./dist/llm-benchmark.js"
+    },
+    "./openai-evaluator": {
+      "source": "./src/openai-evaluator.ts",
+      "types": "./dist/openai-evaluator.d.ts",
+      "import": "./dist/openai-evaluator.js"
+    },
     "./semgrep-benchmark": {
       "source": "./src/semgrep-benchmark.ts",
       "types": "./dist/semgrep-benchmark.d.ts",

@@ -16,6 +16,7 @@
   "scripts": {
     "benchmark": "pnpm build && node packages/eval/dist/benchmark-cli.js",
     "benchmark-codeql": "pnpm build 1>&2 && node packages/eval/dist/codeql-benchmark-cli.js",
+    "benchmark-llm": "node --conditions=source packages/eval/src/llm-benchmark-cli.ts",
     "benchmark-semgrep": "pnpm build 1>&2 && node packages/eval/dist/semgrep-benchmark-cli.js",
     "benchmark-sonarqube": "node benchmarks/sonarqube/run.mjs",
     "build": "pnpm -r --sort build",
