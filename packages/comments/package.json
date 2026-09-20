@@ -2,6 +2,16 @@
   "name": "@scruple/comments",
   "version": "0.0.1",
   "description": "Semantic rules for source-code comments.",
+  "keywords": [
+    "code-quality",
+    "comments",
+    "linting",
+    "semantic-analysis"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

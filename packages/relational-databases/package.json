@@ -2,6 +2,16 @@
   "name": "@scruple/relational-databases",
   "version": "0.0.1",
   "description": "Semantic rules for relational database access.",
+  "keywords": [
+    "code-quality",
+    "databases",
+    "semantic-analysis",
+    "sql"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

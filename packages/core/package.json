@@ -2,6 +2,16 @@
   "name": "@scruple/core",
   "version": "0.0.1",
   "description": "Provider-neutral semantic rule engine and plugin contracts for Scruple.",
+  "keywords": [
+    "code-quality",
+    "plugins",
+    "semantic-analysis",
+    "static-analysis"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

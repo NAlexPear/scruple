@@ -2,6 +2,16 @@
   "name": "@scruple/provider-jev",
   "version": "0.0.1",
   "description": "TypeSafe Jev decision provider for Scruple.",
+  "keywords": [
+    "ai",
+    "jev",
+    "semantic-analysis",
+    "typesafe-ai"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
