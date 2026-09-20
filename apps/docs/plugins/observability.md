@@ -1,0 +1,45 @@
+# Observability
+
+`@scruple/observability` provides provider-backed semantic checks for logging and telemetry calls.
+
+```sh
+pnpm add -D @scruple/observability
+```
+
+```ts
+import { defineConfig } from "@scruple/core";
+import { observability } from "@scruple/observability";
+
+export default defineConfig({
+  parser,
+  provider,
+  plugins: { observability: observability() },
+  rules: { "observability/no-sensitive-logs": "warn" },
+});
+```
+
+| Rule                                                                                 | Checks                                             |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| [`observability/no-sensitive-logs`](#observabilityno-sensitive-logs)                 | Sensitive values emitted without redaction         |
+| [`observability/no-unactionable-errors`](#observabilityno-unactionable-errors)       | Error events missing operation or failure evidence |
+| [`observability/require-operation-context`](#observabilityrequire-operation-context) | Events without a stable operation identity         |
+
+All rules accept `threshold`, `minConfidence`, `loggingCallPatterns`, and `telemetryCallPatterns`. Pattern arrays replace, rather than extend, built-in patterns. `minConfidence` defaults to `0.7`.
+
+## `observability/no-sensitive-logs`
+
+Reviews detected log and telemetry calls for visibly sensitive emitted values without effective masking, allowlisting, hashing for disclosure control, or redaction. `threshold` defaults to `0.9`.
+
+## `observability/no-unactionable-errors`
+
+Reviews only error/fatal logs and exception telemetry. An actionable event identifies the failed operation and preserves useful failure evidence. `threshold` defaults to `0.85`.
+
+## `observability/require-operation-context`
+
+Checks log and telemetry events other than `setAttribute` and `setAttributes` for a specific message or structured field naming the operation. IDs and status alone do not identify it. `threshold` defaults to `0.8`.
+
+```ts
+rules: {
+  "observability/no-sensitive-logs": ["warn", { loggingCallPatterns: [/^audit\.write$/u] }],
+}
+```

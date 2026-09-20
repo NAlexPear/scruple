@@ -16,8 +16,6 @@
   "scripts": {
     "build": "pnpm -r --sort build",
     "check": "oxfmt --check . && oxlint . && tsc --noEmit && pnpm build",
-    "docs:dev": "pnpm --filter @scruple/docs dev",
-    "docs:test": "pnpm --filter @scruple/docs test",
     "eval": "pnpm build && node packages/eval/dist/cli.js",
     "fix": "oxlint --fix . && oxfmt .",
     "release:version": "node scripts/set-release-version.ts",

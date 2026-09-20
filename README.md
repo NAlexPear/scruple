@@ -293,8 +293,8 @@ suite. Public packages are emitted as unbundled ESM with declarations, source ma
 source. The compiled `scruple` bin leaves dependencies external so parser, provider, and rule plugins
 resolve from the consuming project.
 
-Run the documentation site locally with `pnpm docs:dev`; its interaction tests run as part of
-`pnpm check` or independently with `pnpm docs:test`.
+Run the documentation site locally with `pnpm --filter @scruple/docs dev`; verify its production
+build with `pnpm --filter @scruple/docs test`.
 
 Live model evaluations are separate from deterministic checks:
 
