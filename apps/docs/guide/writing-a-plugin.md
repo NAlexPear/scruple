@@ -319,10 +319,12 @@ const collectExample = async () => {
     "// TODO: fix later\n// Revisit this later.\n// Return the to-do list.\nexport const ready = false;\n",
   );
   const choices = ["todo", "other"][Symbol.iterator]();
+  const commentsSentToModel: string[] = [];
   const context: CollectionContext = {
     provider: {
       id: "test",
-      async evaluate() {
+      async evaluate(target) {
+        commentsSentToModel.push(target.source);
         const next = choices.next();
         if (next.done) throw new Error("The test needs another recorded answer");
         const choice = next.value;
@@ -340,11 +342,20 @@ const collectExample = async () => {
       },
     },
   };
-  return rule.collect(document, context);
+  return {
+    candidates: await rule.collect(document, context),
+    commentsSentToModel,
+  };
 };
 
-test("uses the regex first and the model for the rest", async () => {
-  const [obviousTodo, vagueTodo, ...rest] = await collectExample();
+test("sends only unmatched comments to the model", async () => {
+  const { commentsSentToModel } = await collectExample();
+  assert.deepEqual(commentsSentToModel, ["// Revisit this later.", "// Return the to-do list."]);
+});
+
+test("keeps TODOs found by either filter", async () => {
+  const { candidates } = await collectExample();
+  const [obviousTodo, vagueTodo, ...rest] = candidates;
   assert.ok(obviousTodo);
   assert.ok(vagueTodo);
   assert.deepEqual(rest, []);
@@ -353,7 +364,8 @@ test("uses the regex first and the model for the rest", async () => {
 });
 
 test("warns only for a strong vague answer", async () => {
-  const [candidate] = await collectExample();
+  const { candidates } = await collectExample();
+  const [candidate] = candidates;
   assert.ok(candidate);
 
   const vague = {
@@ -371,9 +383,21 @@ test("warns only for a strong vague answer", async () => {
 ```
 
 ::: info What the tests cover
-The first test proves that the regex keeps `TODO`, while the model keeps the vaguer “Revisit this
-later.” The second test checks exactly when a warning appears.
+The first test checks what reaches the model. The second checks what becomes a TODO. The third checks
+exactly when a warning appears.
 :::
 
 Before publishing, also test a clear TODO, a suppressed comment, and an
 `insufficient_context` answer.
+
+## Conclusion
+
+The finished rule takes the cheapest reliable path first:
+
+1. Match the exact `TODO` spelling in code.
+2. Ask the model about comments the exact match missed.
+3. Ask a separate question about whether the remaining work is clear.
+4. Warn only when the answer is both `vague` and strong enough.
+
+Use the same order for other rules: handle exact cases in code, use the model only when meaning matters,
+and keep the warning decision in the rule.
