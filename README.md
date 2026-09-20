@@ -9,8 +9,8 @@
 <p align="center"><strong>Make good taste enforceable.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml/badge.svg?branch=main" alt="Main CI status"></a>
-  <a href="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml/badge.svg?branch=main" alt="Docs CI status"></a>
+  <a href="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml/badge.svg?branch=main&event=push" alt="Main CI status"></a>
+  <a href="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml/badge.svg?branch=main&event=push" alt="Docs CI status"></a>
 </p>
 
 <p align="center">
