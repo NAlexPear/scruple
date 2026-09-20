@@ -21,6 +21,7 @@
   --vp-font-family-base: "Manrope", system-ui, sans-serif;
   --vp-font-family-mono: "DM Mono", ui-monospace, monospace;
   --vp-layout-max-width: 1480px;
+  --vp-nav-bg-color: rgba(244, 241, 232, 0.5);
 }
 
 .dark {
@@ -41,28 +42,33 @@
   --vp-button-brand-bg: #c7f36b;
   --vp-button-brand-hover-bg: #d3f88b;
   --vp-button-brand-text: #171a17;
+  --vp-nav-bg-color: rgba(21, 24, 20, 0.5);
 }
 
 .VPNavBar {
   border-bottom: 1px solid var(--vp-c-divider);
+  background-color: var(--vp-nav-bg-color) !important;
 }
 
-.Layout:has(.landing-splash) .VPNavBar::after {
-  position: fixed;
-  z-index: 1;
-  top: 0;
-  left: 46.5%;
-  width: clamp(6.7px, 0.5134vw, 8px);
-  height: 64px;
-  background: var(--vp-c-text-1);
-  content: "";
-  pointer-events: none;
-  transform: translateX(-50%);
-}
-
-.VPNavBarTitle .logo {
+.nav-mark {
   width: 52px;
   height: 52px;
+  margin-right: 8px;
+  color: var(--vp-c-text-1);
+  --scruple-mark-stroke: 17;
+}
+
+.nav-tail {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 64px;
+  color: var(--vp-c-text-1);
+  opacity: 0.12;
+  pointer-events: none;
+  transform: translateX(-50%);
+  --scruple-mark-stroke: clamp(1.375px, 0.1424vw, 2.013px);
 }
 
 .VPNavBarTitle .title {
@@ -88,26 +94,21 @@
 
 .landing-mark {
   position: absolute;
-  z-index: 40;
+  z-index: 31;
   top: -64px;
-  left: 46.5%;
-  width: clamp(300px, 23vw, 360px);
+  left: 50%;
+  width: clamp(560px, 58vw, 820px);
+  color: var(--vp-c-text-1);
+  opacity: 0.12;
   pointer-events: none;
   transform: translateX(-50%);
+  --scruple-mark-stroke: 1.1;
 }
 
-.landing-mark img {
-  display: block;
-  width: 100%;
-}
-
-.landing-mark-dark,
-.dark .landing-mark-light {
-  display: none !important;
-}
-
-.dark .landing-mark-dark {
-  display: block !important;
+.landing-copy,
+.landing-example {
+  position: relative;
+  z-index: 32;
 }
 
 .landing-kicker {
@@ -430,15 +431,15 @@
 
   .landing-splash {
     grid-template-columns: 1fr;
-    padding-top: 180px;
+    padding-top: 72px;
   }
 
   .landing-mark {
-    width: 280px;
+    width: 560px;
   }
 
-  .Layout:has(.landing-splash) .VPNavBar::after {
-    width: 6.25px;
+  .nav-tail {
+    --scruple-mark-stroke: 1.375px;
   }
 
   .landing-copy {
@@ -469,16 +470,16 @@
 @media (max-width: 540px) {
   .landing-splash {
     gap: 64px;
-    padding-top: 160px;
+    padding-top: 56px;
     padding-bottom: 72px;
   }
 
   .landing-mark {
-    width: 240px;
+    width: 440px;
   }
 
-  .Layout:has(.landing-splash) .VPNavBar::after {
-    width: 5.36px;
+  .nav-tail {
+    --scruple-mark-stroke: 1.08px;
   }
 
   .landing-copy h1 {

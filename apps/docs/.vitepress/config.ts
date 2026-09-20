@@ -18,30 +18,10 @@ export default defineConfig({
   description: "Semantic code checks grounded in focused evidence.",
   cleanUrls: true,
   head: [
-    [
-      "link",
-      {
-        rel: "icon",
-        href: "/assets/scruple-mark.png",
-        media: "(prefers-color-scheme: light)",
-      },
-    ],
-    [
-      "link",
-      {
-        rel: "icon",
-        href: "/assets/scruple-mark-inverse.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-    ],
+    ["link", { rel: "icon", href: "/assets/scruple-mark.svg", type: "image/svg+xml" }],
     ["meta", { name: "theme-color", content: "#f4f1e8" }],
   ],
   themeConfig: {
-    logo: {
-      light: "/assets/scruple-mark.png",
-      dark: "/assets/scruple-mark-inverse.png",
-      alt: "Scruple",
-    },
     siteTitle: "scruple",
     nav: [
       { text: "Docs", link: "/guide/introduction" },

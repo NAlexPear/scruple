@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 448" color="#171a17">
+  <style>
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color: #f2f0e8;
+      }
+    }
+  </style>
+  <defs>
+    <g id="mark" fill="none">
+      <line x1="224" y1="68" x2="224" y2="87" />
+      <polygon points="211,87 237,87 243,95 239,123 209,123 205,95" />
+      <polyline points="205,95 224,102 243,95" />
+      <line x1="224" y1="102" x2="224" y2="123" />
+      <polygon points="197,123 251,123 259,133 251,143 197,143 189,133" />
+      <polygon points="197,143 170,158 187,230 224,378 261,230 278,158 251,143" />
+      <polyline points="197,143 224,236 251,143" />
+      <polyline points="170,158 224,236 278,158" />
+      <line x1="187" y1="230" x2="261" y2="230" />
+      <line x1="224" y1="236" x2="224" y2="378" />
+    </g>
+  </defs>
+  <use
+    href="#mark"
+    stroke="currentColor"
+    stroke-width="10"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+</svg>
