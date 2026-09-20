@@ -1,6 +1,7 @@
 ---
 layout: home
 title: Code checks for problems linters miss
+description: Catch valid code that breaks your team's standards with named, tested checks that run on every change.
 ---
 
 <section class="landing-splash" aria-labelledby="landing-title">

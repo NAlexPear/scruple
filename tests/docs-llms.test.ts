@@ -62,3 +62,32 @@ await test("HTML pages advertise and render their Markdown alternatives", async 
     ),
   );
 });
+
+await test("HTML pages publish rich link preview metadata", async () => {
+  const [home, guide, pluginIndex, socialCard] = await Promise.all([
+    readOutput("index.html"),
+    readOutput("guide/quickstart.html"),
+    readOutput("plugins/index.html"),
+    readFile(new URL("assets/social-card.png", dist)),
+  ]);
+
+  assert.match(home, /<link rel="canonical" href="https:\/\/scruple\.dev\/">/u);
+  assert.match(
+    home,
+    /<meta property="og:title" content="Code checks for problems linters miss \| Scruple">/u,
+  );
+  assert.match(
+    home,
+    /<meta property="og:image" content="https:\/\/scruple\.dev\/assets\/social-card\.png">/u,
+  );
+  assert.match(home, /<meta name="twitter:card" content="summary_large_image">/u);
+  assert.match(
+    guide,
+    /<meta property="og:url" content="https:\/\/scruple\.dev\/guide\/quickstart">/u,
+  );
+  assert.match(guide, /<meta property="og:title" content="Quickstart \| Scruple">/u);
+  assert.match(pluginIndex, /<link rel="canonical" href="https:\/\/scruple\.dev\/plugins\/">/u);
+  assert.equal(socialCard.subarray(1, 4).toString("ascii"), "PNG");
+  assert.equal(socialCard.readUInt32BE(16), 1200);
+  assert.equal(socialCard.readUInt32BE(20), 630);
+});

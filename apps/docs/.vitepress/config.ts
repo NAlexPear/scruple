@@ -60,10 +60,19 @@ const sidebar: DefaultTheme.SidebarItem[] = [
   },
 ];
 
+const siteUrl = "https://scruple.dev";
+const socialImage = `${siteUrl}/assets/social-card.png`;
+
+const pageUrl = (page: string): string => {
+  const path = page.replace(/index\.md$/u, "").replace(/\.md$/u, "");
+  return `${siteUrl}/${path}`;
+};
+
 export default defineConfig({
   title: "Scruple",
   description: "Make good taste enforceable with named, tested code checks.",
   cleanUrls: true,
+  sitemap: { hostname: siteUrl },
   vite: {
     plugins: [
       llmstxt({
@@ -101,6 +110,40 @@ export default defineConfig({
       title: ruleId,
       description: getRule(ruleId)?.summary ?? `Scruple rule ${ruleId}`,
     };
+  },
+  transformHead({ page, title, description }) {
+    const url = pageUrl(page);
+    return [
+      ["link", { rel: "canonical", href: url }],
+      ["meta", { property: "og:type", content: "website" }],
+      ["meta", { property: "og:site_name", content: "Scruple" }],
+      ["meta", { property: "og:locale", content: "en_US" }],
+      ["meta", { property: "og:title", content: title }],
+      ["meta", { property: "og:description", content: description }],
+      ["meta", { property: "og:url", content: url }],
+      ["meta", { property: "og:image", content: socialImage }],
+      ["meta", { property: "og:image:type", content: "image/png" }],
+      ["meta", { property: "og:image:width", content: "1200" }],
+      ["meta", { property: "og:image:height", content: "630" }],
+      [
+        "meta",
+        {
+          property: "og:image:alt",
+          content: "Scruple — make good taste enforceable with named, tested code checks.",
+        },
+      ],
+      ["meta", { name: "twitter:card", content: "summary_large_image" }],
+      ["meta", { name: "twitter:title", content: title }],
+      ["meta", { name: "twitter:description", content: description }],
+      ["meta", { name: "twitter:image", content: socialImage }],
+      [
+        "meta",
+        {
+          name: "twitter:image:alt",
+          content: "Scruple — make good taste enforceable with named, tested code checks.",
+        },
+      ],
+    ];
   },
   head: [
     ["link", { rel: "icon", href: "/assets/scruple-mark.svg", type: "image/svg+xml" }],
