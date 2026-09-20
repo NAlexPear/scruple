@@ -6,7 +6,7 @@ Scruple turns engineering judgment into named, tested code checks. Start with bu
 
 Keep fast compilers and linters close to your editor. Run Scruple after them in CI and before review, where it can check questions that need more context than a syntax pattern can provide. People can then spend review time on architecture, product intent, and standards that still need discussion.
 
-Scruple complements linters and security scanners rather than replacing them. It is MIT licensed, and you choose where its typed decisions run: hosted Jev uses paid model tokens, while local Laya uses your own hardware.
+Scruple complements linters and security scanners rather than replacing them. It is MIT licensed; its Jev provider uses paid model tokens for typed decisions.
 
 ## What Scruple checks
 

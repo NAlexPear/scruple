@@ -37,7 +37,7 @@
 
 ## Use Scruple
 
-Scruple requires Node.js 22.18 or newer. This example uses the comments plugin with the hosted Jev provider:
+Scruple requires Node.js 22.18 or newer. This example uses the comments plugin with the Jev provider:
 
 ```sh
 pnpm add --save-dev \
@@ -120,36 +120,6 @@ const status = deriveStatus();
 
 Scruple also supports `scruple-disable-line` and paired `scruple-disable` and `scruple-enable` region comments. Suppressed candidates are removed before provider evaluation. See [inline suppressions](https://scruple.alexpear.workers.dev/guide/configuration#inline-suppressions) for the complete syntax.
 
-### Use local Laya
-
-Install the Laya provider and Laya itself:
-
-```sh
-pnpm add --save-dev @scruple/provider-laya
-uv init --bare # Skip this if your project already has pyproject.toml
-uv add laya
-```
-
-uv records Laya in `pyproject.toml` and creates or updates the project environment in `.venv`.
-
-Replace the provider in `scruple.config.ts`:
-
-```ts
-import { layaProvider } from "@scruple/provider-laya";
-
-provider: layaProvider({
-  model: "typed-decisions",
-  python: ".venv/bin/python",
-  preload: true,
-}),
-```
-
-On Windows, use `python: ".venv\\Scripts\\python.exe"`.
-
-Scruple keeps one Python process and preloaded router alive for the run. `model: "auto"` uses Laya's
-language router. Laya has a smaller context budget than Jev, so calibrate thresholds separately for
-each provider and model.
-
 ## Plugins and rules
 
 Scruple has no core policy. Plugins provide independently publishable rule packs, and consumers choose which rules to enable. Browse the [plugin and rule registry](https://scruple.alexpear.workers.dev/plugins/) for every available plugin, rule, option, and default.
@@ -175,7 +145,7 @@ swappable through the `SourceParser` and `DecisionProvider` interfaces.
 
 ```text
 source → parser → normalized targets → enabled plugin rules → decision provider → diagnostics
-           OXC                                            Jev or local Laya
+           OXC                                                   Jev
 ```
 
 ## License

@@ -2,7 +2,7 @@
   "name": "scruple-workspace",
   "version": "0.0.2",
   "private": true,
-  "description": "Semantic code rules powered by Jev or local Laya models.",
+  "description": "Semantic code rules powered by typed decisions.",
   "homepage": "https://github.com/NAlexPear/scruple#readme",
   "bugs": {
     "url": "https://github.com/NAlexPear/scruple/issues"
@@ -35,7 +35,6 @@
     "@scruple/observability": "workspace:*",
     "@scruple/parser-oxc": "workspace:*",
     "@scruple/provider-jev": "workspace:*",
-    "@scruple/provider-laya": "workspace:*",
     "@scruple/relational-databases": "workspace:*",
     "@scruple/resources": "workspace:*",
     "@scruple/security": "workspace:*",

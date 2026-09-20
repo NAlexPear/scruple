@@ -2,7 +2,7 @@
 
 Scruple requires Node.js 22.18 or newer. Run it in CI after fast compiler and linter checks and before human review.
 
-This guide uses the Comments plugin with the hosted [Jev provider](../providers/jev.md). To run decisions on your own hardware instead, follow the [local Laya guide](../providers/laya.md).
+This guide uses the Comments plugin with the [Jev provider](../providers/jev.md).
 
 ## 1. Install the packages
 

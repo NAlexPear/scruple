@@ -139,9 +139,6 @@ importers:
       '@scruple/provider-jev':
         specifier: workspace:*
         version: link:packages/provider-jev
-      '@scruple/provider-laya':
-        specifier: workspace:*
-        version: link:packages/provider-laya
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:packages/relational-databases
@@ -258,9 +255,6 @@ importers:
       '@scruple/provider-jev':
         specifier: workspace:*
         version: link:../provider-jev
-      '@scruple/provider-laya':
-        specifier: workspace:*
-        version: link:../provider-laya
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:../relational-databases
@@ -297,12 +291,6 @@ importers:
       '@typesafe-ai/sdk':
         specifier: ^0.6.0
         version: 0.6.0
-
-  packages/provider-laya:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
 
   packages/relational-databases:
     dependencies:

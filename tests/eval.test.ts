@@ -21,33 +21,17 @@ import { parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-await test("evaluation options pair providers and models by position", () => {
+await test("evaluation options support repeated Jev models", () => {
   assert.deepEqual(
-    parseEvalOptions([
-      "--provider",
-      "jev",
-      "--provider",
-      "laya",
-      "--model",
-      "jev-test",
-      "--model",
-      "typed-decisions",
-      "--repetitions",
-      "2",
-    ]),
+    parseEvalOptions(["--model", "jev-stable", "--model", "jev-candidate", "--repetitions", "2"]),
     {
       help: false,
+      models: ["jev-stable", "jev-candidate"],
       repetitions: 2,
-      specs: [
-        { provider: "jev", model: "jev-test" },
-        { provider: "laya", model: "typed-decisions" },
-      ],
     },
   );
-  assert.throws(
-    () => parseEvalOptions(["--provider", "jev", "--provider", "laya", "--model", "one"]),
-    /exactly one --model/u,
-  );
+  assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
+  assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
 });
 
 await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {

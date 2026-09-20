@@ -8,11 +8,11 @@ import {
   type EvalFixture,
   type EvalRunReport,
 } from "@scruple/eval";
-import { EVAL_HELP, parseEvalOptions, type EvalProviderSpec } from "@scruple/eval/options";
+import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { createLiveProvider } from "./live-provider.js";
+import { createJevProvider } from "./jev-provider.js";
 
 const plugins = evaluationPlugins();
 
@@ -27,7 +27,9 @@ try {
     const fixtures = parseEvalFixtures(rawFixtures);
     validateEvalCorpus(fixtures, oxcParser(), plugins);
     const runs = (
-      await Promise.all(options.specs.map((spec) => runSpec(spec, options.repetitions, fixtures)))
+      await Promise.all(
+        options.models.map((model) => runModel(model, options.repetitions, fixtures)),
+      )
     ).flat();
     process.stdout.write(`${JSON.stringify({ runs }, null, 2)}\n`);
     if (hasEvalFailures(runs)) {
@@ -40,15 +42,12 @@ try {
   process.exitCode = 2;
 }
 
-const runSpec = async (
-  spec: EvalProviderSpec,
+const runModel = async (
+  model: string,
   repetitions: number,
   fixtures: readonly EvalFixture[],
 ): Promise<EvalRunReport[]> => {
-  const provider = createLiveProvider(spec, {
-    ...(process.env["LAYA_DEVICE"] === undefined ? {} : { layaDevice: process.env["LAYA_DEVICE"] }),
-    ...(process.env["LAYA_PYTHON"] === undefined ? {} : { layaPython: process.env["LAYA_PYTHON"] }),
-  });
+  const provider = createJevProvider(model);
   try {
     return await Promise.all(
       Array.from({ length: repetitions }, (_, index) =>
@@ -57,8 +56,8 @@ const runSpec = async (
           parser: oxcParser(),
           plugins,
           provider,
-          providerName: spec.provider,
-          requestedModel: spec.model,
+          providerName: "jev",
+          requestedModel: model,
           repetition: index + 1,
         }),
       ),

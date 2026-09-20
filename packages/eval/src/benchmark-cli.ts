@@ -9,11 +9,10 @@ import {
   type BenchmarkReport,
 } from "@scruple/eval/benchmark";
 import { BENCHMARK_HELP, parseBenchmarkOptions } from "@scruple/eval/benchmark-options";
-import type { EvalProviderSpec } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { createLiveProvider } from "./live-provider.js";
+import { createJevProvider } from "./jev-provider.js";
 
 const plugins = evaluationPlugins();
 
@@ -31,26 +30,22 @@ const loadBenchmarkFixtureIds = async (): Promise<string[]> => {
   return parseBenchmarkFixtureIds(raw);
 };
 
-const runSpec = async (
-  spec: EvalProviderSpec,
+const runModel = async (
+  model: string,
   fixtures: readonly EvalFixture[],
   warmups: number,
   repetitions: number,
   concurrency: number,
 ): Promise<BenchmarkReport> => {
-  const provider = createLiveProvider(spec, {
-    concurrency,
-    ...(process.env["LAYA_DEVICE"] === undefined ? {} : { layaDevice: process.env["LAYA_DEVICE"] }),
-    ...(process.env["LAYA_PYTHON"] === undefined ? {} : { layaPython: process.env["LAYA_PYTHON"] }),
-  });
+  const provider = createJevProvider(model, { concurrency });
   try {
     return await runBenchmark({
       fixtures,
       parser: oxcParser(),
       plugins,
       provider,
-      providerName: spec.provider,
-      requestedModel: spec.model,
+      providerName: "jev",
+      requestedModel: model,
       warmups,
       repetitions,
       concurrency,
@@ -60,23 +55,23 @@ const runSpec = async (
   }
 };
 
-const runSpecs = async (
-  specs: readonly EvalProviderSpec[],
+const runModels = async (
+  models: readonly string[],
   fixtures: readonly EvalFixture[],
   warmups: number,
   repetitions: number,
   concurrency: number,
   index = 0,
 ): Promise<BenchmarkReport[]> => {
-  const spec = specs[index];
-  if (spec === undefined) {
+  const model = models[index];
+  if (model === undefined) {
     return [];
   }
-  process.stderr.write(`Benchmarking ${spec.provider}/${spec.model}...\n`);
-  const report = await runSpec(spec, fixtures, warmups, repetitions, concurrency);
+  process.stderr.write(`Benchmarking Jev/${model}...\n`);
+  const report = await runModel(model, fixtures, warmups, repetitions, concurrency);
   return [
     report,
-    ...(await runSpecs(specs, fixtures, warmups, repetitions, concurrency, index + 1)),
+    ...(await runModels(models, fixtures, warmups, repetitions, concurrency, index + 1)),
   ];
 };
 
@@ -91,8 +86,8 @@ const main = async (): Promise<void> => {
   const selectedIds =
     options.fixtureIds.length === 0 ? await loadBenchmarkFixtureIds() : options.fixtureIds;
   const selectedFixtures = selectBenchmarkFixtures(fixtures, selectedIds);
-  const runs = await runSpecs(
-    options.specs,
+  const runs = await runModels(
+    options.models,
     selectedFixtures,
     options.warmups,
     options.repetitions,

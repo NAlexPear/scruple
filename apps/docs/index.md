@@ -116,10 +116,10 @@ title: Code checks for problems linters miss
     <h2 id="landing-providers-title">Use AI for one narrow<br>decision at a time.</h2>
     <p>
       Scruple does not ask a chatbot to review your repository. Each rule sends the relevant code
-      and one fixed question to a decision model. Choose hosted Jev or run Laya locally.
+      and one fixed question to Jev's typed decision models.
     </p>
   </div>
-  <ProviderPicker />
+  <JevProvider />
 </section>
 
 <section class="landing-taste" aria-labelledby="landing-taste-title">
