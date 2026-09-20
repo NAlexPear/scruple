@@ -1,4 +1,4 @@
-name: Main CI
+name: Docs CI
 
 on:
   push:
@@ -9,13 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: Node.js ${{ matrix.node-version }}
+  docs:
+    name: Build documentation
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [22.18.0, 24.x]
 
     steps:
       - name: Check out repository
@@ -27,11 +23,11 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 24.x
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Check project
-        run: pnpm check
-      - name: Run unit tests
-        run: pnpm test
+      - name: Typecheck documentation
+        run: pnpm --filter @scruple/docs typecheck
+      - name: Build documentation
+        run: pnpm --filter @scruple/docs test

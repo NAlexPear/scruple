@@ -1,10 +1,27 @@
-# Scruple
+<p align="center">
+  <a href="https://scruple.alexpear.workers.dev/">
+    <img src="apps/docs/public/assets/scruple-mark.svg" width="112" alt="Scruple pen-nib mark">
+  </a>
+</p>
 
-**Make good taste enforceable.**
+<h1 align="center">Scruple</h1>
 
-Scruple catches problems linters miss. Use its built-in rules or write your own to turn your team's engineering judgment into checks that run on every change.
+<p align="center"><strong>Make good taste enforceable.</strong></p>
 
-[Get started](https://scruple.alexpear.workers.dev/guide/quickstart) · [Read the docs](https://scruple.alexpear.workers.dev/) · [Browse the rules](https://scruple.alexpear.workers.dev/plugins/)
+<p align="center">
+  <a href="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml/badge.svg?branch=main" alt="Main CI status"></a>
+  <a href="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml/badge.svg?branch=main" alt="Docs CI status"></a>
+</p>
+
+<p align="center">
+  Scruple catches problems linters miss. Use its built-in rules or write your own to turn your team's engineering judgment into checks that run on every change.
+</p>
+
+<p align="center">
+  <a href="https://scruple.alexpear.workers.dev/guide/quickstart">Get started</a> ·
+  <a href="https://scruple.alexpear.workers.dev/">Read the docs</a> ·
+  <a href="https://scruple.alexpear.workers.dev/plugins/">Browse the rules</a>
+</p>
 
 ## Where Scruple fits
 
