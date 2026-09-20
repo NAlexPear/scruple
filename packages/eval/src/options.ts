@@ -56,10 +56,17 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
       specs: [{ provider: "jev", model: "jev-1.13.0" }],
     };
   }
+  return { help: values.help, repetitions, specs: parseEvalProviderSpecs(providers, models) };
+};
+
+export const parseEvalProviderSpecs = (
+  providers: readonly string[],
+  models: readonly string[],
+): EvalProviderSpec[] => {
   if (models.length > 0 && models.length !== providers.length) {
     throw new Error("Provide exactly one --model for each --provider");
   }
-  const specs: EvalProviderSpec[] = providers.map((provider, index) => {
+  return providers.map((provider, index) => {
     if (provider !== "jev" && provider !== "laya") {
       throw new Error(`Unsupported evaluation provider: ${provider}`);
     }
@@ -68,5 +75,4 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
       model: models[index] ?? (provider === "jev" ? "jev-1.13.0" : "auto"),
     };
   });
-  return { help: values.help, repetitions, specs };
 };

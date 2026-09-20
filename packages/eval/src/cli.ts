@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 
-import type { DecisionProvider } from "@scruple/core";
 import {
   hasEvalFailures,
   parseEvalFixtures,
@@ -12,8 +11,8 @@ import {
 import { EVAL_HELP, parseEvalOptions, type EvalProviderSpec } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
-import { jevProvider } from "@scruple/provider-jev";
-import { layaProvider, type LayaModel } from "@scruple/provider-laya";
+
+import { createLiveProvider } from "./live-provider.js";
 
 const plugins = evaluationPlugins();
 
@@ -41,26 +40,15 @@ try {
   process.exitCode = 2;
 }
 
-const createProvider = (spec: EvalProviderSpec): DecisionProvider => {
-  if (spec.provider === "jev") {
-    const apiKey = process.env["TYPESAFE_API_KEY"];
-    if (apiKey === undefined || apiKey.length === 0) {
-      throw new Error("TYPESAFE_API_KEY is required for Jev evaluations");
-    }
-    return jevProvider({ apiKey, model: spec.model });
-  }
-  if (!isLayaModel(spec.model)) {
-    throw new Error(`Unsupported Laya model: ${spec.model}`);
-  }
-  return layaProvider({ model: spec.model });
-};
-
 const runSpec = async (
   spec: EvalProviderSpec,
   repetitions: number,
   fixtures: readonly EvalFixture[],
 ): Promise<EvalRunReport[]> => {
-  const provider = createProvider(spec);
+  const provider = createLiveProvider(spec, {
+    ...(process.env["LAYA_DEVICE"] === undefined ? {} : { layaDevice: process.env["LAYA_DEVICE"] }),
+    ...(process.env["LAYA_PYTHON"] === undefined ? {} : { layaPython: process.env["LAYA_PYTHON"] }),
+  });
   try {
     return await Promise.all(
       Array.from({ length: repetitions }, (_, index) =>
@@ -78,8 +66,4 @@ const runSpec = async (
   } finally {
     await provider.close?.();
   }
-};
-
-const isLayaModel = (model: string): model is LayaModel => {
-  return ["auto", "english", "multilingual", "typed-decisions"].includes(model);
 };

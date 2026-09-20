@@ -9,6 +9,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./benchmark": {
+      "source": "./src/benchmark.ts",
+      "types": "./dist/benchmark.d.ts",
+      "import": "./dist/benchmark.js"
+    },
+    "./benchmark-options": {
+      "source": "./src/benchmark-options.ts",
+      "types": "./dist/benchmark-options.d.ts",
+      "import": "./dist/benchmark-options.js"
+    },
     "./options": {
       "source": "./src/options.ts",
       "types": "./dist/options.d.ts",

@@ -1,0 +1,12 @@
+[
+  "useless-restates-assignment",
+  "swallowed-empty-catch",
+  "async-independent-loads-serialized",
+  "unactionable-generic-error",
+  "database-join-done-in-memory",
+  "resource-file-handle-falls-through",
+  "authorization-gates-access-with-request-role",
+  "vacuous-test-tautology",
+  "validation-express-body-unchecked",
+  "sensitive-log-redacted-token"
+]

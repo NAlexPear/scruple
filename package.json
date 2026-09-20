@@ -14,6 +14,7 @@
   },
   "type": "module",
   "scripts": {
+    "benchmark": "pnpm build && node packages/eval/dist/benchmark-cli.js",
     "build": "pnpm -r --sort build",
     "check": "oxfmt --check . && oxlint . && pnpm typecheck && pnpm build",
     "eval": "pnpm build && node packages/eval/dist/cli.js",

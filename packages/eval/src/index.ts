@@ -192,6 +192,9 @@ export const runEvalCase = async (
   ruleConfiguration: RuleConfiguration,
   provider: DecisionProvider,
 ): Promise<EvalCaseResult> => {
+  if (!hasRule(plugins, fixture.ruleId)) {
+    throw new Error(`No rule configured for evaluation fixture: ${fixture.ruleId}`);
+  }
   let model = provider.id;
   let modelCalls = 0;
   const answers: DecisionAnswer[] = [];
@@ -273,18 +276,15 @@ export const runEvalCase = async (
 
 export const runEvaluation = async (options: RunEvaluationOptions): Promise<EvalRunReport> => {
   const cases = await Promise.all(
-    options.fixtures.map((fixture) => {
-      if (!hasRule(options.plugins, fixture.ruleId)) {
-        throw new Error(`No rule configured for evaluation fixture: ${fixture.ruleId}`);
-      }
-      return runEvalCase(
+    options.fixtures.map((fixture) =>
+      runEvalCase(
         fixture,
         options.parser,
         options.plugins,
         options.rules?.[fixture.ruleId] ?? "warn",
         options.provider,
-      );
-    }),
+      ),
+    ),
   );
   const failures = cases.filter((result) => !result.accepted);
   const latencies = cases.map((result) => result.latencyMs);
