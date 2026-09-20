@@ -610,7 +610,6 @@
 }
 
 .vp-doc table {
-  display: table;
   width: 100%;
 }
 
@@ -641,10 +640,6 @@
 }
 
 @media (max-width: 900px) {
-  .Layout:has(.VPContent:not(.is-home)) .VPNavBarHamburger {
-    display: none;
-  }
-
   .landing-splash {
     grid-template-columns: 1fr;
     padding-top: 72px;

@@ -1,6 +1,8 @@
 # Quickstart
 
-Scruple requires Node.js 22.18 or newer. This guide uses the hosted Jev provider and the Comments plugin.
+Scruple requires Node.js 22.18 or newer. Run it in CI after fast compiler and linter checks and before human review.
+
+This guide uses the Comments plugin with the hosted [Jev provider](../providers/jev.md). To run decisions on your own hardware instead, follow the [local Laya guide](../providers/laya.md).
 
 ## 1. Install the packages
 
@@ -58,5 +60,3 @@ pnpm exec scruple check --format json
 ## 4. Expand deliberately
 
 Browse [Plugins](../plugins/index.md) for focused rule libraries. Install only the packages you need, register each plugin, then enable its rules individually.
-
-For a local provider, follow the [Laya guide](../providers/laya.md).

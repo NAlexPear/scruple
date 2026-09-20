@@ -1,6 +1,6 @@
 # Tests
 
-`@scruple/tests` provides a provider-backed semantic check for automated tests that cannot verify the claimed behavior.
+`@scruple/tests` provides provider-backed semantic checks for meaningful assertions, specific failures, and reliable test inputs and synchronization.
 
 ```sh
 pnpm add -D @scruple/tests

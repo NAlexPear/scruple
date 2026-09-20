@@ -34,26 +34,24 @@ const copyConfiguration = async () => {
     </header>
 
     <section class="rule-section">
-      <div class="section-label"><span>01</span> Try the rule</div>
+      <div class="section-label"><span>01</span> Examples</div>
       <div class="example-shell">
-        <div class="example-tabs" role="tablist" aria-label="Code example outcome">
+        <div class="example-tabs" role="group" aria-label="Code example outcome">
           <button
             type="button"
-            role="tab"
-            :aria-selected="selectedExample === 'incorrect'"
+            :aria-pressed="selectedExample === 'incorrect'"
             :class="{ active: selectedExample === 'incorrect' }"
             @click="selectedExample = 'incorrect'"
           >
-            <span class="status-dot incorrect" /> Incorrect
+            <span class="status-dot incorrect" /> Reported
           </button>
           <button
             type="button"
-            role="tab"
-            :aria-selected="selectedExample === 'correct'"
+            :aria-pressed="selectedExample === 'correct'"
             :class="{ active: selectedExample === 'correct' }"
             @click="selectedExample = 'correct'"
           >
-            <span class="status-dot correct" /> Correct
+            <span class="status-dot correct" /> Accepted
           </button>
           <span class="example-language">TypeScript</span>
         </div>

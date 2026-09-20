@@ -4,7 +4,9 @@ aside: false
 
 # Plugins
 
-Scruple plugins are semantic rule libraries. Register each factory under the namespace used by its rule IDs, then enable individual rules in `rules`. Scruple sends bounded source evidence to the configured decision provider and reports a finding only when the provider's probability and confidence clear the rule's thresholds.
+Scruple plugins package named, tested rules. They can check common engineering problems or standards your team repeats in review. Register each factory under the namespace used by its rule IDs, then enable individual rules in `rules`.
+
+Scruple sends bounded source evidence to the configured decision provider and reports a finding only when the provider's probability and confidence clear the rule's thresholds.
 
 | Plugin                                            | Choose it for                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------------- |

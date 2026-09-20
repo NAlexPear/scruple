@@ -1,19 +1,29 @@
 # Introduction
 
-Scruple is a pluggable semantic code checker. It finds likely mistakes, unclear code, and policy violations by combining focused source evidence with typed decisions from Jev or local Laya.
+## Make good taste enforceable
 
-Traditional static analysis is strongest when syntax and types are enough to prove a result. Scruple is for questions that require interpretation, such as whether a comment contradicts nearby code or whether a queue handler is safe under redelivery.
+Scruple turns engineering judgment into named, tested code checks. Start with built-in rules for common problems, or write custom rules for standards your team repeats in review.
+
+Keep fast compilers and linters close to your editor. Run Scruple after them in CI and before review, where it can check questions that need more context than a syntax pattern can provide. People can then spend review time on architecture, product intent, and standards that still need discussion.
+
+Scruple complements linters and security scanners rather than replacing them. It is MIT licensed, and you choose where its typed decisions run: hosted Jev uses paid model tokens, while local Laya uses your own hardware.
+
+## What Scruple checks
+
+Scruple finds likely mistakes, unclear code, and policy violations by combining focused source evidence with typed decisions. For example, a rule can check whether a comment contradicts nearby code, whether a test verifies the behavior it claims to cover, or whether a retry loop has a deadline.
+
+Traditional static analysis is strongest when syntax and types are enough to prove a result. Scruple is for questions that require interpretation, such as whether a queue handler is safe under redelivery. When the visible evidence cannot support an answer, the rule abstains.
 
 ## What Scruple controls
 
-Scruple keeps the model inside a narrow contract:
+Scruple keeps the decision provider inside a narrow contract:
 
 1. A parser normalizes source files into comments, functions, tests, imports, calls, and other targets.
 2. Enabled plugin rules select bounded evidence and define typed questions.
 3. A provider answers those questions.
 4. The rule applies its own thresholds and emits a stable diagnostic, or abstains.
 
-The provider never writes diagnostic messages or fixes. Policy stays in versioned plugin code.
+The provider never writes diagnostic messages or fixes. Rules own the message, severity, source location, and threshold. Policy stays in versioned plugin code, and a rule abstains when the available evidence is insufficient.
 
 ## What you choose
 

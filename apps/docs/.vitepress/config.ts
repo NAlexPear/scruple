@@ -22,7 +22,6 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: "Introduction", link: "/guide/introduction" },
       { text: "Quickstart", link: "/guide/quickstart" },
       { text: "Configuration", link: "/guide/configuration" },
-      { text: "Write your own plugin", link: "/guide/writing-a-plugin" },
     ],
   },
   {
@@ -31,6 +30,10 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: "How Scruple works", link: "/concepts/how-it-works" },
       { text: "Evidence and decisions", link: "/concepts/evidence-and-decisions" },
     ],
+  },
+  {
+    text: "Custom rules",
+    items: [{ text: "Write your own plugin", link: "/guide/writing-a-plugin" }],
   },
   {
     text: "Providers",
@@ -57,7 +60,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
 
 export default defineConfig({
   title: "Scruple",
-  description: "Semantic code checks grounded in focused evidence.",
+  description: "Make good taste enforceable with named, tested code checks.",
   cleanUrls: true,
   transformPageData(pageData) {
     const ruleId: unknown = pageData.params?.["rule"];
@@ -78,6 +81,7 @@ export default defineConfig({
     nav: [
       { text: "Docs", link: "/guide/introduction" },
       { text: "Plugins", link: "/plugins/" },
+      { text: "Write a rule", link: "/guide/writing-a-plugin" },
       { text: "GitHub", link: "https://github.com/NAlexPear/scruple" },
     ],
     search: { provider: "local" },
