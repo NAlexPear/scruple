@@ -13,7 +13,12 @@ title: Semantic code checks
       into stable diagnostics your team can trust.
     </p>
     <div class="landing-actions">
-      <a class="landing-primary" href="/guide/quickstart">Get started <span>→</span></a>
+      <a class="landing-primary" href="/guide/quickstart">
+        Get started
+        <svg aria-hidden="true" viewBox="0 0 32 20">
+          <path d="M1 10h29M22 2l8 8-8 8" />
+        </svg>
+      </a>
       <a class="landing-secondary" href="/guide/introduction">Read the docs</a>
     </div>
   </div>
