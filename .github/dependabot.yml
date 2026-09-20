@@ -4,6 +4,15 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # These majors require raising Scruple's Node.js support floor.
+      - dependency-name: "@types/node"
+        versions: [">=21"]
+      - dependency-name: vitest
+        versions: [">=5"]
+      # tsup's declaration bundler does not yet support TypeScript 7.
+      - dependency-name: typescript
+        versions: [">=7"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
