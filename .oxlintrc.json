@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "vitest", "promise", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error"
+  },
+  "rules": {
+    "eslint/curly": "error",
+    "eslint/eqeqeq": "error",
+    "eslint/no-console": "error",
+    "eslint/max-lines": "off",
+    "eslint/max-lines-per-function": "off",
+    "eslint/no-var": "error",
+    "eslint/prefer-const": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/prefer-readonly-parameter-types": "off"
+  },
+  "env": {
+    "builtin": true,
+    "node": true,
+    "vitest": true
+  },
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**"],
+  "options": {
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error",
+    "typeAware": true,
+    "typeCheck": true
+  }
+}

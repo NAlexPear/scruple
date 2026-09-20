@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! node -e '
+  const [major, minor] = process.versions.node.split(".").map(Number);
+  process.exit(major > 20 || (major === 20 && minor >= 19) ? 0 : 1);
+'; then
+  printf 'Scruple requires Node.js 20.19 or newer; found %s.\n' "$(node --version)" >&2
+  exit 1
+fi
+
+if [[ "$(pnpm --version 2>/dev/null || true)" != "12.0.0" ]]; then
+  npm install --global --force pnpm@12.0.0
+fi
+
+pnpm install --frozen-lockfile
