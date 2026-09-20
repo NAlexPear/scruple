@@ -7,18 +7,27 @@ import type {
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
 
-export interface UnhelpfulCommentOptions {
+export interface NoUselessCommentsOptions {
   severity?: DiagnosticSeverity;
   threshold?: number;
 }
 
-export function unhelpfulCommentPlugin(options: UnhelpfulCommentOptions = {}): SemanticPlugin {
+export interface CommentsOptions {
+  noUselessComments?: NoUselessCommentsOptions | false;
+}
+
+export function comments(options: CommentsOptions = {}): SemanticPlugin[] {
+  const noUselessComments = options.noUselessComments ?? {};
+  return noUselessComments === false ? [] : [noUselessCommentsPlugin(noUselessComments)];
+}
+
+export function noUselessCommentsPlugin(options: NoUselessCommentsOptions = {}): SemanticPlugin {
   const threshold = options.threshold ?? 0.95;
   const severity = options.severity ?? "warning";
 
   return definePlugin({
-    id: "unhelpful-comment",
-    description: "Example plugin: comments should add useful information.",
+    id: "comments/no-useless-comments",
+    description: "Comments should add useful information.",
     collect(document) {
       return document.comments.filter(isCommentCandidate).map((comment) => ({
         target: comment,

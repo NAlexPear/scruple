@@ -7,20 +7,29 @@ import type {
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
 
-export interface VacuousTestOptions {
+export interface NoVacuousTestsOptions {
   severity?: DiagnosticSeverity;
   threshold?: number;
   minConfidence?: number;
 }
 
-export function vacuousTestPlugin(options: VacuousTestOptions = {}): SemanticPlugin {
+export interface TestsOptions {
+  noVacuousTests?: NoVacuousTestsOptions | false;
+}
+
+export function tests(options: TestsOptions = {}): SemanticPlugin[] {
+  const noVacuousTests = options.noVacuousTests ?? {};
+  return noVacuousTests === false ? [] : [noVacuousTestsPlugin(noVacuousTests)];
+}
+
+export function noVacuousTestsPlugin(options: NoVacuousTestsOptions = {}): SemanticPlugin {
   const threshold = options.threshold ?? 0.85;
   const minConfidence = options.minConfidence ?? 0.5;
   const severity = options.severity ?? "error";
 
   return definePlugin({
-    id: "vacuous-test",
-    description: "Example plugin: tests should verify meaningful behavior.",
+    id: "tests/no-vacuous-tests",
+    description: "Tests should verify meaningful behavior.",
     collect(document) {
       return document.functions
         .filter((fn) => fn.kind === "test")

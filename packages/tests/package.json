@@ -1,13 +1,25 @@
 {
-  "name": "@scruple/example-unhelpful-comment",
+  "name": "@scruple/tests",
   "version": "0.0.1",
-  "private": true,
+  "description": "Semantic rules for automated tests.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/tests"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",

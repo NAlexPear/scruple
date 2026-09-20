@@ -15,6 +15,10 @@ export interface PreferDatabaseJoinOptions {
   collectionOperationPatterns?: RegExp[];
 }
 
+export interface RelationalDatabasesOptions {
+  preferDatabaseJoin?: PreferDatabaseJoinOptions | false;
+}
+
 const defaultDatabaseCallPatterns = [
   /(?:^|\.)(?:findMany|findAll|select|query|aggregate|execute|getMany|all)$/iu,
   /(?:^|\.)(?:db|database|prisma|knex|sequelize|mongoose|repository|repo)\./iu,
@@ -22,6 +26,11 @@ const defaultDatabaseCallPatterns = [
 const defaultCollectionOperationPatterns = [
   /(?:^|\.)(?:map|filter|find|reduce|forEach|some|every)$/u,
 ];
+
+export function relationalDatabases(options: RelationalDatabasesOptions = {}): SemanticPlugin[] {
+  const preferDatabaseJoin = options.preferDatabaseJoin ?? {};
+  return preferDatabaseJoin === false ? [] : [preferDatabaseJoinPlugin(preferDatabaseJoin)];
+}
 
 export function preferDatabaseJoinPlugin(options: PreferDatabaseJoinOptions = {}): SemanticPlugin {
   const threshold = options.threshold ?? 0.8;
@@ -32,8 +41,8 @@ export function preferDatabaseJoinPlugin(options: PreferDatabaseJoinOptions = {}
     options.collectionOperationPatterns ?? defaultCollectionOperationPatterns;
 
   return definePlugin({
-    id: "prefer-database-join",
-    description: "Example plugin: combine database-backed collections in the database.",
+    id: "relational-databases/prefer-database-join",
+    description: "Prefer combining database-backed collections in the database.",
     collect(document) {
       return document.functions.filter(isImplementationFunction).flatMap((fn) => {
         const databaseCalls = fn.calls.filter((call) => matchesAny(call.callee, databasePatterns));

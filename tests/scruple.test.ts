@@ -1,3 +1,4 @@
+import { comments } from "@scruple/comments";
 import type {
   DecisionAnswer,
   DecisionProvider,
@@ -6,10 +7,9 @@ import type {
   SemanticPlugin,
 } from "@scruple/core";
 import { runScruple } from "@scruple/core";
-import { preferDatabaseJoinPlugin } from "@scruple/example-prefer-database-join";
-import { unhelpfulCommentPlugin } from "@scruple/example-unhelpful-comment";
-import { vacuousTestPlugin } from "@scruple/example-vacuous-test";
 import { oxcParser } from "@scruple/parser-oxc";
+import { relationalDatabases } from "@scruple/relational-databases";
+import { tests as testRules } from "@scruple/tests";
 import { describe, expect, it } from "vitest";
 
 describe("OXC parser", () => {
@@ -55,7 +55,7 @@ describe("semantic rule engine", () => {
       parser: oxcParser(),
       provider,
       concurrency: 2,
-      plugins: [unhelpfulCommentPlugin(), vacuousTestPlugin(), preferDatabaseJoinPlugin()],
+      plugins: [...comments(), ...testRules(), ...relationalDatabases()],
     };
     const source = `import { db } from "./db";
 
@@ -75,12 +75,18 @@ async function joinedUsers() {
 
     expect(result.errors).toEqual([]);
     expect(result.diagnostics.map((diagnostic) => diagnostic.pluginId)).toEqual([
-      "unhelpful-comment",
-      "vacuous-test",
-      "prefer-database-join",
+      "comments/no-useless-comments",
+      "tests/no-vacuous-tests",
+      "relational-databases/prefer-database-join",
     ]);
     expect(result.diagnostics[1]).toMatchObject({ severity: "error", probability: 0.96 });
     expect(result.stats).toMatchObject({ files: 1, candidates: 3, requests: 3 });
+  });
+
+  it("lets category packs disable individual rules", () => {
+    expect(comments({ noUselessComments: false })).toEqual([]);
+    expect(testRules({ noVacuousTests: false })).toEqual([]);
+    expect(relationalDatabases({ preferDatabaseJoin: false })).toEqual([]);
   });
 
   it("batches independent questions that share identical evidence", async () => {

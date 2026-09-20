@@ -28,29 +28,31 @@ serialized AST.
 - `@scruple/parser-oxc` — JavaScript and TypeScript source adapter
 - `@scruple/provider-jev` — hosted TypeSafe Jev adapter
 - `@scruple/provider-laya` — persistent local Python/Laya adapter
-- `@scruple/example-unhelpful-comment` — example comment plugin
-- `@scruple/example-vacuous-test` — example test plugin
-- `@scruple/example-prefer-database-join` — example function-level database plugin
+- `@scruple/comments` — semantic rules for comments
+- `@scruple/tests` — semantic rules for tests
+- `@scruple/relational-databases` — semantic rules for relational database usage
 
 ## Configuration
 
 Create `scruple.config.ts`:
 
 ```ts
+import { comments } from "@scruple/comments";
 import { defineConfig } from "@scruple/core";
-import { preferDatabaseJoinPlugin } from "@scruple/example-prefer-database-join";
-import { unhelpfulCommentPlugin } from "@scruple/example-unhelpful-comment";
-import { vacuousTestPlugin } from "@scruple/example-vacuous-test";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
+import { relationalDatabases } from "@scruple/relational-databases";
+import { tests } from "@scruple/tests";
 
 export default defineConfig({
   parser: oxcParser(),
   provider: jevProvider({ model: "jev-1.13.0" }),
   plugins: [
-    unhelpfulCommentPlugin({ severity: "warning", threshold: 0.95 }),
-    vacuousTestPlugin({ severity: "error", threshold: 0.85 }),
-    preferDatabaseJoinPlugin({ severity: "warning", threshold: 0.8 }),
+    ...comments({ noUselessComments: { severity: "warning", threshold: 0.95 } }),
+    ...tests({ noVacuousTests: { severity: "error", threshold: 0.85 } }),
+    ...relationalDatabases({
+      preferDatabaseJoin: { severity: "warning", threshold: 0.8 },
+    }),
   ],
 });
 ```
@@ -98,19 +100,23 @@ Scruple intentionally ships no core policy. A semantic plugin has a stable ID an
 provider answer into a deterministic diagnostic or abstains. `definePlugin` preserves the inferred
 plugin type while checking this contract.
 
-Each example below is an independent workspace and plugin, not a built-in rule set:
+Rules are grouped into independently publishable category packages. Category factories enable their
+rules by default and accept `false` for individual rules; every package also exports each rule's
+plugin factory for granular composition. Rule IDs follow Oxlint's `category/rule-name` convention
+and use directional `no-*`, `prefer-*`, or `require-*` names:
 
-- `unhelpful-comment` evaluates a comment together with its enclosing function or nearby source.
-- `vacuous-test` evaluates complete test callbacks and accounts for indirect assertion patterns.
-- `prefer-database-join` uses deterministic call-shape prefiltering, then evaluates the complete
-  enclosing function and imports. It abstains when database provenance or capabilities are unclear.
+- `comments/no-useless-comments` evaluates a comment with its enclosing function or nearby source.
+- `tests/no-vacuous-tests` evaluates complete test callbacks and accounts for indirect assertion
+  patterns.
+- `relational-databases/prefer-database-join` uses deterministic call-shape prefiltering, then
+  evaluates the complete enclosing function and imports. It abstains when database provenance or
+  capabilities are unclear.
 
 Plugins never ask a model to generate diagnostic text or fixes. Provider failures are operational
 errors (exit code 2), not clean checks or findings.
 
-Plugin packs require no additional core API: a package can export an array of plugins for callers to
-spread into `plugins`. This leaves room for blessed packs in this repository without coupling the
-engine to any policy bundle.
+Category packs require no additional core API: their factories return arrays for callers to spread
+into `plugins`, without coupling the engine to any policy bundle.
 
 ## Development
 
