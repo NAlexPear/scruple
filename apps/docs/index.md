@@ -4,6 +4,10 @@ title: Semantic code checks
 ---
 
 <section class="landing-splash" aria-labelledby="landing-title">
+  <div class="landing-mark" aria-hidden="true">
+    <img class="landing-mark-light" src="/assets/scruple-mark.png" alt="">
+    <img class="landing-mark-dark" src="/assets/scruple-mark-inverse.png" alt="">
+  </div>
   <div class="landing-copy">
     <p class="landing-kicker"><span></span>Semantic checks for code that compiles</p>
     <h1 id="landing-title">Ground every<br>judgment in <em>evidence.</em></h1>
