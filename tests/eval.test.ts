@@ -13,13 +13,14 @@ import type {
 import { definePlugin } from "@scruple/core";
 import {
   collectEvalCandidates,
+  formatEvalRuns,
   hasEvalFailures,
   parseEvalFixtures,
   runEvaluation,
   validateEvalCorpus,
   type EvalFixture,
 } from "@scruple/eval";
-import { parseEvalOptions } from "@scruple/eval/options";
+import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
@@ -27,13 +28,17 @@ await test("evaluation options support repeated Jev models", () => {
   assert.deepEqual(
     parseEvalOptions(["--model", "jev-stable", "--model", "jev-candidate", "--repetitions", "2"]),
     {
+      format: "json",
       help: false,
       models: ["jev-stable", "jev-candidate"],
       repetitions: 2,
     },
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
+  assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
+  assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
+  assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
 });
 
 await test("evaluation CLI reaches provider validation", () => {
@@ -565,6 +570,9 @@ await test("evaluation keeps missing and unexpected provider answer IDs visible"
   const [error] = result.errors;
   assert.ok(error !== undefined);
   assert.match(error, /missing: test_choice-rule_0; unexpected: unexpected/u);
+  assert.equal(report.detection.cases, 1);
+  assert.equal(report.detection.invalid, 1);
+  assert.equal(report.detection.trueNegatives, 0);
 });
 
 const makeDetectionFixture = (
@@ -572,11 +580,12 @@ const makeDetectionFixture = (
   source: string,
   expectedFinding: boolean,
   expectedChoices: string[],
+  ruleId = "test/bad-rule",
 ): EvalFixture => ({
   id,
   filename: `${id}.ts`,
   source,
-  ruleId: "test/bad-rule",
+  ruleId,
   expectedFinding,
   expectedCandidates: 1,
   expectedChoices,
@@ -592,9 +601,16 @@ await test("evaluation runner reports detection metrics per rule", async () => {
       makeDetectionFixture("fn", "function quiet() { return 1; }", true, ["bad"]),
       makeDetectionFixture("fp", "function bad2() { return 1; }", false, ["good"]),
       makeDetectionFixture("tn", "function good() { return 1; }", false, ["good"]),
+      makeDetectionFixture(
+        "other-tn",
+        "function other() { return 1; }",
+        false,
+        ["good"],
+        "other/bad-rule",
+      ),
     ],
     parser: oxcParser(),
-    plugins: { test: makeTestPlugin() },
+    plugins: { other: makeTestPlugin(), test: makeTestPlugin() },
     provider: makeScoringProvider(),
     providerName: "fixture",
     requestedModel: "requested",
@@ -602,17 +618,90 @@ await test("evaluation runner reports detection metrics per rule", async () => {
   });
 
   assert.deepEqual(report.detection, {
-    cases: 4,
+    cases: 5,
+    invalid: 0,
     truePositives: 1,
     falsePositives: 1,
-    trueNegatives: 1,
+    trueNegatives: 2,
     falseNegatives: 1,
     precision: 0.5,
     recall: 0.5,
     f1: 0.5,
+    falsePositiveRate: 1 / 3,
+    specificity: 2 / 3,
   });
-  assert.deepEqual(report.detectionByRule["test/bad-rule"], report.detection);
-  assert.deepEqual(report.abstention, { expected: 0, correct: 0 });
+  assert.equal(report.detectionByRule["test/bad-rule"]?.cases, 4);
+  assert.equal(report.detectionByRule["other/bad-rule"]?.trueNegatives, 1);
+  assert.deepEqual(report.abstention, { expected: 0, actual: 0, correct: 0, unexpected: 0 });
+  assert.deepEqual(report.abstentionByRule["other/bad-rule"], report.abstention);
+
+  const stylish = formatEvalRuns([report, { ...report, repetition: 2 }]);
+  assert.match(stylish, /fixture\/requested · 2 runs/u);
+  assert.match(stylish, /Cases: 10 · passed 6 · failed 4/u);
+  assert.match(stylish, /other\/bad-rule\s+2\s+0\s+0\s+0\s+2\s+0/u);
+  assert.match(stylish, /Rates describe this fixture corpus; Cases shows the sample support\./u);
+  assert.match(stylish, /run 2: fp \(test\/bad-rule\)/u);
+});
+
+await test("detection counts ambiguous findings while scoring abstention separately", async () => {
+  const report = await runEvaluation({
+    fixtures: [
+      {
+        id: "ambiguous-finding",
+        filename: "ambiguous.ts",
+        source: "function ambiguous() {}",
+        ruleId: "test/choice-rule",
+        expectedFinding: false,
+        expectedCandidates: 1,
+        expectedChoices: ["insufficient_context"],
+        expectedAbstention: true,
+        rationale: "Ambiguous evidence should not produce a finding.",
+        tags: ["abstention"],
+      },
+      {
+        id: "unexpected-abstention",
+        filename: "safe.ts",
+        source: "function safe() {}",
+        ruleId: "test/choice-rule",
+        expectedFinding: false,
+        expectedCandidates: 1,
+        expectedChoices: ["safe"],
+        expectedAbstention: false,
+        rationale: "Decisive safe evidence should not produce an abstention.",
+        tags: ["safe"],
+      },
+    ],
+    parser: oxcParser(),
+    plugins: { test: makeChoicePlugin() },
+    provider: {
+      id: "fixture",
+      evaluate(request): Promise<DecisionResponse> {
+        const choices = new Map<boolean, string>([
+          [true, "finding"],
+          [false, "insufficient_context"],
+        ]);
+        const choice = choices.get(JSON.stringify(request.state).includes("ambiguous"));
+        assert.ok(choice !== undefined);
+        return Promise.resolve({
+          model: "fixture",
+          answers: Object.fromEntries(
+            Object.keys(request.questions).map((id) => [
+              id,
+              { type: "choice", choice, confidence: 1, probabilities: { [choice]: 1 } },
+            ]),
+          ),
+        });
+      },
+    },
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.equal(report.detection.falsePositives, 1);
+  assert.equal(report.detection.trueNegatives, 1);
+  assert.deepEqual(report.abstention, { expected: 1, actual: 1, correct: 0, unexpected: 1 });
+  assert.deepEqual(report.abstentionByRule["test/choice-rule"], report.abstention);
 });
 
 await test("detection metrics are null rather than zero when nothing is predicted", async () => {

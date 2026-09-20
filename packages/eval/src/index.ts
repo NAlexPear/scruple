@@ -54,7 +54,9 @@ export interface EvalCaseResult {
 
 /** Detection quality for a set of cases, derived from the finding expectations fixtures already carry. */
 export interface DetectionMetrics {
+  /** Total cases represented, including invalid cases that were not scored. */
   cases: number;
+  invalid: number;
   truePositives: number;
   falsePositives: number;
   trueNegatives: number;
@@ -63,6 +65,15 @@ export interface DetectionMetrics {
   precision: number | null;
   recall: number | null;
   f1: number | null;
+  falsePositiveRate: number | null;
+  specificity: number | null;
+}
+
+export interface AbstentionMetrics {
+  expected: number;
+  actual: number;
+  correct: number;
+  unexpected: number;
 }
 
 export interface EvalRunReport {
@@ -79,11 +90,9 @@ export interface EvalRunReport {
   detection: DetectionMetrics;
   /** Per rule, so severity can be chosen per rule rather than globally. */
   detectionByRule: Record<string, DetectionMetrics>;
-  /** Expected-abstention cases, counted apart because the matrix cannot express them. */
-  abstention: {
-    expected: number;
-    correct: number;
-  };
+  /** Decision-level abstention quality, separate from diagnostic detection quality. */
+  abstention: AbstentionMetrics;
+  abstentionByRule: Record<string, AbstentionMetrics>;
   latencyMs: {
     p50: number;
     p95: number;
@@ -358,7 +367,7 @@ const ratio = (numerator: number, denominator: number): number | null =>
   denominator === 0 ? null : numerator / denominator;
 
 const detectionMetrics = (cases: readonly EvalCaseResult[]): DetectionMetrics => {
-  const scored = cases.filter((result) => result.expectedAbstention !== true);
+  const scored = cases.filter((result) => result.errors.length === 0);
   let truePositives = 0;
   let falsePositives = 0;
   let trueNegatives = 0;
@@ -376,12 +385,14 @@ const detectionMetrics = (cases: readonly EvalCaseResult[]): DetectionMetrics =>
   }
   const precision = ratio(truePositives, truePositives + falsePositives);
   const recall = ratio(truePositives, truePositives + falseNegatives);
+  const falsePositiveRate = ratio(falsePositives, falsePositives + trueNegatives);
   const f1 =
     precision === null || recall === null || precision + recall === 0
       ? null
       : (2 * precision * recall) / (precision + recall);
   return {
-    cases: scored.length,
+    cases: cases.length,
+    invalid: cases.length - scored.length,
     truePositives,
     falsePositives,
     trueNegatives,
@@ -389,19 +400,50 @@ const detectionMetrics = (cases: readonly EvalCaseResult[]): DetectionMetrics =>
     precision,
     recall,
     f1,
+    falsePositiveRate,
+    specificity: ratio(trueNegatives, trueNegatives + falsePositives),
   };
 };
 
-const detectionByRuleId = (cases: readonly EvalCaseResult[]): Record<string, DetectionMetrics> => {
+const casesByRuleId = (cases: readonly EvalCaseResult[]): Map<string, EvalCaseResult[]> => {
   const grouped = new Map<string, EvalCaseResult[]>();
   for (const result of cases) {
     const bucket = grouped.get(result.ruleId) ?? [];
     bucket.push(result);
     grouped.set(result.ruleId, bucket);
   }
+  return grouped;
+};
+
+const detectionByRuleId = (cases: readonly EvalCaseResult[]): Record<string, DetectionMetrics> => {
+  const grouped = casesByRuleId(cases);
   const byRule: Record<string, DetectionMetrics> = {};
   for (const ruleId of [...grouped.keys()].toSorted()) {
     byRule[ruleId] = detectionMetrics(grouped.get(ruleId) ?? []);
+  }
+  return byRule;
+};
+
+const abstentionMetrics = (cases: readonly EvalCaseResult[]): AbstentionMetrics => {
+  const valid = cases.filter((result) => result.errors.length === 0);
+  return {
+    expected: cases.filter((result) => result.expectedAbstention === true).length,
+    actual: valid.filter((result) => result.actualAbstention).length,
+    correct: valid.filter((result) => result.expectedAbstention === true && result.actualAbstention)
+      .length,
+    unexpected: valid.filter(
+      (result) => result.expectedAbstention !== true && result.actualAbstention,
+    ).length,
+  };
+};
+
+const abstentionByRuleId = (
+  cases: readonly EvalCaseResult[],
+): Record<string, AbstentionMetrics> => {
+  const grouped = casesByRuleId(cases);
+  const byRule: Record<string, AbstentionMetrics> = {};
+  for (const ruleId of [...grouped.keys()].toSorted()) {
+    byRule[ruleId] = abstentionMetrics(grouped.get(ruleId) ?? []);
   }
   return byRule;
 };
@@ -433,12 +475,8 @@ export const runEvaluation = async (options: RunEvaluationOptions): Promise<Eval
     },
     detection: detectionMetrics(cases),
     detectionByRule: detectionByRuleId(cases),
-    abstention: {
-      expected: cases.filter((result) => result.expectedAbstention === true).length,
-      correct: cases.filter(
-        (result) => result.expectedAbstention === true && result.actualAbstention,
-      ).length,
-    },
+    abstention: abstentionMetrics(cases),
+    abstentionByRule: abstentionByRuleId(cases),
     latencyMs: {
       p50: percentile(latencies, 0.5),
       p95: percentile(latencies, 0.95),
@@ -451,6 +489,75 @@ export const runEvaluation = async (options: RunEvaluationOptions): Promise<Eval
     },
   };
 };
+
+export const formatEvalRuns = (runs: readonly EvalRunReport[]): string => {
+  if (runs.length === 0) {
+    return "No evaluation runs.\n";
+  }
+  const grouped = new Map<
+    string,
+    { provider: string; requestedModel: string; runs: EvalRunReport[] }
+  >();
+  for (const run of runs) {
+    const key = JSON.stringify([run.provider, run.requestedModel]);
+    const group = grouped.get(key) ?? {
+      provider: run.provider,
+      requestedModel: run.requestedModel,
+      runs: [],
+    };
+    group.runs.push(run);
+    grouped.set(key, group);
+  }
+  return `${[...grouped.values()].map((group) => formatEvalRunGroup(group)).join("\n")}\n`;
+};
+
+const formatEvalRunGroup = (group: {
+  provider: string;
+  requestedModel: string;
+  runs: readonly EvalRunReport[];
+}): string => {
+  const cases = group.runs.flatMap((run) => run.cases);
+  const detection = detectionMetrics(cases);
+  const detectionByRule = detectionByRuleId(cases);
+  const abstention = abstentionMetrics(cases);
+  const abstentionByRule = abstentionByRuleId(cases);
+  const failures = group.runs.flatMap((run) =>
+    run.failures.map((failure) => ({ failure, repetition: run.repetition })),
+  );
+  const ruleIds = Object.keys(detectionByRule).toSorted();
+  const ruleWidth = Math.max("Rule".length, ...ruleIds.map((ruleId) => ruleId.length));
+  const lines = [
+    `${group.provider}/${group.requestedModel} · ${group.runs.length} ${group.runs.length === 1 ? "run" : "runs"}`,
+    `Cases: ${cases.length} · passed ${cases.length - failures.length} · failed ${failures.length}`,
+    `Detection: ${detection.cases - detection.invalid} scored · ${detection.invalid} invalid`,
+    `Abstentions: ${abstention.correct}/${abstention.expected} expected correct · ${abstention.actual} actual · ${abstention.unexpected} unexpected`,
+    "",
+    `${"Rule".padEnd(ruleWidth)}  ${"Cases".padStart(5)}  ${"Err".padStart(3)}  ${"TP".padStart(3)}  ${"FP".padStart(3)}  ${"TN".padStart(3)}  ${"FN".padStart(3)}  ${"Prec".padStart(6)}  ${"Recall".padStart(6)}  ${"FPR".padStart(6)}  ${"Abstain".padStart(7)}  ${"Unexp".padStart(5)}`,
+  ];
+  for (const ruleId of ruleIds) {
+    const metrics = detectionByRule[ruleId];
+    const ruleAbstention = abstentionByRule[ruleId];
+    if (metrics === undefined || ruleAbstention === undefined) {
+      continue;
+    }
+    lines.push(
+      `${ruleId.padEnd(ruleWidth)}  ${formatCount(metrics.cases, 5)}  ${formatCount(metrics.invalid, 3)}  ${formatCount(metrics.truePositives, 3)}  ${formatCount(metrics.falsePositives, 3)}  ${formatCount(metrics.trueNegatives, 3)}  ${formatCount(metrics.falseNegatives, 3)}  ${formatRate(metrics.precision)}  ${formatRate(metrics.recall)}  ${formatRate(metrics.falsePositiveRate)}  ${`${ruleAbstention.correct}/${ruleAbstention.expected}`.padStart(7)}  ${formatCount(ruleAbstention.unexpected, 5)}`,
+    );
+  }
+  lines.push("", "Rates describe this fixture corpus; Cases shows the sample support.");
+  if (failures.length > 0) {
+    lines.push("", "Failures:");
+    for (const { failure, repetition } of failures) {
+      lines.push(`  run ${repetition}: ${failure.id} (${failure.ruleId})`);
+    }
+  }
+  return lines.join("\n");
+};
+
+const formatCount = (value: number, width: number): string => String(value).padStart(width);
+
+const formatRate = (value: number | null): string =>
+  (value === null ? "—" : `${(value * 100).toFixed(1)}%`).padStart(6);
 
 export const hasEvalFailures = (runs: readonly EvalRunReport[]): boolean => {
   return runs.some((run) => run.failures.length > 0);

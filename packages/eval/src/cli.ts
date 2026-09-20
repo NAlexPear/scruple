@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import {
+  formatEvalRuns,
   hasEvalFailures,
   parseEvalFixtures,
   runEvaluation,
@@ -56,7 +57,11 @@ try {
         options.models.map((model) => runModel(model, options.repetitions, fixtures)),
       )
     ).flat();
-    process.stdout.write(`${JSON.stringify({ runs }, null, 2)}\n`);
+    process.stdout.write(
+      options.format === "stylish"
+        ? formatEvalRuns(runs)
+        : `${JSON.stringify({ runs }, null, 2)}\n`,
+    );
     if (hasEvalFailures(runs)) {
       process.exitCode = 1;
     }
