@@ -2,13 +2,14 @@
 
 We will build a rule that checks TODO comments.
 
-- `// TODO: fix later` should warn.
+- `// TODO: fix later` is an obvious TODO and should warn.
+- `// Revisit this later` is less obvious, but should also warn.
 - `// to-do: remove after the v1 API is retired` should not warn.
 - `// Return the user's to-do list` is not a TODO.
 
 ::: info The plan
-First decide whether a comment asks for a later code change. Then decide whether it says what to change
-or when to remove it.
+Match obvious `TODO` comments first. Ask the model about the comments that do not match. Then check
+whether each TODO says what to change or when to remove it.
 :::
 
 ## 1. Set up two files
@@ -75,7 +76,23 @@ const boundedText = (value: string | undefined, maxCharacters: number) => {
 It tells the model when part of the text is missing.
 :::
 
-## 4. Ask whether a comment is a TODO
+## 4. Match obvious TODOs
+
+Start with the case that code can answer exactly:
+
+```ts [src/index.ts]
+const hasTodoMarker = (comment: CommentTarget): boolean =>
+  /^(?:\s*\*?\s*)TODO\b/iu.test(comment.value);
+```
+
+::: info Why start with a regular expression?
+`TODO` is an exact marker. Matching it in code is faster and avoids an unnecessary model request.
+:::
+
+This also matches lowercase `todo`. It deliberately does not guess whether `to-do` or “revisit this”
+means future work.
+
+## 5. Ask about the comments that remain
 
 Give the model two possible answers:
 
@@ -131,7 +148,7 @@ const isTodo = async (
 Scruple returns `null` without sending a suppressed comment to the model.
 :::
 
-## 5. Ask whether the TODO is clear
+## 6. Ask whether the TODO is clear
 
 The next helper builds the check that can produce a warning:
 
@@ -163,11 +180,11 @@ const todoCandidate = (
 answers.
 :::
 
-## 6. Check every comment
+## 7. Combine the two filters
 
 Add this function below `todoCandidate`:
 
-```ts{9-18} [src/index.ts]
+```ts{9-22} [src/index.ts]
 const collectTodos = async (
   document: ParsedDocument,
   context?: CollectionContext,
@@ -178,9 +195,10 @@ const collectTodos = async (
 
   const comments = document.comments.filter((comment) => /\S/u.test(comment.value));
   const results = await Promise.all(
-    comments.map(async (comment) =>
-      (await isTodo(document, comment, context)) ? comment : null,
-    ),
+    comments.map(async (comment) => {
+      if (hasTodoMarker(comment)) return comment;
+      return (await isTodo(document, comment, context)) ? comment : null;
+    }),
   );
 
   return results
@@ -189,11 +207,12 @@ const collectTodos = async (
 };
 ```
 
-::: info Why check every non-empty comment?
-The model can recognize `TODO`, `todo`, `to-do`, and similar wording without a spelling list.
+::: info How the two filters work together
+An obvious `TODO` skips the model. Comments such as `Revisit this later` and `to-do: remove this` reach
+the model because their meaning depends on the words around them.
 :::
 
-## 7. Decide when to warn
+## 8. Decide when to warn
 
 Add the rule below `collectTodos`:
 
@@ -240,7 +259,7 @@ It returns `null` for clear TODOs, missing information, and weak answers. The mo
 warning.
 :::
 
-## 8. Export the plugin
+## 9. Export the plugin
 
 Finish `src/index.ts`:
 
@@ -257,7 +276,7 @@ export const todoPolicy = () =>
 The plugin supplies `require-specific-todo`. The project adds `todos/` when it registers the plugin.
 :::
 
-## 9. Enable the rule
+## 10. Enable the rule
 
 Add the plugin to `scruple.config.ts`:
 
@@ -279,7 +298,7 @@ export default defineConfig({
 Scruple can run the rule. The project controls whether it is off, a warning, or an error.
 :::
 
-## 10. Test both questions
+## 11. Test both paths
 
 Create `tests/index.test.ts`. The test supplies fixed answers, so it does not call a live model service:
 
@@ -297,7 +316,7 @@ const rule = todoPolicy().rules["require-specific-todo"]();
 const collectExample = async () => {
   const document = oxcParser().parse(
     "work.ts",
-    "// to-do: fix later\n// Return the to-do list.\nexport const ready = false;\n",
+    "// TODO: fix later\n// Revisit this later.\n// Return the to-do list.\nexport const ready = false;\n",
   );
   const choices = ["todo", "other"][Symbol.iterator]();
   const context: CollectionContext = {
@@ -324,11 +343,13 @@ const collectExample = async () => {
   return rule.collect(document, context);
 };
 
-test("keeps only the TODO comment", async () => {
-  const [candidate, ...rest] = await collectExample();
-  assert.ok(candidate);
+test("uses the regex first and the model for the rest", async () => {
+  const [obviousTodo, vagueTodo, ...rest] = await collectExample();
+  assert.ok(obviousTodo);
+  assert.ok(vagueTodo);
   assert.deepEqual(rest, []);
-  assert.equal(candidate.target.location.start.line, 1);
+  assert.equal(obviousTodo.target.location.start.line, 1);
+  assert.equal(vagueTodo.target.location.start.line, 2);
 });
 
 test("warns only for a strong vague answer", async () => {
@@ -350,7 +371,8 @@ test("warns only for a strong vague answer", async () => {
 ```
 
 ::: info What the tests cover
-The first test checks which comments continue. The second checks exactly when a warning appears.
+The first test proves that the regex keeps `TODO`, while the model keeps the vaguer “Revisit this
+later.” The second test checks exactly when a warning appears.
 :::
 
 Before publishing, also test a clear TODO, a suppressed comment, and an
