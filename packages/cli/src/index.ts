@@ -75,10 +75,6 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
           `scruple: ${error.filename === undefined ? "" : `${error.filename}: `}${error.message}\n`,
         );
       }
-      process.stdout.write(
-        `\n${result.diagnostics.length} finding(s), ${result.errors.length} operational error(s), ` +
-          `${result.stats.candidates} candidate(s), ${result.stats.requests} decision request(s)\n`,
-      );
     }
 
     if (result.errors.length > 0) {

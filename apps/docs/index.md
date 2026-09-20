@@ -37,9 +37,6 @@ title: Semantic code checks
         <span>This comment appears to add no useful information. (96%)</span>
         <span class="landing-output-rule">comments/no-useless-comments</span>
       </p>
-      <p class="landing-output-summary">
-        1 finding(s), 0 operational error(s), 1 candidate(s), 1 decision request(s)
-      </p>
     </div>
     <span class="landing-tag landing-tag-one">focused excerpt</span>
     <span class="landing-tag landing-tag-two">typed answer</span>
