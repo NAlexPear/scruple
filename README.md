@@ -1,39 +1,25 @@
 # Scruple
 
-[![CI](https://github.com/NAlexPear/scruple/actions/workflows/ci.yml/badge.svg)](https://github.com/NAlexPear/scruple/actions/workflows/ci.yml)
+Scruple is a pluggable semantic code checker that turns focused source evidence and Jev or local Laya decisions into deterministic diagnostics.
 
-Scruple runs semantic rules over focused source-code evidence. A parser finds and localizes
-candidates; a decision provider classifies those candidates; deterministic plugins turn
-high-probability decisions into stable diagnostics.
+## Use Scruple
 
-The initial frontend uses [OXC](https://oxc.rs/), but the core depends only on the
-`SourceParser` interface. The same plugins can run against TypeSafe Jev or the local,
-Apache-2.0-licensed [Laya](https://github.com/NandhaKishorM/laya) model.
+The packages are configured for npm but have not been published yet; the commands below describe
+the first release.
 
-## Architecture
+Scruple requires Node.js 22.18 or newer. Install the CLI, core, OXC parser, a provider, and the example
+rule packages you want:
 
-```text
-source → parser → normalized source targets → semantic plugins → decision provider → diagnostics
-           OXC                                      Jev or local Laya
+```sh
+pnpm add --save-dev \
+  scruple \
+  @scruple/core \
+  @scruple/parser-oxc \
+  @scruple/provider-jev \
+  @scruple/comments \
+  @scruple/tests \
+  @scruple/relational-databases
 ```
-
-Syntax trees are an implementation detail of parser adapters. Plugins and providers receive exact
-source excerpts, source locations, imports, calls, and lightweight deterministic facts—not a
-serialized AST.
-
-## Packages
-
-- `scruple` — CLI and TypeScript config loader
-- `@scruple/core` — parser, provider, plugin, and diagnostic contracts; no built-in policy
-- `@scruple/parser-oxc` — JavaScript and TypeScript source adapter
-- `@scruple/provider-jev` — hosted TypeSafe Jev adapter
-- `@scruple/provider-laya` — persistent local Python/Laya adapter
-- `@scruple/comments` — semantic rules for comments
-- `@scruple/tests` — semantic rules for tests
-- `@scruple/relational-databases` — semantic rules for relational database usage
-- `@scruple/eval` — private fixture runner for calibrating rule packages and providers
-
-## Configuration
 
 Create `scruple.config.ts`:
 
@@ -47,35 +33,53 @@ import { tests } from "@scruple/tests";
 
 export default defineConfig({
   parser: oxcParser(),
-  provider: jevProvider({ model: "jev-1.13.0" }),
-  plugins: [
-    ...comments({ noUselessComments: { severity: "warning", threshold: 0.95 } }),
-    ...tests({ noVacuousTests: { severity: "error", threshold: 0.85 } }),
-    ...relationalDatabases({
-      preferDatabaseJoin: { severity: "warning", threshold: 0.8 },
-    }),
-  ],
+  provider: jevProvider(),
+  plugins: [...comments(), ...tests(), ...relationalDatabases()],
 });
 ```
 
-Set `TYPESAFE_API_KEY`, then run:
+Set `TYPESAFE_API_KEY`, then check source files:
 
 ```sh
-scruple check "src/**/*.{ts,tsx}"
-scruple check --format json
+pnpm exec scruple check "src/**/*.{ts,tsx}"
+pnpm exec scruple check --format json
 ```
 
-The Jev provider pins `jev-1.13.0` by default rather than using the moving `jev-latest` alias.
+The Jev provider defaults to the pinned `jev-1.13.0` model rather than the moving `jev-latest`
+alias. A run exits 0 when it has no error-severity findings, 1 when it finds at least one error, and
+2 when configuration, parsing, or provider operations fail.
 
-### Local Laya
+### Configure rules
 
-Install Laya in the Python environment used by Scruple:
+Category factories enable their rules by default. Pass options to configure a rule or `false` to
+disable it:
+
+```ts
+plugins: [
+  ...comments({
+    noUselessComments: { severity: "warning", threshold: 0.95 },
+  }),
+  ...tests({
+    noVacuousTests: false,
+  }),
+  ...relationalDatabases({
+    preferDatabaseJoin: { severity: "warning", threshold: 0.8 },
+  }),
+],
+```
+
+Each package also exports its individual plugin factories for granular composition.
+
+### Use local Laya
+
+Install the Laya provider and Laya itself:
 
 ```sh
+pnpm add --save-dev @scruple/provider-laya
 pip install laya
 ```
 
-Then replace the provider:
+Replace the provider in `scruple.config.ts`:
 
 ```ts
 import { layaProvider } from "@scruple/provider-laya";
@@ -87,76 +91,64 @@ provider: layaProvider({
 }),
 ```
 
-Scruple keeps one Python process and preloaded router alive for the full check instead of loading
-model weights for each candidate. `model: "auto"` uses Laya's language router.
+Scruple keeps one Python process and preloaded router alive for the run. `model: "auto"` uses Laya's
+language router. Laya has a smaller context budget than Jev, so calibrate thresholds separately for
+each provider and model.
 
-Laya currently has a substantially smaller context budget than Jev. Scruple's function-level
-evidence is intentionally bounded, but repositories should calibrate each provider and threshold
-independently. Do not assume probabilities are interchangeable across model versions or providers.
+## Rules and plugins
 
-## Plugin API
+Scruple has no core policy. The included category packages are examples of independently
+publishable rule packs, not rules built into the engine:
 
-Scruple intentionally ships no core policy. A semantic plugin has a stable ID and two operations:
-`collect` selects normalized source targets and builds typed decision questions; `diagnose` turns a
-provider answer into a deterministic diagnostic or abstains. `definePlugin` preserves the inferred
-plugin type while checking this contract.
+- `comments/no-useless-comments` identifies comments that add no useful rationale, constraint, or
+  context.
+- `tests/no-vacuous-tests` identifies tests that do not meaningfully verify behavior.
+- `relational-databases/prefer-database-join` identifies function-level in-memory joins that can
+  reasonably be performed by the available database layer.
 
-Rules are grouped into independently publishable category packages. Category factories enable their
-rules by default and accept `false` for individual rules; every package also exports each rule's
-plugin factory for granular composition. Rule IDs follow Oxlint's `category/rule-name` convention
-and use directional `no-*`, `prefer-*`, or `require-*` names:
+A plugin's `collect` operation selects normalized source targets and creates typed decision
+questions. Its `diagnose` operation deterministically turns an answer into a diagnostic or abstains.
+Plugins provide their own stable diagnostic text and never ask a model to generate messages or
+fixes.
 
-- `comments/no-useless-comments` evaluates a comment with its enclosing function or nearby source.
-- `tests/no-vacuous-tests` evaluates complete test callbacks and accounts for indirect assertion
-  patterns.
-- `relational-databases/prefer-database-join` uses deterministic call-shape prefiltering, then
-  evaluates the complete enclosing function and imports. It abstains when database provenance or
-  capabilities are unclear.
+OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
+calls, and facts rather than serialized syntax trees. Both parsers and decision providers are
+swappable through the `SourceParser` and `DecisionProvider` interfaces.
 
-Plugins never ask a model to generate diagnostic text or fixes. Provider failures are operational
-errors (exit code 2), not clean checks or findings.
+```text
+source → parser → normalized targets → plugins → decision provider → diagnostics
+           OXC                               Jev or local Laya
+```
 
-Category packs require no additional core API: their factories return arrays for callers to spread
-into `plugins`, without coupling the engine to any policy bundle.
-
-## Development
-
-Requires Node.js 22.18 or newer and pnpm.
+## Develop Scruple
 
 ```sh
 pnpm install
 pnpm check
 ```
 
-`pnpm check` verifies Oxfmt formatting, runs Oxlint with type-aware rules and warnings denied,
-type-checks every package with the workspace's strict TypeScript configuration, builds all packages,
-and runs Node's built-in test suite. Use `pnpm format` to apply formatting.
+`pnpm check` verifies formatting, lints, type-checks, builds, and runs the deterministic Node test
+suite. Public packages are emitted as unbundled ESM with declarations, source maps, and TypeScript
+source. The compiled `scruple` bin leaves dependencies external so parser, provider, and rule
+plugins resolve from the consuming project.
 
-Live model evaluations are deliberately separate from deterministic checks:
+Live model evaluations are separate from deterministic checks:
 
 ```sh
-# Uses Jev and requires TYPESAFE_API_KEY
+# Jev; requires TYPESAFE_API_KEY
 pnpm eval
 
-# Uses a local Laya installation
+# Local Laya
 pnpm eval --provider laya --model typed-decisions
 
-# Compare providers, with two runs for each provider/model pair
+# Compare providers with two runs per pair
 pnpm eval --provider jev --provider laya \
   --model jev-1.13.0 --model typed-decisions --repetitions 2
 ```
 
-The checked-in corpus contains positive and negative fixtures for each initial rule. The runner emits
-JSON with per-case failures, requested and resolved models, repetitions, token and model-call counts,
-and p50/p95/total latency. It exits 1 when model decisions miss expectations and 2 for an operational
-or configuration error. `pnpm check` validates the corpus and runner without making network calls.
-
-## Distribution
-
-Public workspaces publish unbundled ESM, declarations, source maps, and TypeScript source. The
-`scruple` package exposes its compiled CLI through the npm `bin` field. Keeping dependencies external
-lets Node resolve parser, provider, and rule packages from the consuming project; Scruple does not
-produce a standalone executable that would sever that plugin resolution model.
+The eval runner reports per-case failures, requested and resolved models, token and model-call
+counts, repetitions, and p50/p95/total latency as JSON. It exits 1 when decisions miss fixture
+expectations and 2 for operational or configuration errors.
 
 ## License
 
