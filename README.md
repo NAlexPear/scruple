@@ -26,17 +26,11 @@
 
 ## Where Scruple fits
 
-Static tools check facts. Scruple checks judgment.
-
-Keep fast checks close to your editor. Run Scruple after them in CI, before review, for questions that need more context than a syntax pattern can provide.
-
-| Stage       | Product             | Best for                                                                |
-| ----------- | ------------------- | ----------------------------------------------------------------------- |
-| 01 / Editor | Compiler and linter | Types, syntax, formatting, and known code patterns.                     |
-| 02 / CI     | Scruple             | Tests, errors, retries, contracts, comments, and your own standards.    |
-| 03 / Review | People              | Architecture, product intent, and standards that still need discussion. |
-
-Scruple is MIT licensed. Use hosted Jev and pay for model usage, or run Laya on your own hardware. It complements linters and security scanners rather than replacing them.
+| Check           | Speed             | Scope                                           | Cost                                | Examples                     |
+| --------------- | ----------------- | ----------------------------------------------- | ----------------------------------- | ---------------------------- |
+| Static checks   | Near-instant      | Syntax, types, formatting, and known patterns   | Local compute                       | TypeScript, Oxlint, ESLint   |
+| Semantic checks | Seconds           | Named standards that require interpretation     | Hosted model usage or local compute | Scruple                      |
+| Human review    | Minutes or longer | Architecture, product intent, and new tradeoffs | Reviewer time                       | Teammates and domain experts |
 
 ## Use Scruple
 
