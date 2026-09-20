@@ -18,20 +18,22 @@ export default defineConfig({
 });
 ```
 
-| Rule                                                                         | Checks                                 |
-| ---------------------------------------------------------------------------- | -------------------------------------- |
-| [`comments/no-useless-comments`](#commentsno-useless-comments)               | Comments that add no maintenance value |
-| [`comments/no-misleading-comments`](#commentsno-misleading-comments)         | Claims contradicted by visible code    |
-| [`comments/no-commented-out-code`](#commentsno-commented-out-code)           | Disabled executable implementation     |
-| [`comments/no-change-history-comments`](#commentsno-change-history-comments) | Obsolete change narration              |
-| [`comments/prefer-concise-comments`](#commentsprefer-concise-comments)       | Useful but unnecessarily verbose prose |
-| [`comments/require-actionable-todos`](#commentsrequire-actionable-todos)     | Vague TODO, FIXME, or HACK markers     |
+| Rule                                                                                   | Checks                                  |
+| -------------------------------------------------------------------------------------- | --------------------------------------- |
+| [`comments/no-useless-comments`](#commentsno-useless-comments)                         | Comments that add no maintenance value  |
+| [`comments/no-misleading-comments`](#commentsno-misleading-comments)                   | Claims contradicted by visible code     |
+| [`comments/no-commented-out-code`](#commentsno-commented-out-code)                     | Disabled executable implementation      |
+| [`comments/no-change-history-comments`](#commentsno-change-history-comments)           | Obsolete change narration               |
+| [`comments/prefer-concise-comments`](#commentsprefer-concise-comments)                 | Useful but unnecessarily verbose prose  |
+| [`comments/require-actionable-todos`](#commentsrequire-actionable-todos)               | Vague TODO, FIXME, or HACK markers      |
+| [`comments/require-justified-suppressions`](#commentsrequire-justified-suppressions)   | Unexplained tool suppressions           |
+| [`comments/require-actionable-deprecations`](#commentsrequire-actionable-deprecations) | Deprecations without migration guidance |
 
 Tool directives, generated-code notices, licenses, preservation comments, and similar recognized metadata are ignored.
 
 ## `comments/no-useless-comments`
 
-Checks ordinary non-TODO comments of at least eight trimmed characters for restatement, generic headings, straightforward narration, or assistant meta commentary. `threshold` defaults to `0.9`. This rule has no `minConfidence` option.
+Checks ordinary non-TODO comments of at least eight trimmed characters for restatement, generic headings, straightforward narration, or assistant meta commentary. Defaults: `threshold: 0.9`, `minConfidence: 0.7`.
 
 ## `comments/no-misleading-comments`
 
@@ -56,5 +58,13 @@ rules: { "comments/prefer-concise-comments": ["warn", { minCharacters: 160 }] }
 ## `comments/require-actionable-todos`
 
 Checks TODO, FIXME, and HACK comments for enough context to identify work, rationale, a removal condition, or a relevant issue. It does not require an owner, date, or ticket. Defaults: `threshold: 0.8`, `minConfidence: 0.7`.
+
+## `comments/require-justified-suppressions`
+
+Reviews explicit lint, TypeScript, coverage, formatter, and Semgrep suppression directives. Generated code and deliberate negative fixtures are accepted. Defaults: `threshold: 0.85`, `minConfidence: 0.7`.
+
+## `comments/require-actionable-deprecations`
+
+Reviews `@deprecated` comments for a named replacement, concrete migration steps, or a useful explanation that no replacement exists. Defaults: `threshold: 0.85`, `minConfidence: 0.7`.
 
 Probability options in this package must be finite values from `0` through `1`.

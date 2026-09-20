@@ -18,11 +18,13 @@ export default defineConfig({
 });
 ```
 
-| Rule                                                                                           | Checks                                 |
-| ---------------------------------------------------------------------------------------------- | -------------------------------------- |
-| [`api-contracts/no-misleading-function-names`](#api-contractsno-misleading-function-names)     | Names that contradict visible behavior |
-| [`api-contracts/no-ambiguous-failure-contracts`](#api-contractsno-ambiguous-failure-contracts) | Overlapping public failure channels    |
-| [`api-contracts/require-input-validation`](#api-contractsrequire-input-validation)             | Unvalidated untrusted boundary input   |
+| Rule                                                                                                       | Checks                                       |
+| ---------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| [`api-contracts/no-misleading-function-names`](#api-contractsno-misleading-function-names)                 | Names that contradict visible behavior       |
+| [`api-contracts/no-ambiguous-failure-contracts`](#api-contractsno-ambiguous-failure-contracts)             | Overlapping public failure channels          |
+| [`api-contracts/require-input-validation`](#api-contractsrequire-input-validation)                         | Unvalidated untrusted boundary input         |
+| [`api-contracts/no-side-effects-in-safe-http-methods`](#api-contractsno-side-effects-in-safe-http-methods) | Requested mutation through safe HTTP methods |
+| [`api-contracts/no-misleading-http-status`](#api-contractsno-misleading-http-status)                       | Statuses that contradict visible outcomes    |
 
 ## `api-contracts/no-misleading-function-names`
 
@@ -38,9 +40,17 @@ Options: `threshold` defaults to `0.8`; `minConfidence` defaults to `0.7`.
 
 ## `api-contracts/require-input-validation`
 
-Checks directly exported functions that visibly form an untrusted boundary and use raw input without runtime validation. Type annotations alone are not validation. The rule abstains when the file does not establish that input is untrusted.
+Prefers normalized explicit Fastify and Express routes, with an exported-function fallback for explicit raw, unknown, or webhook inputs. Type annotations alone are not validation. Captured but unresolved schemas and middleware cause abstention rather than assumed coverage.
 
 Options: `threshold` defaults to `0.85`; `minConfidence` defaults to `0.7`.
+
+## `api-contracts/no-side-effects-in-safe-http-methods`
+
+Reviews GET, HEAD, OPTIONS, and TRACE routes with visible mutation-like calls. It distinguishes requested domain changes from incidental logging, metrics, auditing, and cache maintenance. Defaults: `threshold: 0.9`, `minConfidence: 0.75`.
+
+## `api-contracts/no-misleading-http-status`
+
+Reviews explicit status exits against visible route outcomes. Accepted asynchronous work, deliberate privacy-preserving responses, and protocol-specific contracts are allowed. Defaults: `threshold: 0.9`, `minConfidence: 0.75`.
 
 ```ts
 rules: {

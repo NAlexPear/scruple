@@ -9,4 +9,4 @@ A decision provider evaluates the typed requests produced by semantic rules. Scr
 
 Provider choice affects calibration. Use representative fixtures to choose thresholds for each provider and model rather than copying thresholds blindly between them.
 
-Deterministic repository rules do not call the configured provider, but a provider is still required by the current configuration contract.
+Every current Scruple rule uses the configured provider for a bounded semantic decision.

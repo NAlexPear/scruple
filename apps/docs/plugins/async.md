@@ -23,10 +23,12 @@ export default defineConfig({
 | [`async/no-unbounded-concurrency`](#asyncno-unbounded-concurrency)                 | Potentially unbounded promise fan-out |
 | [`async/no-serial-independent-work`](#asyncno-serial-independent-work)             | Independent awaits run in series      |
 | [`async/require-cancellation-propagation`](#asyncrequire-cancellation-propagation) | Accepted cancellation not forwarded   |
+| [`async/require-race-loser-cleanup`](#asyncrequire-race-loser-cleanup)             | Locally owned race losers abandoned   |
+| [`async/require-abort-listener-cleanup`](#asyncrequire-abort-listener-cleanup)     | Abort listeners outlive operations    |
 
 ## `async/no-unbounded-concurrency`
 
-Reviews functions calling `Promise.all`, `Promise.allSettled`, or `Promise.any` and flags one-operation-per-item fan-out when the collection has no visible bound. Fixed tuples, visible batching or limits, intentional small races, and already-started promises are accepted. Options: `threshold` `0.9`, `minConfidence` `0.7`.
+Reviews native `Promise.all` and `Promise.allSettled` fan-out with visible operation creation and boundary evidence. Fixed tuples and visible batching or limits are accepted. Options: `threshold` `0.9`, `minConfidence` `0.7`.
 
 ## `async/no-serial-independent-work`
 
@@ -34,7 +36,15 @@ Reviews async functions with at least two directly awaited calls. It reports onl
 
 ## `async/require-cancellation-propagation`
 
-Reviews functions that mention `AbortSignal` and make calls. It checks whether an accepted signal is omitted from a downstream operation whose cancellation API is established by local evidence, imports, or a well-known platform API. Options: `threshold` `0.9`, `minConfidence` `0.7`.
+Reviews explicit `AbortSignal` contracts that call recognized platform `fetch`. It checks whether the caller's signal is forwarded, including when signals are composed. Options: `threshold` `0.9`, `minConfidence` `0.7`.
+
+## `async/require-race-loser-cleanup`
+
+Reviews native `Promise.race` and `Promise.any` calls for locally created work whose losing branches continue without cancellation, settlement observation, or cleanup. Caller-owned and visibly harmless inputs are accepted.
+
+## `async/require-abort-listener-cleanup`
+
+Reviews literal abort listeners on signal-like receivers. One-shot listeners and visible removal or disposal are accepted; unresolved ownership or listener lifetime causes abstention.
 
 ```ts
 rules: { "async/require-cancellation-propagation": ["warn", { threshold: 0.95 }] }
