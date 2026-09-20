@@ -9,7 +9,7 @@ rule packages you want:
 
 ```sh
 pnpm add --save-dev \
-  scruple \
+  @scruple/cli \
   @scruple/core \
   @scruple/parser-oxc \
   @scruple/provider-jev \

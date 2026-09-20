@@ -1,6 +1,6 @@
 {
   "name": "@scruple/parser-oxc",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "OXC parser adapter for Scruple.",
   "keywords": [
     "oxc",

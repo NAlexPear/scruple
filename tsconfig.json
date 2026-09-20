@@ -6,6 +6,7 @@
     "moduleResolution": "NodeNext",
     "moduleDetection": "force",
     "paths": {
+      "@scruple/cli": ["./packages/cli/src/index.ts"],
       "@scruple/comments": ["./packages/comments/src/index.ts"],
       "@scruple/core": ["./packages/core/src/index.ts"],
       "@scruple/eval": ["./packages/eval/src/index.ts"],
@@ -14,8 +15,7 @@
       "@scruple/provider-jev": ["./packages/provider-jev/src/index.ts"],
       "@scruple/provider-laya": ["./packages/provider-laya/src/index.ts"],
       "@scruple/relational-databases": ["./packages/relational-databases/src/index.ts"],
-      "@scruple/tests": ["./packages/tests/src/index.ts"],
-      "scruple": ["./packages/cli/src/index.ts"]
+      "@scruple/tests": ["./packages/tests/src/index.ts"]
     },
     "strict": true,
     "allowUnreachableCode": false,

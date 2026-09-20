@@ -1,6 +1,6 @@
 {
   "name": "@scruple/provider-laya",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Local Laya decision provider for Scruple.",
   "keywords": [
     "ai",

@@ -1,6 +1,6 @@
 {
   "name": "@scruple/core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Provider-neutral semantic rule engine and plugin contracts for Scruple.",
   "keywords": [
     "code-quality",

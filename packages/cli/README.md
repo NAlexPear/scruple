@@ -1,9 +1,9 @@
-# scruple
+# @scruple/cli
 
 Command-line interface for [Scruple](https://github.com/NAlexPear/scruple), a pluggable semantic code checker.
 
 ```sh
-pnpm add --save-dev scruple
+pnpm add --save-dev @scruple/cli
 pnpm exec scruple check "src/**/*.{ts,tsx}"
 ```
 

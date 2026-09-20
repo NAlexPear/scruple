@@ -109,6 +109,9 @@ importers:
 
   .:
     devDependencies:
+      '@scruple/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@scruple/comments':
         specifier: workspace:*
         version: link:packages/comments
@@ -148,9 +151,6 @@ importers:
       oxlint-tsgolint:
         specifier: ^7.0.2002
         version: 7.0.2002
-      scruple:
-        specifier: workspace:*
-        version: link:packages/cli
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

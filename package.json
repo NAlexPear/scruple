@@ -1,6 +1,6 @@
 {
   "name": "scruple-workspace",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "Semantic code rules powered by Jev or local Laya models.",
   "homepage": "https://github.com/NAlexPear/scruple#readme",
@@ -22,6 +22,7 @@
     "test": "pnpm build && node --test"
   },
   "devDependencies": {
+    "@scruple/cli": "workspace:*",
     "@scruple/comments": "workspace:*",
     "@scruple/core": "workspace:*",
     "@scruple/eval": "workspace:*",
@@ -35,7 +36,6 @@
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2002",
-    "scruple": "workspace:*",
     "typescript": "^7.0.2"
   },
   "engines": {
