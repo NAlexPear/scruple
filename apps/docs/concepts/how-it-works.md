@@ -49,15 +49,13 @@ The parser identifies the comment and its surrounding function. The enabled rule
 
 ## Parse once
 
-The parser produces normalized documents with source locations, imports, module references, comments, functions, tests, error handlers, and captured calls. Plugins depend on these contracts rather than a parser-specific syntax tree.
+The parser produces normalized documents with source locations, imports, comments, functions, tests, error handlers, API boundaries, and captured calls. Plugins depend on these contracts rather than a parser-specific syntax tree.
 
 The OXC parser supports JavaScript and TypeScript extensions and can recognize custom test callees.
 
 ## Collect bounded candidates
 
 A semantic rule's `collect` function examines one parsed document. Each candidate contains a target, JSON state, a typed question, and optional rule-owned data.
-
-A repository rule receives all parsed documents and returns findings directly. It is useful when the answer is deterministic, such as enforcing import layers.
 
 ## Batch decisions
 

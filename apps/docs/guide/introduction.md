@@ -30,5 +30,6 @@ Start with one plugin and a small set of rules. Review the findings, calibrate t
 ## Next steps
 
 - Follow the [quickstart](./quickstart.md) to run your first check.
+- [Write your own plugin](./writing-a-plugin.md) to add project-specific semantic policy.
 - Learn how [evidence and decisions](../concepts/evidence-and-decisions.md) stay bounded.
 - Browse the [plugin rule libraries](../plugins/index.md).

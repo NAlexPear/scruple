@@ -37,6 +37,7 @@ export default defineConfig({
           { text: "Introduction", link: "/guide/introduction" },
           { text: "Quickstart", link: "/guide/quickstart" },
           { text: "Configuration", link: "/guide/configuration" },
+          { text: "Write your own plugin", link: "/guide/writing-a-plugin" },
         ],
       },
       {
@@ -59,11 +60,6 @@ export default defineConfig({
         text: "Plugins",
         collapsed: true,
         items: pluginItems,
-      },
-      {
-        text: "Extending Scruple",
-        collapsed: true,
-        items: [{ text: "Author a plugin", link: "/authoring/plugins" }],
       },
       {
         text: "Reference",
