@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { comments } from "@scruple/comments";
-import type { ChoiceAnswer } from "@scruple/core";
+import type { ChoiceAnswer, JsonValue } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
 
 const answer = (choice: string, probability: number, confidence: number): ChoiceAnswer => {
@@ -12,6 +12,18 @@ const answer = (choice: string, probability: number, confidence: number): Choice
     confidence,
     probabilities: { [choice]: probability },
   };
+};
+
+const objectValue = (value: JsonValue | undefined): { [key: string]: JsonValue } => {
+  assert.ok(typeof value === "object" && value !== null && !Array.isArray(value));
+  return value;
+};
+
+const stringValue = (value: JsonValue | undefined): string => {
+  if (typeof value !== "string") {
+    throw new TypeError("Expected string evidence");
+  }
+  return value;
 };
 
 await test("no-useless-comments uses explicit choices and abstains on uncertain evidence", () => {
@@ -110,6 +122,81 @@ await test("suppression diagnostics require an unjustified high-confidence decis
     probability: 0.85,
     confidence: 0.7,
   });
+});
+
+await test("comment evidence independently bounds million-character line and block comments", () => {
+  const payload = "x".repeat(1_000_000);
+  const sources = [`// ${payload}\nconst value = 1;`, `/* ${payload} */\nconst value = 1;`];
+
+  for (const source of sources) {
+    const candidate = comments()
+      .rules["no-misleading-comments"]()
+      .collect(oxcParser().parse("large-comment.ts", source))[0];
+    assert.ok(candidate);
+    const state = objectValue(candidate.state);
+    const comment = objectValue(state["comment"]);
+    const context = objectValue(state["context"]);
+    const commentSource = stringValue(comment["source"]);
+    const commentValue = stringValue(comment["value"]);
+    const enclosingCode = stringValue(context["enclosing_code"]);
+
+    assert.equal(commentSource.length, 2_000);
+    assert.equal(commentValue.length, 2_000);
+    assert.equal(enclosingCode.length, 1_000);
+    assert.equal(comment["source_truncated"], true);
+    assert.equal(comment["value_truncated"], true);
+    assert.equal(context["enclosing_code_truncated"], true);
+    assert.match(commentSource, /… evidence truncated …/u);
+    assert.match(commentValue, /… evidence truncated …/u);
+    assert.match(enclosingCode, /… evidence truncated …/u);
+    assert.ok(JSON.stringify(state).length < 5_500);
+  }
+});
+
+await test("actionable TODO selection recognizes standard JSDoc @todo markers", () => {
+  const document = oxcParser().parse(
+    "todos.ts",
+    `/** @todo Replace the compatibility transport after v1 support ends. */
+export function send() {}
+/** Documentation without a task marker. */
+export function receive() {}
+`,
+  );
+
+  const candidates = comments().rules["require-actionable-todos"]().collect(document);
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    ["/** @todo Replace the compatibility transport after v1 support ends. */"],
+  );
+});
+
+await test("change-history selection recognizes completed changes without temporal prose noise", () => {
+  const document = oxcParser().parse(
+    "history.ts",
+    `// Renamed timeoutMs to timeoutSeconds.
+const timeoutSeconds = 30;
+// Replaced request with fetch.
+const client = fetch;
+// Added in v2 for streaming clients.
+const stream = createStream();
+// Before returning, flush the buffered writes.
+flush();
+// Remove older entries after one hour.
+prune();
+// The cache is updated before each read.
+readCache();
+`,
+  );
+
+  const candidates = comments().rules["no-change-history-comments"]().collect(document);
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    [
+      "// Renamed timeoutMs to timeoutSeconds.",
+      "// Replaced request with fetch.",
+      "// Added in v2 for streaming clients.",
+    ],
+  );
 });
 
 await test("deprecation rule selects only @deprecated comments and exposes abstention", () => {

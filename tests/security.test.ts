@@ -113,6 +113,92 @@ export function sendSession(res: Response, session: Session) {
   assert.equal(candidates[0]?.target.source.includes("sendSession"), true);
 });
 
+await test("sensitive data exposure covers documented response, file, and stream sinks", () => {
+  const sinkCalls = [
+    "reply.download(account)",
+    "reply.end(account)",
+    "reply.json(account)",
+    "reply.jsonp(account)",
+    "reply.redirect(account)",
+    "reply.render(account)",
+    "reply.respondWith(account)",
+    "reply.send(account)",
+    "reply.sendFile(account)",
+    "reply.sendStatus(account)",
+    "reply.write(account)",
+    "Response.json(account)",
+    'appendFile("account.json", account)',
+    'appendFileSync("account.json", account)',
+    'writeFile("account.json", account)',
+    'writeFileSync("account.json", account)',
+    'fs.appendFile("account.json", account)',
+    'fs.writeFile("account.json", account)',
+    'promises.appendFile("account.json", account)',
+    'promises.writeFile("account.json", account)',
+    'Bun.write("account.json", account)',
+    'Deno.writeFile("account.json", account)',
+    'Deno.writeTextFile("account.json", account)',
+    "source.pipe(destination)",
+    "pipeline(source, destination)",
+  ];
+  const document = oxcParser().parse(
+    "outputs.ts",
+    `${sinkCalls
+      .map(
+        (call, index) =>
+          `export function sink${index}(reply: Reply, account: Account, source: Stream, destination: Stream) { ${call}; }`,
+      )
+      .join("\n")}
+
+export function opaque(account: Account) {
+  publishExport(account);
+}
+
+export function logOnly(account: Account) {
+  logger.info(account);
+}
+`,
+  );
+  const candidates = security().rules["no-sensitive-data-exposure"]().collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source.match(/function (\w+)/u)?.[1]),
+    sinkCalls.map((_, index) => `sink${index}`),
+  );
+  assert.equal(
+    candidates.some((candidate) => candidate.target.source.includes("opaque")),
+    false,
+  );
+  assert.equal(
+    candidates.some((candidate) => candidate.target.source.includes("logOnly")),
+    false,
+  );
+});
+
+await test("security evidence names its bounded scope and reports deterministic truncation", () => {
+  const padding = `const detail = "${"x".repeat(5_000)}";`;
+  const document = oxcParser().parse(
+    "bounded.ts",
+    `${"// before\n".repeat(150)}
+export function sendSecret(res: Response, token: string) {
+  ${padding}
+  res.send({ token, detail });
+}
+${"// after\n".repeat(150)}`,
+  );
+  const candidate = security().rules["no-sensitive-data-exposure"]().collect(document)[0];
+  assert.ok(candidate);
+  const state = JSON.stringify(candidate.state);
+
+  assert.match(state, /"evidence_boundary":"bounded_file_excerpt"/u);
+  assert.match(state, new RegExp(`"surrounding_source":"${"x".repeat(2_000)}"`, "u"));
+  assert.match(state, /"function_characters":4000/u);
+  assert.match(state, /"function_source":true/u);
+  assert.match(state, /"file_excerpt":true/u);
+  assert.match(state, /evidence truncated/u);
+  assert.doesNotMatch(state, /"current_file"/u);
+});
+
 await test("command execution selects direct unsafe, constrained, and ambiguous flows", () => {
   const document = oxcParser().parse(
     "commands.ts",

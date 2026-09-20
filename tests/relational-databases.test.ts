@@ -179,6 +179,35 @@ export async function createUser() {
   assert.equal(rule.collect(document).length, 0);
 });
 
+await test("transaction client prefilter follows typed callback bindings and simple aliases", () => {
+  const rule = relationalDatabases().rules["require-transaction-scoped-client"]();
+  const scopedAlias = parse(`import { prisma } from "./db.js";
+export async function createUser() {
+  return prisma.$transaction(async function (tx: TransactionClient) {
+    const client = tx;
+    return client.user.create({ data: { name: "Ada" } });
+  });
+}`);
+  const globalAlias = parse(`import { prisma } from "./db.js";
+export async function createUser() {
+  return prisma.$transaction(async function (tx: TransactionClient) {
+    const client = prisma;
+    await client.audit.create({ data: {} });
+    return tx.user.create({ data: { name: "Ada" } });
+  });
+}`);
+  const opaqueHelper = parse(`import { prisma } from "./db.js";
+export async function createUser() {
+  return prisma.$transaction(async function (tx: TransactionClient) {
+    return saveUser(tx);
+  });
+}`);
+
+  assert.equal(rule.collect(scopedAlias).length, 0);
+  assert.equal(rule.collect(globalAlias).length, 1);
+  assert.equal(rule.collect(opaqueHelper).length, 0);
+});
+
 await test("pagination prefilter selects unordered ORM and SQL pagination only", () => {
   const rule = relationalDatabases().rules["require-deterministic-pagination-order"]();
   const unorderedPrisma = parse(`import { db } from "./db.js";
@@ -202,6 +231,75 @@ export async function page(client: Client, offset: number) {
   assert.equal(rule.collect(orderedPrisma).length, 0);
   assert.equal(rule.collect(unorderedSql).length, 1);
   assert.equal(rule.collect(orderedSql).length, 0);
+});
+
+await test("pagination prefilter ignores misleading comments and string values", () => {
+  const rule = relationalDatabases().rules["require-deterministic-pagination-order"]();
+  const optionString = parse(`import { db } from "./db.js";
+export async function search() {
+  return db.user.findMany({ where: { note: "skip take orderBy" } });
+}`);
+  const commentedOrder = parse(`import { db } from "./db.js";
+export async function page(skip: number) {
+  return db.user.findMany({ skip, take: 20, /* orderBy: { id: "asc" } */ where: {} });
+}`);
+  const sqlStringAndComment = parse(`import { Client } from "pg";
+export async function labels(client: Client) {
+  return client.query("SELECT 'LIMIT 10' AS label -- OFFSET 20");
+}`);
+  const sqlCommentedOrder = parse(`import { Client } from "pg";
+export async function page(client: Client) {
+  return client.query(\`SELECT id FROM users LIMIT 20 /* ORDER BY id */\`);
+}`);
+
+  assert.equal(rule.collect(optionString).length, 0);
+  assert.equal(rule.collect(commentedOrder).length, 1);
+  assert.equal(rule.collect(sqlStringAndComment).length, 0);
+  assert.equal(rule.collect(sqlCommentedOrder).length, 1);
+});
+
+await test("relational candidate evidence is bounded and deduplicated", () => {
+  const calls = Array.from(
+    { length: 30 },
+    (_, index) => `    await db.user.findMany({ where: { id: ${index} } });`,
+  ).join("\n");
+  const candidate = relationalDatabases()
+    .rules["no-query-in-loop"]()
+    .collect(
+      parse(`import { db } from "./db.js";
+export async function load(values: string[]) {
+  for (const value of values) {
+    consume(value);
+${calls}
+  }
+}`),
+    )[0];
+  assert.ok(candidate);
+  assert.equal(
+    JSON.stringify(candidate.state).match(/"callee":"db\.user\.findMany"/gu)?.length,
+    20,
+  );
+
+  const duplicateCalls = Array.from(
+    { length: 30 },
+    () => "    await db.user.findMany({ where: { active: true } });",
+  ).join("\n");
+  const duplicateCandidate = relationalDatabases()
+    .rules["no-query-in-loop"]()
+    .collect(
+      parse(`import { db } from "./db.js";
+export async function load(values: string[]) {
+  for (const value of values) {
+    consume(value);
+${duplicateCalls}
+  }
+}`),
+    )[0];
+  assert.ok(duplicateCandidate);
+  assert.equal(
+    JSON.stringify(duplicateCandidate.state).match(/"callee":"db\.user\.findMany"/gu)?.length,
+    1,
+  );
 });
 
 await test("pagination decisions allow safety caps and uncertainty", () => {

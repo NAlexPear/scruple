@@ -268,6 +268,95 @@ test("reads replicated data", async () => {
   assert.equal(rule.diagnose(choice("insufficient_context", 0.99, 0.99), candidate), null);
 });
 
+await test("nondeterminism and fixed-delay rules inspect uniquely resolved local helpers", () => {
+  const document = oxcParser().parse(
+    "helpers.test.ts",
+    `function randomValue() { return Math.random(); }
+async function waitUntilReady() { await sleep(25); }
+test("uses helper randomness", () => expect(randomValue()).toBeGreaterThan(0));
+test("uses helper delay", async () => { await waitUntilReady(); expect(ready()).toBe(true); });`,
+  );
+
+  assert.deepEqual(
+    selectedTestNames(tests().rules["no-nondeterministic-tests"]().collect(document)),
+    ["uses helper randomness"],
+  );
+  assert.deepEqual(
+    selectedTestNames(tests().rules["no-fixed-delay-synchronization"]().collect(document)),
+    ["uses helper delay"],
+  );
+});
+
+await test("helper evidence excludes same-named declarations in unrelated scopes", () => {
+  const document = oxcParser().parse(
+    "scopes.test.ts",
+    `function unrelated() {
+  function sample() { return Math.random(); }
+  return sample();
+}
+function sample() { return 1; }
+test("uses deterministic top-level helper", () => expect(sample()).toBe(1));`,
+  );
+  assert.deepEqual(tests().rules["no-nondeterministic-tests"]().collect(document), []);
+
+  const candidate = tests().rules["no-vacuous-tests"]().collect(document)[0];
+  assert.ok(candidate);
+  const evidence = JSON.stringify(candidate.state);
+  assert.match(evidence, /function sample\(\) \{ return 1; \}/u);
+  assert.doesNotMatch(evidence, /Math\.random/u);
+});
+
+await test("ambiguous visible helpers are omitted and marked rather than mixed", () => {
+  const document = oxcParser().parse(
+    "ambiguous.test.ts",
+    `function sample() { return 1; }
+test("has a shadowed helper", () => {
+  function sample() { return 2; }
+  expect(sample()).toBe(2);
+});`,
+  );
+  const candidate = tests().rules["no-vacuous-tests"]().collect(document)[0];
+  assert.ok(candidate);
+  assert.match(
+    JSON.stringify(candidate.state),
+    /"local_helpers":\[\],"helpers_truncated":false,"ambiguous_helper_names":\["sample"\]/u,
+  );
+});
+
+await test("every test rule applies deterministic evidence budgets", () => {
+  const document = oxcParser().parse(
+    "bounded.test.ts",
+    `import { somethingVeryLong } from "./dependency.js";
+function verify() { expect(true).toBe(true); }
+test("bounded evidence", () => { first(); verify(); assert.throws(run); sleep(1); Math.random(); });`,
+  );
+  const plugin = tests();
+  for (const factory of Object.values(plugin.rules)) {
+    const rule = factory({
+      maxImportCharacters: 0,
+      maxCallSites: 1,
+      maxHelperFunctions: 0,
+      maxHelperCharacters: 0,
+    });
+    const candidate = rule.collect(document)[0];
+    assert.ok(candidate);
+    const state = JSON.stringify(candidate.state);
+    assert.match(state, /"imports":\[\],"imports_truncated":true/u);
+    assert.match(state, /"calls":\["first"\],"calls_truncated":true/u);
+    assert.match(state, /"local_helpers":\[\],"helpers_truncated":true/u);
+  }
+  assert.equal(
+    plugin.rules["no-vacuous-tests"]({ maxFunctionCharacters: 10 }).collect(document).length,
+    0,
+  );
+  const factory = plugin.rules["no-vacuous-tests"];
+  assert.throws(() => factory({ maxFunctionCharacters: 0 }), /maxFunctionCharacters/u);
+  assert.throws(() => factory({ maxImportCharacters: -1 }), /maxImportCharacters/u);
+  assert.throws(() => factory({ maxCallSites: 1.5 }), /maxCallSites/u);
+  assert.throws(() => factory({ maxHelperFunctions: -1 }), /maxHelperFunctions/u);
+  assert.throws(() => factory({ maxHelperCharacters: -1 }), /maxHelperCharacters/u);
+});
+
 await test("new test diagnostics use conservative margins and stable messages", () => {
   const plugin = tests();
   const cases = [

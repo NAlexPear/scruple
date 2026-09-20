@@ -192,7 +192,9 @@ await test("normalizes shared call, argument, reference, and control facts", () 
   );
 
   assert.deepEqual(document.facts?.completeness, {
+    aliases: "complete",
     calls: "complete",
+    constructors: "complete",
     control: "complete",
     declarations: "complete",
     members: "complete",
@@ -261,7 +263,9 @@ await test("normalizes shared call, argument, reference, and control facts", () 
 
   const dynamic = oxcParser().parse("dynamic.ts", "export const value = object[key];");
   assert.deepEqual(dynamic.facts?.completeness, {
+    aliases: "complete",
     calls: "complete",
+    constructors: "complete",
     control: "complete",
     declarations: "complete",
     members: "partial",
@@ -270,5 +274,44 @@ await test("normalizes shared call, argument, reference, and control facts", () 
   assert.equal(
     dynamic.facts?.members.some((member) => member.path === "object.key"),
     false,
+  );
+});
+
+await test("normalizes constructor, alias, callback binding, option, and loop facts", () => {
+  const document = oxcParser().parse(
+    "structured.ts",
+    `export async function run(items: Item[]) {
+  const database = prisma;
+  const socket = new globalThis.WebSocket("wss://example.test");
+  await database.$transaction(async function ({ client: tx }: Context) {
+    return tx.user.findMany({ skip: 10, note: "orderBy" });
+  });
+  for await (const { value } of items) consume(value);
+  return socket;
+}`,
+  );
+
+  assert.deepEqual(
+    document.facts?.aliases.map(({ binding, target }) => ({ binding, target })),
+    [{ binding: "database", target: "prisma" }],
+  );
+  assert.deepEqual(
+    document.facts?.constructors.map(({ callee, arguments: args }) => ({
+      callee,
+      value: args[0]?.value,
+    })),
+    [{ callee: "globalThis.WebSocket", value: "wss://example.test" }],
+  );
+  const transaction = document.facts?.calls.find((call) => call.callee === "database.$transaction");
+  assert.deepEqual(transaction?.arguments[0]?.bindings, [["tx"]]);
+  const query = document.facts?.calls.find((call) => call.callee === "tx.user.findMany");
+  assert.deepEqual(query?.arguments[0]?.properties, ["skip", "note"]);
+  const loop = document.facts?.controls.find((control) => control.loop === "for-of");
+  assert.deepEqual(
+    { bindings: loop?.bindings, awaited: loop?.awaited },
+    {
+      bindings: ["value"],
+      awaited: true,
+    },
   );
 });

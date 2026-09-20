@@ -13,7 +13,14 @@ import type {
 } from "@scruple/core";
 import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export type ApiContractRuleOptions = DecisionRuleOptions;
+export interface ApiContractRuleOptions extends DecisionRuleOptions {
+  /** Functions or route handlers larger than this are skipped. */
+  maxFunctionCharacters?: number;
+  /** Maximum total import-source characters included in evidence. */
+  maxImportCharacters?: number;
+  /** Maximum call sites included in evidence. */
+  maxCallSites?: number;
+}
 
 export type ApiContractsPlugin = ScruplePlugin<{
   "no-misleading-function-names": RuleFactory<ApiContractRuleOptions>;
@@ -24,7 +31,6 @@ export type ApiContractsPlugin = ScruplePlugin<{
   "no-ignored-significant-results": RuleFactory<ApiContractRuleOptions>;
 }>;
 
-const maxFunctionCharacters = 12_000;
 const contextCharacters = 600;
 
 export const apiContracts = (): ApiContractsPlugin => {
@@ -44,10 +50,8 @@ const significantResultCallee =
   /(?:^|\.)(?:compareAndSet|create|delete|insert|parse|remove|safeParse|save|try[A-Z]\w*|update|validate)$/u;
 
 const noIgnoredSignificantResults = (options: ApiContractRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = resolveDecisionOptions(options, {
-    threshold: 0.9,
-    minConfidence: 0.7,
-  });
+  const resolved = resolveOptions(options, { threshold: 0.9, minConfidence: 0.7 });
+  const { threshold, minConfidence } = resolved;
   const finding = "ignored_significant_result";
   return {
     description: "Results carrying meaningful outcome information should not be discarded.",
@@ -59,43 +63,64 @@ const noIgnoredSignificantResults = (options: ApiContractRuleOptions = {}): Sema
             call.callee !== undefined &&
             significantResultCallee.test(call.callee),
         )
-        .map((call) => ({
-          target: {
-            kind: "expression" as const,
-            filename: document.filename,
-            language: document.language,
-            range: call.range,
-            location: sourceLocation(document.source, call.range),
-            source: call.source,
-          },
-          state: {
-            language: document.language,
-            imports: document.imports,
-            call: { callee: call.callee ?? null, source: call.source, usage: call.usage },
-            surrounding_function:
-              document.functions.find(
-                (fn) => fn.range.start <= call.range.start && fn.range.end >= call.range.end,
-              )?.source ?? null,
-            evidence_scope:
-              "The call and its syntactic usage are visible; unresolved return contracts are not evidence.",
-          },
-          data: { usage: call.usage },
-          question: {
-            type: "choice" as const,
-            instructions:
-              "Does this bare call discard a result that conveys success, failure, validation, affected state, or another outcome the caller must observe? Diagnose only when the visible contract or strong API convention establishes significance. Choose insufficient_context for opaque return contracts.",
-            criteria: {
-              ignored_significant_result:
-                "The discarded result carries outcome information that is required for correct handling.",
-              result_intentionally_ignored:
-                "The result is explicitly optional or intentionally irrelevant at this call site.",
-              no_significant_result:
-                "The operation has no meaningful return value or communicates its complete outcome another way.",
-              insufficient_context:
-                "The available evidence does not establish the return contract or whether the result matters.",
+        .flatMap((call) => {
+          const enclosingFunction = smallestEnclosingFunction(call.range, document.functions);
+          if (
+            enclosingFunction !== undefined &&
+            !isBoundedImplementation(enclosingFunction, resolved.maxFunctionCharacters)
+          ) {
+            return [];
+          }
+          const imports = boundedImports(document.imports, resolved.maxImportCharacters);
+          const calls = (enclosingFunction?.calls ?? [])
+            .toSorted((left, right) => left.range.start - right.range.start)
+            .slice(0, resolved.maxCallSites);
+          return [
+            {
+              target: {
+                kind: "expression" as const,
+                filename: document.filename,
+                language: document.language,
+                range: call.range,
+                location: sourceLocation(document.source, call.range),
+                source: call.source,
+              },
+              state: {
+                language: document.language,
+                imports: imports.values,
+                imports_truncated: imports.truncated,
+                call: { callee: call.callee ?? null, source: call.source, usage: call.usage },
+                surrounding_function: enclosingFunction?.source ?? null,
+                calls: calls.map((entry) => ({ callee: entry.callee, source: entry.source })),
+                calls_truncated: calls.length < (enclosingFunction?.calls.length ?? 0),
+                evidence_scope:
+                  "The call, syntactic usage, bounded imports, enclosing function, and bounded calls are visible; unresolved return contracts are not evidence.",
+              },
+              data: {
+                usage: call.usage,
+                total_imports: document.imports.length,
+                total_calls: enclosingFunction?.calls.length ?? 0,
+                imports_truncated: imports.truncated,
+                calls_truncated: calls.length < (enclosingFunction?.calls.length ?? 0),
+              },
+              question: {
+                type: "choice" as const,
+                instructions:
+                  "Does this bare call discard a result that conveys success, failure, validation, affected state, or another outcome the caller must observe? Diagnose only when the visible contract or strong API convention establishes significance. Choose insufficient_context for opaque return contracts.",
+                criteria: {
+                  ignored_significant_result:
+                    "The discarded result carries outcome information that is required for correct handling.",
+                  result_intentionally_ignored:
+                    "The result is explicitly optional or intentionally irrelevant at this call site.",
+                  no_significant_result:
+                    "The operation has no meaningful return value or communicates its complete outcome another way.",
+                  insufficient_context:
+                    "The available evidence does not establish the return contract or whether the result matters.",
+                },
+              },
             },
-          },
-        }));
+          ];
+        });
     },
     diagnose(answer, candidate) {
       return findingDiagnostic(
@@ -159,10 +184,8 @@ const noAmbiguousFailureContracts = (options: ApiContractRuleOptions = {}): Sema
 };
 
 const requireInputValidation = (options: ApiContractRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = resolveDecisionOptions(options, {
-    threshold: 0.85,
-    minConfidence: 0.7,
-  });
+  const resolved = resolveOptions(options, { threshold: 0.85, minConfidence: 0.7 });
+  const { threshold, minConfidence } = resolved;
   const question = {
     type: "choice" as const,
     instructions:
@@ -184,22 +207,24 @@ const requireInputValidation = (options: ApiContractRuleOptions = {}): SemanticR
     description: "Untrusted API inputs should be validated before they are used.",
     collect(document) {
       const boundaries = (document.apiBoundaries ?? []).filter(
-        (boundary) => boundary.requestSources.length > 0,
+        (boundary) =>
+          boundary.requestSources.length > 0 &&
+          boundary.handlerSource.length <= resolved.maxFunctionCharacters,
       );
       const representedHandlers = new Set(
         boundaries.map((boundary) => `${boundary.handlerRange.start}:${boundary.handlerRange.end}`),
       );
       const routeCandidates: RuleCandidate[] = boundaries.map((boundary) => ({
         target: boundary,
-        state: boundaryState(boundary, document),
+        state: boundaryState(boundary, document, resolved),
         question,
         data: { evidenceKind: "normalized_api_boundary" },
       }));
-      const fallbackCandidates: RuleCandidate[] = explicitRawBoundaryFunctions(document)
+      const fallbackCandidates: RuleCandidate[] = explicitRawBoundaryFunctions(document, resolved)
         .filter(({ fn }) => !representedHandlers.has(`${fn.range.start}:${fn.range.end}`))
         .map(({ fn, exportEvidence }) => ({
           target: fn,
-          state: functionState(fn, document, exportEvidence),
+          state: functionState(fn, document, exportEvidence, resolved),
           question,
           data: { evidenceKind: "explicit_raw_export", exportEvidence: exportEvidence ?? "" },
         }));
@@ -273,7 +298,7 @@ interface ChoiceRuleDefinition {
   description: string;
   options: ApiContractRuleOptions;
   defaults: { threshold: number; minConfidence: number };
-  select(document: ParsedDocument): SelectedFunction[];
+  select(document: ParsedDocument, options: ResolvedOptions): SelectedFunction[];
   question: {
     instructions: JsonValue;
     criteria: Record<string, JsonValue>;
@@ -286,7 +311,7 @@ interface BoundaryChoiceRuleDefinition {
   description: string;
   options: ApiContractRuleOptions;
   defaults: { threshold: number; minConfidence: number };
-  select(document: ParsedDocument): ApiBoundaryTarget[];
+  select(document: ParsedDocument, options: ResolvedOptions): ApiBoundaryTarget[];
   instructions: JsonValue;
   criteria: Record<string, JsonValue>;
   finding: string;
@@ -298,18 +323,24 @@ interface SelectedFunction {
   exportEvidence?: string;
 }
 
+interface ResolvedOptions {
+  threshold: number;
+  minConfidence: number;
+  maxFunctionCharacters: number;
+  maxImportCharacters: number;
+  maxCallSites: number;
+}
+
 const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
-  const { threshold, minConfidence } = resolveDecisionOptions(
-    definition.options,
-    definition.defaults,
-  );
+  const resolved = resolveOptions(definition.options, definition.defaults);
+  const { threshold, minConfidence } = resolved;
   return {
     description: definition.description,
     collect(document) {
-      return definition.select(document).map(({ fn, exportEvidence }) => {
+      return definition.select(document, resolved).map(({ fn, exportEvidence }) => {
         const candidate: RuleCandidate = {
           target: fn,
-          state: functionState(fn, document, exportEvidence),
+          state: functionState(fn, document, exportEvidence, resolved),
           question: {
             type: "choice",
             instructions: definition.question.instructions,
@@ -337,23 +368,24 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
 };
 
 const boundaryChoiceRule = (definition: BoundaryChoiceRuleDefinition): SemanticRule => {
-  const { threshold, minConfidence } = resolveDecisionOptions(
-    definition.options,
-    definition.defaults,
-  );
+  const resolved = resolveOptions(definition.options, definition.defaults);
+  const { threshold, minConfidence } = resolved;
   return {
     description: definition.description,
     collect(document) {
-      return definition.select(document).map((boundary) => ({
-        target: boundary,
-        state: boundaryState(boundary, document),
-        question: {
-          type: "choice" as const,
-          instructions: definition.instructions,
-          criteria: definition.criteria,
-        },
-        data: { evidenceKind: "normalized_api_boundary" },
-      }));
+      return definition
+        .select(document, resolved)
+        .filter((boundary) => boundary.handlerSource.length <= resolved.maxFunctionCharacters)
+        .map((boundary) => ({
+          target: boundary,
+          state: boundaryState(boundary, document, resolved),
+          question: {
+            type: "choice" as const,
+            instructions: definition.instructions,
+            criteria: definition.criteria,
+          },
+          data: { evidenceKind: "normalized_api_boundary" },
+        }));
     },
     diagnose(answer, candidate) {
       if (!isFinding(answer, definition.finding, threshold, minConfidence)) {
@@ -395,8 +427,11 @@ const hasPossibleStateChange = (boundary: ApiBoundaryTarget): boolean => {
   );
 };
 
-const explicitRawBoundaryFunctions = (document: ParsedDocument): SelectedFunction[] => {
-  return directlyExportedFunctions(document).filter(({ fn }) => {
+const explicitRawBoundaryFunctions = (
+  document: ParsedDocument,
+  options: ResolvedOptions,
+): SelectedFunction[] => {
+  return directlyExportedFunctions(document, options).filter(({ fn }) => {
     const evidence = fn.source;
     return (
       /\bunknown\b/u.test(evidence) ||
@@ -406,9 +441,14 @@ const explicitRawBoundaryFunctions = (document: ParsedDocument): SelectedFunctio
   });
 };
 
-const boundaryState = (boundary: ApiBoundaryTarget, document: ParsedDocument): JsonValue => ({
+const boundaryState = (
+  boundary: ApiBoundaryTarget,
+  document: ParsedDocument,
+  options: ResolvedOptions,
+): JsonValue => ({
   language: document.language,
-  imports: document.imports,
+  imports: boundedImports(document.imports, options.maxImportCharacters).values,
+  imports_truncated: boundedImports(document.imports, options.maxImportCharacters).truncated,
   apiBoundary: {
     framework: boundary.framework,
     method: boundary.method,
@@ -430,7 +470,7 @@ const boundaryState = (boundary: ApiBoundaryTarget, document: ParsedDocument): J
       headers: exit.headerSources,
       source: exit.source,
     })),
-    calls: boundary.calls.map((call) => ({
+    calls: boundary.calls.slice(0, options.maxCallSites).map((call) => ({
       callee: call.callee,
       source: call.source,
     })),
@@ -441,6 +481,7 @@ const boundaryState = (boundary: ApiBoundaryTarget, document: ParsedDocument): J
       responseExits: boundary.completeness.responseExits,
       reasons: boundary.completeness.reasons,
     },
+    calls_truncated: boundary.calls.length > options.maxCallSites,
   },
   evidenceLimitations: [
     "Only this route registration and a locally resolvable handler are shown.",
@@ -449,9 +490,13 @@ const boundaryState = (boundary: ApiBoundaryTarget, document: ParsedDocument): J
   ],
 });
 
-const namedFunctions = (document: ParsedDocument): SelectedFunction[] => {
+const namedFunctions = (document: ParsedDocument, options: ResolvedOptions): SelectedFunction[] => {
   return document.functions.flatMap((fn) => {
-    if (!isBoundedImplementation(fn) || fn.name === undefined || fn.name.length === 0) {
+    if (
+      !isBoundedImplementation(fn, options.maxFunctionCharacters) ||
+      fn.name === undefined ||
+      fn.name.length === 0
+    ) {
       return [];
     }
     const exportEvidence = directExportEvidence(fn, document);
@@ -459,9 +504,12 @@ const namedFunctions = (document: ParsedDocument): SelectedFunction[] => {
   });
 };
 
-const directlyExportedFunctions = (document: ParsedDocument): SelectedFunction[] => {
+const directlyExportedFunctions = (
+  document: ParsedDocument,
+  options: ResolvedOptions,
+): SelectedFunction[] => {
   return document.functions.flatMap((fn) => {
-    if (!isBoundedImplementation(fn)) {
+    if (!isBoundedImplementation(fn, options.maxFunctionCharacters)) {
       return [];
     }
     const exportEvidence = directExportEvidence(fn, document);
@@ -469,10 +517,8 @@ const directlyExportedFunctions = (document: ParsedDocument): SelectedFunction[]
   });
 };
 
-const isBoundedImplementation = (fn: FunctionTarget): boolean => {
-  return (
-    fn.kind === "function" && fn.source.length > 0 && fn.source.length <= maxFunctionCharacters
-  );
+const isBoundedImplementation = (fn: FunctionTarget, maximumCharacters: number): boolean => {
+  return fn.kind === "function" && fn.source.length > 0 && fn.source.length <= maximumCharacters;
 };
 
 const directExportEvidence = (fn: FunctionTarget, document: ParsedDocument): string | undefined => {
@@ -490,15 +536,22 @@ const functionState = (
   fn: FunctionTarget,
   document: ParsedDocument,
   exportEvidence: string | undefined,
+  options: ResolvedOptions,
 ): JsonValue => {
+  const imports = boundedImports(document.imports, options.maxImportCharacters);
+  const calls = fn.calls
+    .toSorted((left, right) => left.range.start - right.range.start)
+    .slice(0, options.maxCallSites);
   return {
     language: document.language,
-    imports: document.imports,
+    imports: imports.values,
+    imports_truncated: imports.truncated,
     function: {
       name: fn.name ?? null,
       async: fn.async,
       source: fn.source,
-      calls: fn.calls.map((call) => call.callee),
+      calls: calls.map((call) => call.callee),
+      calls_truncated: calls.length < fn.calls.length,
     },
     public_contract: {
       directly_exported: exportEvidence !== undefined,
@@ -511,6 +564,69 @@ const functionState = (
       Math.min(document.source.length, fn.range.end + contextCharacters),
     ),
   };
+};
+
+const smallestEnclosingFunction = (
+  range: { start: number; end: number },
+  functions: readonly FunctionTarget[],
+): FunctionTarget | undefined => {
+  return functions
+    .filter((fn) => fn.range.start <= range.start && fn.range.end >= range.end)
+    .toSorted(
+      (left, right) => left.range.end - left.range.start - (right.range.end - right.range.start),
+    )[0];
+};
+
+const boundedImports = (
+  imports: readonly string[],
+  maximumCharacters: number,
+): { values: string[]; truncated: boolean } => {
+  const values: string[] = [];
+  let characters = 0;
+  for (const statement of imports) {
+    const next = characters + (values.length === 0 ? 0 : 1) + statement.length;
+    if (next > maximumCharacters) {
+      return { values, truncated: true };
+    }
+    values.push(statement);
+    characters = next;
+  }
+  return { values, truncated: false };
+};
+
+const resolveOptions = (
+  options: ApiContractRuleOptions,
+  defaults: { threshold: number; minConfidence: number },
+): ResolvedOptions => {
+  return {
+    ...resolveDecisionOptions(options, defaults),
+    maxFunctionCharacters: integerOption(
+      "maxFunctionCharacters",
+      options.maxFunctionCharacters,
+      12_000,
+      1,
+    ),
+    maxImportCharacters: integerOption(
+      "maxImportCharacters",
+      options.maxImportCharacters,
+      2_000,
+      0,
+    ),
+    maxCallSites: integerOption("maxCallSites", options.maxCallSites, 50, 0),
+  };
+};
+
+const integerOption = (
+  name: string,
+  value: number | undefined,
+  fallback: number,
+  minimum: number,
+): number => {
+  const resolved = value ?? fallback;
+  if (!Number.isSafeInteger(resolved) || resolved < minimum) {
+    throw new RangeError(`${name} must be a safe integer greater than or equal to ${minimum}`);
+  }
+  return resolved;
 };
 
 const sourceLocation = (source: string, range: { start: number; end: number }) => {

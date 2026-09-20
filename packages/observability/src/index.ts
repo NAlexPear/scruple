@@ -18,8 +18,11 @@ import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
 export interface ObservabilityRuleOptions extends DecisionRuleOptions {
   loggingCallPatterns?: RegExp[];
+  errorLoggingCallPatterns?: RegExp[];
   telemetryCallPatterns?: RegExp[];
+  exceptionTelemetryCallPatterns?: RegExp[];
   telemetryNameCallPatterns?: RegExp[];
+  duplicateErrorReportingCallPatterns?: RegExp[];
 }
 
 export type ObservabilityPlugin = ScruplePlugin<{
@@ -73,6 +76,19 @@ const errorReportingPattern =
   /(?:^|\.)(?:captureException|error|fatal|recordException|reportException)$/iu;
 const operationalCallPattern =
   /\b(?:action|event|operation|outcome|result|status)\s*[:=]|\b(?:cancel(?:led)?|complet(?:e|ed)|den(?:y|ied)|fail(?:ed|ure)?|retri(?:ed|es|ed)|start(?:ed)?|succeed(?:ed)?)\b/iu;
+const evidenceBudgets = {
+  importCount: 10,
+  importCharacters: 200,
+  callCharacters: 2_000,
+  contextCharacters: 1_500,
+  tryCharacters: 1_500,
+  catchCharacters: 2_000,
+  enclosingCharacters: 2_000,
+  reportingCallCount: 10,
+  reportingCallCharacters: 1_000,
+  exitCount: 10,
+  exitCharacters: 500,
+} as const;
 
 export const observability = (): ObservabilityPlugin => {
   return definePlugin({
@@ -176,7 +192,7 @@ const noDuplicateErrorReporting = (options: ObservabilityRuleOptions = {}): Sema
     description: "The same exception should not be reported repeatedly in one error boundary.",
     collect(document) {
       return document.errorHandlers.flatMap((handler) => {
-        const duplicateCalls = selectedDuplicateReportingCalls(handler, document);
+        const duplicateCalls = selectedDuplicateReportingCalls(handler, document, options);
         const targetCall = duplicateCalls.at(-1);
         if (targetCall === undefined) {
           return [];
@@ -255,14 +271,27 @@ const selectCalls = (
   document: ParsedDocument,
   options: ObservabilityRuleOptions,
 ): SelectedCall[] => {
-  const loggingPatterns = options.loggingCallPatterns ?? defaultLoggingCallPatterns;
-  const telemetryPatterns = options.telemetryCallPatterns ?? defaultTelemetryCallPatterns;
-  const telemetryNamePatterns =
-    options.telemetryNameCallPatterns ?? defaultTelemetryNameCallPatterns;
+  const loggingPatterns = [...defaultLoggingCallPatterns, ...(options.loggingCallPatterns ?? [])];
+  const errorLoggingPatterns = [errorLogPattern, ...(options.errorLoggingCallPatterns ?? [])];
+  const telemetryPatterns = [
+    ...defaultTelemetryCallPatterns,
+    ...(options.telemetryCallPatterns ?? []),
+  ];
+  const exceptionTelemetryPatterns = [
+    exceptionTelemetryPattern,
+    ...(options.exceptionTelemetryCallPatterns ?? []),
+  ];
+  const telemetryNamePatterns = [
+    ...defaultTelemetryNameCallPatterns,
+    ...(options.telemetryNameCallPatterns ?? []),
+  ];
   return document.functions.flatMap((fn) =>
     fn.calls.flatMap((call): SelectedCall[] => {
-      if (matchesAny(call.callee, loggingPatterns)) {
-        const kind = errorLogPattern.test(call.callee)
+      if (
+        matchesAny(call.callee, loggingPatterns) ||
+        matchesAny(call.callee, options.errorLoggingCallPatterns ?? [])
+      ) {
+        const kind = matchesAny(call.callee, errorLoggingPatterns)
           ? "error_log"
           : diagnosticLogPattern.test(call.callee)
             ? "diagnostic_log"
@@ -272,12 +301,17 @@ const selectCalls = (
       if (matchesAny(call.callee, telemetryNamePatterns)) {
         return [{ call, fn, kind: "telemetry_name" }];
       }
-      if (matchesAny(call.callee, telemetryPatterns)) {
+      if (
+        matchesAny(call.callee, telemetryPatterns) ||
+        matchesAny(call.callee, options.exceptionTelemetryCallPatterns ?? [])
+      ) {
         return [
           {
             call,
             fn,
-            kind: exceptionTelemetryPattern.test(call.callee) ? "exception_telemetry" : "telemetry",
+            kind: matchesAny(call.callee, exceptionTelemetryPatterns)
+              ? "exception_telemetry"
+              : "telemetry",
           },
         ];
       }
@@ -303,14 +337,20 @@ const isOperationContextCandidate = (entry: SelectedCall): boolean => {
 const selectedDuplicateReportingCalls = (
   handler: ErrorHandlerTarget,
   document: ParsedDocument,
+  options: ObservabilityRuleOptions,
 ): CallCapture[] => {
   const binding = handler.binding;
   if (binding === undefined) {
     return [];
   }
+  const reportingPatterns = [
+    errorReportingPattern,
+    ...(options.errorLoggingCallPatterns ?? []),
+    ...(options.exceptionTelemetryCallPatterns ?? []),
+    ...(options.duplicateErrorReportingCallPatterns ?? []),
+  ];
   const calls = handler.calls.filter((call) => {
-    errorReportingPattern.lastIndex = 0;
-    if (!errorReportingPattern.test(call.callee)) {
+    if (!matchesAny(call.callee, reportingPatterns)) {
       return false;
     }
     const fact = document.facts?.calls.find(
@@ -331,22 +371,55 @@ const duplicateErrorState = (
   calls: CallCapture[],
   document: ParsedDocument,
 ): JsonValue => {
+  const imports = document.imports.slice(0, evidenceBudgets.importCount);
+  const reportingCalls = calls.slice(0, evidenceBudgets.reportingCallCount);
+  const exits = handler.exits.slice(0, evidenceBudgets.exitCount);
   return {
     language: document.language,
-    imports: document.imports.slice(0, 10).map((source) => boundedExcerpt(source, 200)),
+    imports: imports.map((source) => boundedExcerpt(source, evidenceBudgets.importCharacters)),
     catch_binding: handler.binding ?? null,
-    try_block: boundedExcerpt(handler.trySource, 1_500),
-    catch_body: boundedExcerpt(handler.bodySource, 2_000),
-    reporting_calls: calls.map((call) => ({
+    try_block: boundedExcerpt(handler.trySource, evidenceBudgets.tryCharacters),
+    catch_body: boundedExcerpt(handler.bodySource, evidenceBudgets.catchCharacters),
+    reporting_calls: reportingCalls.map((call) => ({
       callee: boundedExcerpt(call.callee, 300),
-      source: boundedExcerpt(call.source, 1_000),
+      source: boundedExcerpt(call.source, evidenceBudgets.reportingCallCharacters),
     })),
-    exits: handler.exits.map((exit) => ({
+    exits: exits.map((exit) => ({
       kind: exit.kind,
-      source: boundedExcerpt(exit.source, 500),
+      source: boundedExcerpt(exit.source, evidenceBudgets.exitCharacters),
     })),
     enclosing_context:
-      handler.enclosingSource === undefined ? null : boundedExcerpt(handler.enclosingSource, 2_000),
+      handler.enclosingSource === undefined
+        ? null
+        : boundedExcerpt(handler.enclosingSource, evidenceBudgets.enclosingCharacters),
+    evidence: {
+      scope:
+        "Only the bounded catch handler, enclosing context, imports, calls, and exits shown are evidence; hidden wrappers and upstream reporting are unknown.",
+      budgets: evidenceBudgetState(),
+      truncation: {
+        imports:
+          imports.length < document.imports.length ||
+          imports.some((source) => source.length > evidenceBudgets.importCharacters),
+        try_block: handler.trySource.length > evidenceBudgets.tryCharacters,
+        catch_body: handler.bodySource.length > evidenceBudgets.catchCharacters,
+        reporting_calls:
+          reportingCalls.length < calls.length ||
+          reportingCalls.some(
+            (call) => call.source.length > evidenceBudgets.reportingCallCharacters,
+          ),
+        exits:
+          exits.length < handler.exits.length ||
+          exits.some((exit) => exit.source.length > evidenceBudgets.exitCharacters),
+        enclosing_context:
+          handler.enclosingSource !== undefined &&
+          handler.enclosingSource.length > evidenceBudgets.enclosingCharacters,
+      },
+      totals: {
+        imports: document.imports.length,
+        reporting_calls: calls.length,
+        exits: handler.exits.length,
+      },
+    },
   };
 };
 
@@ -355,22 +428,56 @@ const escapeRegExp = (value: string): string => {
 };
 
 const callState = (entry: SelectedCall, document: ParsedDocument): JsonValue => {
+  const imports = document.imports.slice(0, evidenceBudgets.importCount);
   return {
     language: document.language,
-    imports: document.imports.slice(0, 10).map((source) => boundedExcerpt(source, 200)),
+    imports: imports.map((source) => boundedExcerpt(source, evidenceBudgets.importCharacters)),
     sink: { callee: boundedExcerpt(entry.call.callee, 300), kind: entry.kind },
-    call: boundedExcerpt(entry.call.source, 2_000),
+    call: boundedExcerpt(entry.call.source, evidenceBudgets.callCharacters),
     context: boundedContext(document.source, entry.call.range.start, entry.call.range.end),
     enclosing_function: entry.fn.name === undefined ? null : boundedExcerpt(entry.fn.name, 200),
+    evidence: {
+      scope:
+        "Only the selected call, bounded same-file context, imports, and enclosing function name shown are evidence; hidden helpers and runtime enrichment are unknown.",
+      budgets: evidenceBudgetState(),
+      truncation: {
+        imports:
+          imports.length < document.imports.length ||
+          imports.some((source) => source.length > evidenceBudgets.importCharacters),
+        call: entry.call.source.length > evidenceBudgets.callCharacters,
+        context:
+          entry.call.range.start > evidenceBudgets.contextCharacters / 2 ||
+          document.source.length - entry.call.range.end > evidenceBudgets.contextCharacters / 2,
+      },
+      totals: {
+        imports: document.imports.length,
+        call_characters: entry.call.source.length,
+        file_characters: document.source.length,
+      },
+    },
   };
 };
 
 const boundedContext = (source: string, start: number, end: number): string => {
-  const radius = 750;
+  const radius = evidenceBudgets.contextCharacters / 2;
   const before = source.slice(Math.max(0, start - radius), start);
   const after = source.slice(end, Math.min(source.length, end + radius));
   return `${before}\n… selected call …\n${after}`;
 };
+
+const evidenceBudgetState = (): { [key: string]: JsonValue } => ({
+  import_count: evidenceBudgets.importCount,
+  import_characters_each: evidenceBudgets.importCharacters,
+  call_characters: evidenceBudgets.callCharacters,
+  context_characters: evidenceBudgets.contextCharacters,
+  try_characters: evidenceBudgets.tryCharacters,
+  catch_characters: evidenceBudgets.catchCharacters,
+  enclosing_characters: evidenceBudgets.enclosingCharacters,
+  reporting_call_count: evidenceBudgets.reportingCallCount,
+  reporting_call_characters_each: evidenceBudgets.reportingCallCharacters,
+  exit_count: evidenceBudgets.exitCount,
+  exit_characters_each: evidenceBudgets.exitCharacters,
+});
 
 const boundedExcerpt = (source: string, maxCharacters: number): string => {
   if (source.length <= maxCharacters) {

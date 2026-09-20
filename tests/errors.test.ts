@@ -43,7 +43,11 @@ await test("errors plugin registers the bounded error-handler rule set", () => {
 await test("useless catch boundaries contrast rethrow-only handlers with meaningful handling", () => {
   const document = oxcParser().parse(
     "boundaries.ts",
-    `try { await load(); } catch (error) { throw error; }
+    `try { await load(); } catch (error) { /* preserve stack */ throw /* same value */ error; }
+try { await read(); } catch (error) {
+  // formatting must not hide a direct rethrow
+  throw error
+}
 try { await save(); } catch (error) { await cleanup(); throw error; }
 try { await publish(); } catch (error) { error.context = { operation: "publish" }; throw error; }
 try { await parse(); } catch (error) { throw new ParseError("invalid payload", { cause: error }); }
@@ -54,7 +58,10 @@ try { await parse(); } catch (error) { throw new ParseError("invalid payload", {
 
   assert.deepEqual(
     candidates.map((candidate) => candidate.target.source),
-    ["catch (error) { throw error; }"],
+    [
+      "catch (error) { /* preserve stack */ throw /* same value */ error; }",
+      "catch (error) {\n  // formatting must not hide a direct rethrow\n  throw error\n}",
+    ],
   );
   const candidate = candidates[0];
   assert.ok(candidate?.question.type === "choice");

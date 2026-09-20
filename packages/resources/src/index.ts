@@ -33,13 +33,18 @@ const defaultAcquisitionCallPatterns = [
   /(?:^|\.)(?:acquire|beginTransaction|connect|createReadStream|createWriteStream|lock|open|subscribe|watch)$/iu,
 ];
 const defaultScopedLifecycleCallPatterns = [
-  /^(?:using|with)(?:Client|Connection|File|Handle|Lock|Resource|Stream|Transaction)$/iu,
+  /(?:^|\.)(?:using|with)(?:Client|Connection|File|Handle|Lock|Resource|Stream|Transaction)$/iu,
 ];
 const defaultLifecycleCallPatterns = [
   ...defaultAcquisitionCallPatterns,
   ...defaultScopedLifecycleCallPatterns,
 ];
 const defaultRetryCallPatterns = [/(?:^|\.)(?:backoff|retry|retryAsync|shouldRetry)$/iu];
+const defaultResourceConstructorPatterns = [
+  /(?:^|\.)(?:BroadcastChannel|EventSource|FileHandle|MessageChannel|WebSocket|Worker)$/u,
+];
+const maxEvidenceItems = 20;
+const maxFunctionCharacters = 12_000;
 
 export const resources = (): ResourcesPlugin => {
   return definePlugin({
@@ -56,9 +61,10 @@ export const resources = (): ResourcesPlugin => {
 
 const noLeakedResources = (options: ResourceLifecycleRuleOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = decisionOptions(options, 0.65, 0.5);
+  const lifecyclePatterns = lifecyclePatternsFor(options);
   return functionChoiceRule({
     description: "Resources acquired in a function should not be leaked.",
-    select: (document) => lifecycleFunctions(document, options.lifecycleCallPatterns),
+    select: (document) => lifecycleFunctions(document, lifecyclePatterns),
     instructions:
       "Does a concrete visible execution path finish while this function still owns a resource it explicitly acquired? Treat files, streams, sockets, connections, subscriptions, watchers, locks, transactions, and disposable handles as resources. Account for `using`/`await using`, disposal stacks, `finally`, clearly scoped management callbacks, and explicit ownership transfer by returning the owned resource or passing it to a visibly owning abstraction. Do not infer acquisition, ownership, transfer, or cleanup from an ambiguous name or undocumented helper contract.",
     criteria: {
@@ -82,9 +88,10 @@ const noLeakedResources = (options: ResourceLifecycleRuleOptions = {}): Semantic
 
 const requireCleanupOnFailure = (options: ResourceLifecycleRuleOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const lifecyclePatterns = lifecyclePatternsFor(options);
   return functionChoiceRule({
     description: "Resource cleanup should run when work fails.",
-    select: (document) => lifecycleFunctions(document, options.lifecycleCallPatterns),
+    select: (document) => lifecycleFunctions(document, lifecyclePatterns),
     instructions:
       "This rule is about a visible cleanup plan that an abrupt path can bypass, rather than the absence of cleanup in general. Can work or a later acquisition fail after this function acquires an owned resource but before its intended cleanup is guaranteed? Also consider whether one cleanup throwing prevents another owned resource from being cleaned up. Accept `using`/`await using`, disposal stacks, correctly nested `finally`, and clearly scoped management helpers. A returned resource is ownership transfer. Abstain when ownership, failure behavior, or a helper contract is opaque.",
     criteria: {
@@ -108,9 +115,10 @@ const requireCleanupOnFailure = (options: ResourceLifecycleRuleOptions = {}): Se
 
 const requireBoundedRetries = (options: RequireBoundedRetriesOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const retryPatterns = retryPatternsFor(options);
   return functionChoiceRule({
     description: "Retry behavior should have an enforced finite bound.",
-    select: (document) => retryFunctions(document, options.retryCallPatterns),
+    select: (document) => retryFunctions(document, retryPatterns),
     instructions:
       "Can this function initiate retries indefinitely without an enforced finite attempt, elapsed-time, or deadline bound? This rule bounds retry scheduling; it does not prove that an individual attempt terminates. A retry library counts as bounded only when the visible call or established import contract supplies a finite bound. Cancellation support alone is not guaranteed to fire. Ordinary loops are not retry behavior, and ambiguous helper defaults require abstention.",
     criteria: {
@@ -133,10 +141,11 @@ const requireCompleteResourceCleanup = (
   options: ResourceLifecycleRuleOptions = {},
 ): SemanticRule => {
   const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const lifecyclePatterns = acquisitionPatternsFor(options);
   return functionChoiceRule({
     description:
       "All owned resources should still be cleaned up when acquisition or cleanup fails.",
-    select: (document) => multiResourceFunctions(document, options.lifecycleCallPatterns),
+    select: (document) => multiResourceFunctions(document, lifecyclePatterns),
     instructions:
       "Does this function explicitly acquire at least two owned resources but have a concrete path where a later acquisition failure or one cleanup failure prevents cleanup of an earlier or remaining resource? Accept `using`/`await using`, DisposableStack or AsyncDisposableStack, correctly nested `finally` blocks, and visible cleanup aggregation that attempts every release while preserving failures. Do not require a particular order for independent resources, and abstain when ownership, cleanup failure behavior, or a helper contract is opaque.",
     criteria: {
@@ -162,9 +171,10 @@ const requireRetryBackoffWithJitter = (
   options: RequireBoundedRetriesOptions = {},
 ): SemanticRule => {
   const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const retryPatterns = retryPatternsFor(options);
   return functionChoiceRule({
     description: "Retries should use backoff with jitter to avoid synchronized retry pressure.",
-    select: (document) => retryFunctions(document, options.retryCallPatterns),
+    select: (document) => retryFunctions(document, retryPatterns),
     instructions:
       "Does this function perform multiple retries immediately, at a fixed interval, or with increasing delays but no jitter? Flag only visible retry timing that lacks both progressive backoff and randomization. Accept a clearly configured or documented retry helper that supplies capped exponential backoff with jitter, and accept server-directed randomized scheduling. One retry, non-retry loops, local polling with an established non-contentious contract, and opaque helper defaults should not be reported without stronger evidence.",
     criteria: {
@@ -188,9 +198,10 @@ const requireRetryBackoffWithJitter = (
 
 const requireRetryTimeBudget = (options: RequireBoundedRetriesOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const retryPatterns = retryPatternsFor(options);
   return functionChoiceRule({
     description: "Retried operations should have a total elapsed-time budget.",
-    select: (document) => retryFunctions(document, options.retryCallPatterns),
+    select: (document) => retryFunctions(document, retryPatterns),
     instructions:
       "Does this retry behavior lack an enforced total elapsed-time budget that spans every attempt and delay? A finite attempt count alone is not a total time budget because an attempt may hang. Per-attempt timeouts are insufficient unless their combination with attempts and delays visibly enforces a finite total. Accept a parent deadline, total-timeout option, or deadline-backed signal that is propagated through all attempts. An external AbortSignal without an established deadline and an opaque helper default require abstention rather than an assumption.",
     criteria: {
@@ -248,36 +259,50 @@ const functionChoiceRule = (definition: FunctionChoiceRuleDefinition): SemanticR
   };
 };
 
-const lifecycleFunctions = (document: ParsedDocument, patterns?: RegExp[]): FunctionTarget[] => {
-  const lifecyclePatterns = patterns ?? defaultLifecycleCallPatterns;
+const lifecycleFunctions = (
+  document: ParsedDocument,
+  lifecyclePatterns: RegExp[],
+): FunctionTarget[] => {
   return implementationFunctions(document).filter(
     (fn) =>
       factsOwnedBy(document, fn, document.facts?.declarations ?? []).length > 0 ||
-      fn.calls.some((call) => matchesAny(call.callee, lifecyclePatterns)),
+      fn.calls.some((call) => matchesAny(call.callee, lifecyclePatterns)) ||
+      factsOwnedBy(document, fn, document.facts?.constructors ?? []).some(
+        (constructor) =>
+          constructor.callee !== undefined &&
+          matchesAny(constructor.callee, defaultResourceConstructorPatterns),
+      ),
   );
 };
 
 const multiResourceFunctions = (
   document: ParsedDocument,
-  patterns?: RegExp[],
+  acquisitionPatterns: RegExp[],
 ): FunctionTarget[] => {
-  const acquisitionPatterns = patterns ?? defaultAcquisitionCallPatterns;
   return implementationFunctions(document).filter(
-    (fn) => fn.calls.filter((call) => matchesAny(call.callee, acquisitionPatterns)).length >= 2,
+    (fn) =>
+      fn.calls.filter((call) => matchesAny(call.callee, acquisitionPatterns)).length +
+        factsOwnedBy(document, fn, document.facts?.constructors ?? []).filter(
+          (constructor) =>
+            constructor.callee !== undefined &&
+            matchesAny(constructor.callee, defaultResourceConstructorPatterns),
+        ).length >=
+      2,
   );
 };
 
-const retryFunctions = (document: ParsedDocument, patterns?: RegExp[]): FunctionTarget[] => {
-  const retryPatterns = patterns ?? defaultRetryCallPatterns;
+const retryFunctions = (document: ParsedDocument, retryPatterns: RegExp[]): FunctionTarget[] => {
   return implementationFunctions(document).filter((fn) => {
     if (fn.calls.some((call) => matchesAny(call.callee, retryPatterns))) {
       return true;
     }
     const controls = factsOwnedBy(document, fn, document.facts?.controls ?? []);
-    const retryLoops = controls.filter(
-      (control) =>
-        control.kind === "loop" && control.loop !== "for-in" && control.loop !== "for-of",
-    );
+    const retryLoops = controls.filter((control) => {
+      if (control.kind !== "loop" || control.loop === "for-in") {
+        return false;
+      }
+      return control.loop !== "for-of" || possibleRetryForOf(document, fn, control);
+    });
     return controls.some(
       (control) =>
         control.kind === "catch" &&
@@ -286,6 +311,29 @@ const retryFunctions = (document: ParsedDocument, patterns?: RegExp[]): Function
         ),
     );
   });
+};
+
+const possibleRetryForOf = (
+  document: ParsedDocument,
+  fn: FunctionTarget,
+  loop: NonNullable<ParsedDocument["facts"]>["controls"][number],
+): boolean => {
+  const bindings = loop.bindings ?? [];
+  if (bindings.length === 0) {
+    return true;
+  }
+  const operationCalls = factsOwnedBy(document, fn, document.facts?.calls ?? []).filter(
+    (call) =>
+      call.control.some(
+        (region) =>
+          region.kind === "loop" &&
+          region.range.start === loop.range.start &&
+          region.range.end === loop.range.end,
+      ) && !call.control.some((region) => region.kind === "catch"),
+  );
+  return operationCalls.some(
+    (call) => !bindings.some((binding) => call.references.includes(binding)),
+  );
 };
 
 const factsOwnedBy = <Fact extends { range: { start: number; end: number } }>(
@@ -313,26 +361,61 @@ const smallestContainingFunction = (
 };
 
 const implementationFunctions = (document: ParsedDocument): FunctionTarget[] => {
-  return document.functions.filter((fn) => fn.kind === "function" && fn.source.length > 0);
+  return document.functions.filter(
+    (fn) =>
+      fn.kind === "function" && fn.source.length > 0 && fn.source.length <= maxFunctionCharacters,
+  );
 };
 
 const functionState = (fn: FunctionTarget, document: ParsedDocument): JsonValue => {
-  const errorHandlers = document.errorHandlers
-    .filter((handler) => handler.range.start >= fn.range.start && handler.range.end <= fn.range.end)
-    .map((handler) => ({
-      binding: handler.binding ?? null,
-      try: handler.trySource,
-      body: handler.bodySource,
-      calls: handler.calls.map((call) => call.callee),
-      exits: handler.exits.map((exit) => ({ kind: exit.kind, source: exit.source })),
-    }));
+  const errorHandlers = boundedUnique(
+    document.errorHandlers
+      .filter(
+        (handler) => handler.range.start >= fn.range.start && handler.range.end <= fn.range.end,
+      )
+      .map((handler) => ({
+        binding: handler.binding ?? null,
+        try: handler.trySource,
+        body: handler.bodySource,
+        calls: boundedUnique(
+          handler.calls.map((call) => call.callee),
+          (callee) => callee,
+        ),
+        exits: boundedUnique(
+          handler.exits.map((exit) => ({ kind: exit.kind, source: exit.source })),
+          (exit) => `${exit.kind}:${exit.source}`,
+        ),
+      })),
+    (handler) => `${handler.binding}:${handler.try}`,
+  );
   return {
     language: document.language,
-    imports: document.imports,
+    imports: boundedUnique(document.imports, (entry) => entry),
     function: fn.source,
-    calls: fn.calls.map((call) => call.callee),
+    calls: boundedUnique(
+      fn.calls.map((call) => call.callee),
+      (callee) => callee,
+    ),
     errorHandlers,
   };
+};
+
+const lifecyclePatternsFor = (options: ResourceLifecycleRuleOptions): RegExp[] => {
+  const patterns = options.lifecycleCallPatterns ?? defaultLifecycleCallPatterns;
+  validatePatterns("lifecycleCallPatterns", patterns);
+  return patterns;
+};
+
+const acquisitionPatternsFor = (options: ResourceLifecycleRuleOptions): RegExp[] => {
+  const patterns = options.lifecycleCallPatterns ?? defaultAcquisitionCallPatterns;
+  validatePatterns("lifecycleCallPatterns", patterns);
+  return patterns;
+};
+
+const retryPatternsFor = (options: RequireBoundedRetriesOptions): RegExp[] => {
+  const patterns = options.retryCallPatterns ?? defaultRetryCallPatterns;
+  validatePatterns("retryCallPatterns", patterns);
+  return patterns;
 };
 
 const decisionOptions = (
@@ -373,7 +456,29 @@ const diagnostic = (
   };
 };
 
-const matchesAny = (value: string, patterns: RegExp[]): boolean => {
+const validatePatterns = (name: string, patterns: RegExp[]): void => {
+  if (!Array.isArray(patterns) || patterns.some((pattern) => !(pattern instanceof RegExp))) {
+    throw new TypeError(`${name} must be an array of regular expressions`);
+  }
+};
+
+const boundedUnique = <Value>(values: Value[], key: (value: Value) => string): Value[] => {
+  const seen = new Set<string>();
+  const result: Value[] = [];
+  for (const value of values) {
+    const identity = key(value);
+    if (!seen.has(identity)) {
+      seen.add(identity);
+      result.push(value);
+    }
+    if (result.length === maxEvidenceItems) {
+      break;
+    }
+  }
+  return result;
+};
+
+const matchesAny = (value: string, patterns: readonly RegExp[]): boolean => {
   return patterns.some((pattern) => {
     pattern.lastIndex = 0;
     return pattern.test(value);

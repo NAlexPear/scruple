@@ -120,6 +120,61 @@ export function ordinary(values: string[]) {
   });
 });
 
+await test("retry rules consider retry-shaped for-of loops but ignore collection processing", () => {
+  const source = `export async function attempts(delays: number[]) {
+  for (const delay of delays) {
+    try { return await request(); }
+    catch { await sleep(delay); }
+  }
+}
+
+export async function asyncAttempts(schedule: AsyncIterable<number>) {
+  for await (const delay of schedule) {
+    try { return await request(); }
+    catch { await sleep(delay); }
+  }
+}
+
+export async function processFiles(files: string[]) {
+  for (const file of files) {
+    try { await processFile(file); }
+    catch (error) { reportFileError(file, error); }
+  }
+}
+`;
+  const candidates = resources()
+    .rules["require-bounded-retries"]()
+    .collect(oxcParser().parse("for-of.ts", source));
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source.match(/function (\w+)/u)?.[1]),
+    ["attempts", "asyncAttempts"],
+  );
+});
+
+await test("resource selectors recognize qualified scoped helpers and selected constructors", () => {
+  const source = `export async function scoped() {
+  return pool.withConnection((connection) => connection.query("select 1"));
+}
+
+export function socket() {
+  return new WebSocket("wss://example.test");
+}
+
+export function ordinary() {
+  return new Date();
+}
+`;
+  const candidates = resources()
+    .rules["no-leaked-resources"]()
+    .collect(oxcParser().parse("qualified.ts", source));
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source.match(/function (\w+)/u)?.[1]),
+    ["scoped", "socket"],
+  );
+});
+
 await test("resource selectors ignore lifecycle and retry syntax quoted in rule prompts", () => {
   const source = `export function lifecyclePrompt() {
   return "Treat using declarations and scoped helpers as managed resources.";
@@ -217,6 +272,50 @@ await test("new selectors honor custom patterns deterministically", () => {
   });
   assert.equal(retryRule.collect(retryDocument).length, 1);
   assert.equal(retryRule.collect(retryDocument).length, 1);
+});
+
+await test("resource pattern options require RegExp arrays", () => {
+  const plugin = resources();
+  assert.throws(
+    () =>
+      Reflect.apply(plugin.rules["no-leaked-resources"], undefined, [
+        { lifecycleCallPatterns: ["open"] },
+      ]),
+    /lifecycleCallPatterns must be an array of regular expressions/u,
+  );
+  assert.throws(
+    () =>
+      Reflect.apply(plugin.rules["require-bounded-retries"], undefined, [
+        { retryCallPatterns: ["retry"] },
+      ]),
+    /retryCallPatterns must be an array of regular expressions/u,
+  );
+});
+
+await test("resource candidate evidence is bounded and deduplicated", () => {
+  const repeatedCalls = Array.from({ length: 30 }, () => "  await request();").join("\n");
+  const uniqueCalls = Array.from({ length: 30 }, (_, index) => `  await request${index}();`).join(
+    "\n",
+  );
+  const document = oxcParser().parse(
+    "bounded.ts",
+    `export async function run() {
+  retry(() => request());
+${repeatedCalls}
+${uniqueCalls}
+}`,
+  );
+  const candidate = resources().rules["require-bounded-retries"]().collect(document)[0];
+  assert.ok(candidate);
+  const expectedCalls = [
+    "retry",
+    "request",
+    ...Array.from({ length: 18 }, (_, index) => `request${index}`),
+  ];
+  assert.equal(
+    JSON.stringify(candidate.state).includes(`"calls":${JSON.stringify(expectedCalls)}`),
+    true,
+  );
 });
 
 await test("new rule choices distinguish safe, unsafe, and opaque evidence", () => {

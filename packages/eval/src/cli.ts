@@ -5,6 +5,7 @@ import {
   hasEvalFailures,
   parseEvalFixtures,
   runEvaluation,
+  validateEvalCorpus,
   type EvalFixture,
   type EvalRunReport,
 } from "@scruple/eval";
@@ -25,6 +26,7 @@ try {
       await readFile(new URL("../../../tests/eval-fixtures.json", import.meta.url), "utf8"),
     );
     const fixtures = parseEvalFixtures(rawFixtures);
+    validateEvalCorpus(fixtures, oxcParser(), plugins);
     const runs = (
       await Promise.all(options.specs.map((spec) => runSpec(spec, options.repetitions, fixtures)))
     ).flat();

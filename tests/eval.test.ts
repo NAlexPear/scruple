@@ -3,22 +3,23 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import type {
+  ChoiceAnswer,
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
   ScruplePlugin,
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
-import { hasEvalFailures, parseEvalFixtures, runEvaluation, type EvalFixture } from "@scruple/eval";
+import {
+  hasEvalFailures,
+  parseEvalFixtures,
+  runEvaluation,
+  validateEvalCorpus,
+  type EvalFixture,
+} from "@scruple/eval";
 import { parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
-
-const candidateCountMatches = (fixture: EvalFixture, actual: number): boolean => {
-  return fixture.expectedCandidates === undefined
-    ? actual > 0
-    : actual === fixture.expectedCandidates;
-};
 
 await test("evaluation options pair providers and models by position", () => {
   assert.deepEqual(
@@ -49,7 +50,7 @@ await test("evaluation options pair providers and models by position", () => {
   );
 });
 
-await test("evaluation corpus has unique, reachable positive and negative cases", async () => {
+await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {
   const raw: unknown = JSON.parse(
     await readFile(new URL("./eval-fixtures.json", import.meta.url), "utf8"),
   );
@@ -57,31 +58,24 @@ await test("evaluation corpus has unique, reachable positive and negative cases"
   const plugins = evaluationPlugins();
   const parser = oxcParser();
 
-  for (const fixture of fixtures) {
-    const separator = fixture.ruleId.indexOf("/");
-    assert.notEqual(separator, -1, `${fixture.ruleId} must have a plugin namespace`);
-    const namespace = fixture.ruleId.slice(0, separator);
-    const ruleName = fixture.ruleId.slice(separator + 1);
-    const factory = plugins[namespace]?.rules[ruleName];
-    assert.ok(factory, `${fixture.ruleId} must be registered`);
-    const ruleFixtures = fixtures.filter((candidate) => candidate.ruleId === fixture.ruleId);
-    assert.deepEqual(
-      new Set(ruleFixtures.map((candidate) => candidate.expectedFinding)),
-      new Set([true, false]),
-      `${fixture.ruleId} must have both positive and negative cases`,
-    );
-    const rule = factory();
-    assert.ok("collect" in rule, `${fixture.ruleId} must be a semantic rule`);
-    const candidates = rule.collect(parser.parse(fixture.filename, fixture.source));
-    assert.equal(
-      candidateCountMatches(fixture, candidates.length),
-      true,
-      `${fixture.id} candidate count for ${fixture.ruleId}`,
+  assert.doesNotThrow(() => {
+    validateEvalCorpus(fixtures, parser, plugins);
+  });
+  for (const ruleId of [
+    "api-contracts/no-ignored-significant-results",
+    "async/no-unobserved-async-work",
+    "async/no-async-initialization",
+    "errors/no-useless-catch-boundaries",
+    "tests/no-nondeterministic-tests",
+  ]) {
+    assert.ok(
+      fixtures.some((fixture) => fixture.ruleId === ruleId),
+      `${ruleId} must be covered`,
     );
   }
 });
 
-await test("evaluation fixtures accept optional candidate, exact-choice, and abstention expectations", () => {
+await test("evaluation fixtures require candidate, exact-choice, and abstention expectations", () => {
   const [fixture] = parseEvalFixtures([
     {
       id: "ambiguous",
@@ -97,7 +91,7 @@ await test("evaluation fixtures accept optional candidate, exact-choice, and abs
     },
   ]);
 
-  assert.equal(fixture?.expectedChoice, "insufficient_context");
+  assert.deepEqual(fixture?.expectedChoices, ["insufficient_context"]);
   assert.equal(fixture?.expectedAbstention, true);
   assert.equal(fixture?.expectedCandidates, 1);
   assert.throws(
@@ -109,6 +103,7 @@ await test("evaluation fixtures accept optional candidate, exact-choice, and abs
           source: "function fixture() {}",
           rule_id: "test/choice-rule",
           expected_finding: false,
+          expected_candidates: 1,
           expected_choice: false,
           rationale: "Invalid fixture.",
           tags: ["invalid"],
@@ -125,6 +120,8 @@ await test("evaluation fixtures accept optional candidate, exact-choice, and abs
           source: "function fixture() {}",
           rule_id: "test/choice-rule",
           expected_finding: false,
+          expected_candidates: 1,
+          expected_choice: "safe",
           expected_abstention: "yes",
           rationale: "Invalid fixture.",
           tags: ["invalid"],
@@ -163,12 +160,16 @@ const makeTestPlugin = (): ScruplePlugin => {
                 {
                   target,
                   state: { source: target.source },
-                  question: { type: "noul", instructions: "Is this bad?" },
+                  question: {
+                    type: "choice",
+                    instructions: "Is this bad?",
+                    criteria: { bad: "Bad fixture", good: "Good fixture" },
+                  },
                 },
               ];
         },
         diagnose(answer, candidate) {
-          return answer.type === "noul" && answer.noul > 0.5
+          return answer.type === "choice" && answer.choice === "bad"
             ? {
                 message: "Bad fixture",
                 filename: candidate.target.filename,
@@ -188,7 +189,8 @@ const makeScoringProvider = (): DecisionProvider => {
       const source = JSON.stringify(request.state);
       const answers: Record<string, DecisionAnswer> = {};
       for (const id of Object.keys(request.questions)) {
-        answers[id] = { type: "noul", noul: source.includes("bad") ? 0.9 : 0.1 };
+        const choice = source.includes("bad") ? "bad" : "good";
+        answers[id] = { type: "choice", choice, confidence: 1, probabilities: { [choice]: 1 } };
       }
       return Promise.resolve({
         model: "resolved-model",
@@ -225,7 +227,10 @@ const makeChoicePlugin = (): ScruplePlugin => {
               ];
         },
         diagnose(answer, candidate) {
-          return answer.type === "choice" && answer.choice === "finding"
+          return answer.type === "choice" &&
+            answer.choice === "finding" &&
+            (answer.probabilities["finding"] ?? 0) >= 0.9 &&
+            answer.confidence >= 0.7
             ? {
                 message: "Choice finding",
                 filename: candidate.target.filename,
@@ -263,6 +268,8 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
       source: "function bad() { return 1; }",
       ruleId: "test/bad-rule",
       expectedFinding: true,
+      expectedCandidates: 1,
+      expectedChoices: ["bad"],
       rationale: "The fixture provider identifies the bad function.",
       tags: ["positive"],
     },
@@ -272,6 +279,8 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
       source: "function good() { return 1; }",
       ruleId: "test/bad-rule",
       expectedFinding: false,
+      expectedCandidates: 1,
+      expectedChoices: ["good"],
       rationale: "The fixture provider does not identify the good function.",
       tags: ["negative"],
     },
@@ -304,6 +313,8 @@ await test("evaluation runner distinguishes exact safe decisions from abstention
     source: "function choice() { return 1; }",
     ruleId: "test/choice-rule",
     expectedFinding: false,
+    expectedCandidates: 1,
+    expectedChoices: ["safe"],
     rationale: "Exercise exact decision scoring.",
     tags: ["choice"],
   };
@@ -317,7 +328,7 @@ await test("evaluation runner distinguishes exact safe decisions from abstention
 
   const abstention = await runEvaluation({
     ...options,
-    fixtures: [{ ...base, expectedChoice: "insufficient_context", expectedAbstention: true }],
+    fixtures: [{ ...base, expectedChoices: ["insufficient_context"], expectedAbstention: true }],
     provider: choiceProvider("insufficient_context"),
   });
   assert.equal(abstention.summary.passed, 1);
@@ -326,7 +337,7 @@ await test("evaluation runner distinguishes exact safe decisions from abstention
 
   const wrongSafeChoice = await runEvaluation({
     ...options,
-    fixtures: [{ ...base, expectedChoice: "safe", expectedAbstention: false }],
+    fixtures: [{ ...base, expectedChoices: ["safe"], expectedAbstention: false }],
     provider: choiceProvider("insufficient_context"),
   });
   assert.equal(wrongSafeChoice.summary.failed, 1);
@@ -343,6 +354,7 @@ await test("evaluation runner scores deterministic candidate selection", async (
         ruleId: "test/bad-rule",
         expectedFinding: false,
         expectedCandidates: 1,
+        expectedChoices: ["good"],
         rationale: "Exercise selector scoring independently of provider output.",
         tags: ["selector"],
       },
@@ -357,4 +369,180 @@ await test("evaluation runner scores deterministic candidate selection", async (
 
   assert.equal(report.cases[0]?.actualCandidates, 0);
   assert.equal(report.summary.failed, 1);
+});
+
+await test("evaluation rejects a below-threshold finding choice for a safe fixture", async () => {
+  const provider: DecisionProvider = {
+    id: "below-threshold",
+    evaluate(request): Promise<DecisionResponse> {
+      return Promise.resolve({
+        model: "below-threshold",
+        answers: Object.fromEntries(
+          Object.keys(request.questions).map((id) => [
+            id,
+            {
+              type: "choice",
+              choice: "finding",
+              confidence: 1,
+              probabilities: { finding: 0.5, safe: 0.5 },
+            } satisfies ChoiceAnswer,
+          ]),
+        ),
+      });
+    },
+  };
+  const report = await runEvaluation({
+    fixtures: [
+      {
+        id: "safe-but-wrong-choice",
+        filename: "safe.ts",
+        source: "function safe() {}",
+        ruleId: "test/choice-rule",
+        expectedFinding: false,
+        expectedCandidates: 1,
+        expectedChoices: ["safe"],
+        rationale: "A below-threshold finding must not pass as a safe answer.",
+        tags: ["negative"],
+      },
+    ],
+    parser: oxcParser(),
+    plugins: { test: makeChoicePlugin() },
+    provider,
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.equal(report.cases[0]?.actualFinding, false);
+  assert.deepEqual(report.cases[0]?.actualChoices, ["finding"]);
+  assert.equal(report.summary.failed, 1);
+});
+
+await test("corpus validation rejects duplicate candidates", () => {
+  const choiceFactory = makeChoicePlugin().rules["choice-rule"];
+  assert.ok(choiceFactory);
+  const baseRule = choiceFactory();
+  const duplicatePlugin = definePlugin({
+    rules: {
+      duplicate: () => ({
+        ...baseRule,
+        collect(document: Parameters<typeof baseRule.collect>[0]) {
+          const [candidate] = baseRule.collect(document);
+          assert.ok(candidate);
+          return [candidate, candidate];
+        },
+      }),
+    },
+  });
+  const duplicateFixtures: EvalFixture[] = [
+    {
+      id: "duplicate-positive",
+      filename: "duplicate.ts",
+      source: "function duplicate() {}",
+      ruleId: "test/duplicate",
+      expectedFinding: true,
+      expectedCandidates: 2,
+      expectedChoices: ["finding", "finding"],
+      rationale: "Exercise duplicate candidate rejection.",
+      tags: ["positive"],
+    },
+    {
+      id: "duplicate-safe",
+      filename: "duplicate.ts",
+      source: "function duplicate() {}",
+      ruleId: "test/duplicate",
+      expectedFinding: false,
+      expectedCandidates: 2,
+      expectedChoices: ["safe", "safe"],
+      rationale: "Exercise duplicate candidate rejection.",
+      tags: ["negative"],
+    },
+  ];
+  assert.throws(() => {
+    validateEvalCorpus(duplicateFixtures, oxcParser(), { test: duplicatePlugin });
+  }, /duplicate candidate/u);
+});
+
+await test("corpus validation rejects uncovered registered rules", () => {
+  const choiceFactory = makeChoicePlugin().rules["choice-rule"];
+  assert.ok(choiceFactory);
+  const uncoveredPlugin = definePlugin({
+    rules: {
+      "choice-rule": choiceFactory,
+      uncovered: choiceFactory,
+    },
+  });
+  const coveredFixtures: EvalFixture[] = [
+    {
+      id: "covered-positive",
+      filename: "covered.ts",
+      source: "function covered() {}",
+      ruleId: "test/choice-rule",
+      expectedFinding: true,
+      expectedCandidates: 1,
+      expectedChoices: ["finding"],
+      rationale: "Only one registered rule is represented.",
+      tags: ["positive"],
+    },
+    {
+      id: "covered-safe",
+      filename: "covered.ts",
+      source: "function covered() {}",
+      ruleId: "test/choice-rule",
+      expectedFinding: false,
+      expectedCandidates: 1,
+      expectedChoices: ["safe"],
+      rationale: "Only one registered rule is represented.",
+      tags: ["negative"],
+    },
+  ];
+  assert.throws(() => {
+    validateEvalCorpus(coveredFixtures, oxcParser(), { test: uncoveredPlugin });
+  }, /no evaluation fixtures: test\/uncovered/u);
+});
+
+await test("evaluation keeps missing and unexpected provider answer IDs visible", async () => {
+  const provider: DecisionProvider = {
+    id: "extra-answer",
+    evaluate(): Promise<DecisionResponse> {
+      const answer: ChoiceAnswer = {
+        type: "choice",
+        choice: "safe",
+        confidence: 1,
+        probabilities: { safe: 1 },
+      };
+      return Promise.resolve({
+        model: "extra-answer",
+        answers: { unexpected: answer },
+      });
+    },
+  };
+  const report = await runEvaluation({
+    fixtures: [
+      {
+        id: "extra-answer",
+        filename: "safe.ts",
+        source: "function safe() {}",
+        ruleId: "test/choice-rule",
+        expectedFinding: false,
+        expectedCandidates: 1,
+        expectedChoices: ["safe"],
+        rationale: "Unexpected answer IDs are provider failures.",
+        tags: ["provider"],
+      },
+    ],
+    parser: oxcParser(),
+    plugins: { test: makeChoicePlugin() },
+    provider,
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.equal(report.summary.failed, 1);
+  const [result] = report.cases;
+  assert.ok(result);
+  const [error] = result.errors;
+  assert.ok(error !== undefined);
+  assert.match(error, /missing: test_choice-rule_0; unexpected: unexpected/u);
 });

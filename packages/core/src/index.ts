@@ -52,6 +52,12 @@ export interface StructuredArgumentFact {
   source: string;
   /** Identifier and static member paths referenced by this argument. */
   references: string[];
+  /** Static top-level keys when this argument is an object literal. */
+  properties?: string[];
+  /** The value when this argument is a primitive literal. */
+  value?: string | number | boolean | null;
+  /** Bound names for each parameter when this argument is an inline function. */
+  bindings?: string[][];
 }
 
 export type ControlRegionKind = "callback" | "catch" | "conditional" | "finally" | "loop";
@@ -63,6 +69,10 @@ export interface ControlRegionFact {
   callee?: string;
   /** Present for loop regions so selectors can distinguish retry loops from collection iteration. */
   loop?: "do-while" | "for" | "for-in" | "for-of" | "while";
+  /** Bound iteration names for for-in and for-of loops. */
+  bindings?: string[];
+  /** Present for for-of loops. */
+  awaited?: boolean;
 }
 
 export interface StructuredDeclarationFact {
@@ -83,6 +93,25 @@ export interface StructuredCallFact {
   control: ControlRegionFact[];
 }
 
+export interface StructuredConstructorFact {
+  range: SourceRange;
+  source: string;
+  callee?: string;
+  arguments: StructuredArgumentFact[];
+  /** Identifier and static member paths referenced by all arguments. */
+  references: string[];
+  usage: StructuredCallFact["usage"];
+  control: ControlRegionFact[];
+}
+
+export interface StructuredAliasFact {
+  range: SourceRange;
+  source: string;
+  binding: string;
+  /** A statically named identifier or member path assigned to the binding. */
+  target: string;
+}
+
 export interface MemberAccessFact {
   path: string;
   range: SourceRange;
@@ -90,12 +119,16 @@ export interface MemberAccessFact {
 }
 
 export interface StructuredFacts {
+  aliases: StructuredAliasFact[];
   calls: StructuredCallFact[];
+  constructors: StructuredConstructorFact[];
   controls: ControlRegionFact[];
   declarations: StructuredDeclarationFact[];
   members: MemberAccessFact[];
   completeness: {
+    aliases: "complete";
     calls: "complete";
+    constructors: "complete";
     control: "complete";
     declarations: "complete";
     members: "complete" | "partial";

@@ -6,7 +6,10 @@ Semantic rules for function-local resource lifecycles and retry bounds, packaged
 pnpm add --save-dev @scruple/resources
 ```
 
-The rules only evaluate functions with explicit lifecycle or retry evidence. They abstain when cleanup ownership, retry policy, or time bounds depend on contracts outside the available function and imports.
+The rules only evaluate bounded functions with explicit lifecycle or retry evidence, including recognized
+constructor-created resources and qualified scoped helpers. Retry-loop selection distinguishes ordinary
+collection processing from retry-shaped `for...of` and `for await...of` loops. Rules abstain when cleanup
+ownership, retry policy, or time bounds depend on contracts outside the available function and imports.
 
 - `no-leaked-resources`
 - `require-cleanup-on-failure`

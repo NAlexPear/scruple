@@ -60,12 +60,13 @@ const noUnobservedAsyncWork = (options: AsyncRuleOptions = {}): SemanticRule => 
     select: (document) =>
       document.facts?.calls.filter(
         (call) =>
-          call.usage === "expression" &&
+          (call.usage === "expression" ||
+            (call.usage === "assignment" && isDeadPromiseAssignment(call, document))) &&
           call.callee !== undefined &&
           asyncLookingCallee.test(call.callee),
       ) ?? [],
     instructions:
-      "Does this bare call start asynchronous work whose completion or failure is not observed? Diagnose only when the visible API contract or strong convention establishes that the call returns async work. Intentional detached work must visibly own error reporting and lifetime. Choose insufficient_context when return behavior or ownership is unknown.",
+      "Does this call start asynchronous work whose completion or failure is not observed? The selected result is either discarded immediately or assigned to a local identifier with no later visible use. Diagnose only when the visible API contract or strong convention establishes that the call returns async work. Intentional detached work must visibly own error reporting and lifetime. Choose insufficient_context when return behavior or ownership is unknown.",
     criteria: {
       unobserved_async_work:
         "The call visibly starts asynchronous work, but its promise, completion, and failure are discarded.",
@@ -221,16 +222,16 @@ const requireAbortListenerCleanup = (options: AsyncRuleOptions = {}): SemanticRu
     description: "Abort listeners should not outlive the operation that registered them.",
     select: (document) =>
       selectFunctions(document, resolved, (fn) =>
-        /\bAbortSignal\b/u.test(fn.source) ? fn.calls.filter(isAbortListenerCall) : [],
+        fn.calls.filter((call) => isAbortListenerCall(call, abortSignalParameters(fn))),
       ),
     question: {
       instructions:
-        "Can an abort listener registered by this function remain attached after the operation that owns the listener finishes? Diagnose only when the signal is visibly caller-owned or longer-lived and there is no `{ once: true }`, explicit remove/dispose, finally cleanup, or other visible lifetime bound. `{ once: true }` removes the listener when abort fires; explicit settled-path cleanup is stronger when the operation may finish without abort. Do not infer leaks for operation-owned signals or hidden ownership. Choose `insufficient_context` when signal lifetime, listener identity, operation completion, or cleanup is outside this function.",
+        "Can an abort listener registered on a visible AbortSignal parameter remain attached after the operation that owns the listener finishes? `{ once: true }` only removes the listener if abort occurs, so it is not operation-completion cleanup when the operation may finish normally. Explicit remove/dispose or finally cleanup tied to every settled path is sufficient. Do not infer leaks for visibly operation-owned signals or hidden ownership. Choose `insufficient_context` when signal lifetime, listener identity, operation completion, or cleanup is outside this function.",
       criteria: {
         abort_listener_may_leak:
-          "A listener is attached to a visibly longer-lived signal without once-only registration or cleanup tied to operation completion.",
+          "A listener is attached to a caller-owned AbortSignal parameter without cleanup tied to operation completion; once-only registration alone does not cover normal completion.",
         listener_cleanup_present:
-          "The listener is once-only, explicitly removed or disposed, or cleanup is visibly guaranteed when the operation finishes.",
+          "The listener is explicitly removed or disposed, or cleanup is visibly guaranteed whenever the operation finishes.",
         bounded_or_operation_owned:
           "The signal and listener share a visibly bounded operation lifetime, so the listener cannot outlive its owner.",
         insufficient_context:
@@ -327,33 +328,55 @@ const callChoiceRule = (
 ): SemanticRule => ({
   description: definition.description,
   collect(document) {
-    return definition.select(document).map((call) => ({
-      target: {
-        kind: "expression" as const,
-        filename: document.filename,
-        language: document.language,
-        range: call.range,
-        location: sourceLocation(document.source, call.range),
-        source: call.source,
-      },
-      state: {
-        language: document.language,
-        imports: document.imports,
-        call: { callee: call.callee ?? null, source: call.source, usage: call.usage },
-        surrounding_function:
-          document.functions.find(
-            (fn) => fn.range.start <= call.range.start && fn.range.end >= call.range.end,
-          )?.source ?? null,
-        evidence_scope:
-          "The call expression, its syntactic usage, imports, and enclosing function are shown; unresolved callee contracts are not evidence.",
-      },
-      data: { usage: call.usage },
-      question: {
-        type: "choice" as const,
-        instructions: definition.instructions,
-        criteria: definition.criteria,
-      },
-    }));
+    const imports = boundedImports(document.imports, options.maxImportCharacters);
+    return definition.select(document).flatMap((call) => {
+      const enclosingFunction = smallestEnclosingFunction(call.range, document.functions);
+      if (
+        enclosingFunction !== undefined &&
+        (enclosingFunction.source.length === 0 ||
+          enclosingFunction.source.length > options.maxFunctionCharacters)
+      ) {
+        return [];
+      }
+      const calls = (enclosingFunction?.calls ?? [])
+        .toSorted((left, right) => left.range.start - right.range.start)
+        .slice(0, options.maxCallSites);
+      return [
+        {
+          target: {
+            kind: "expression" as const,
+            filename: document.filename,
+            language: document.language,
+            range: call.range,
+            location: sourceLocation(document.source, call.range),
+            source: call.source,
+          },
+          state: {
+            language: document.language,
+            imports: imports.values,
+            imports_truncated: imports.truncated,
+            call: { callee: call.callee ?? null, source: call.source, usage: call.usage },
+            surrounding_function: enclosingFunction?.source ?? null,
+            calls: calls.map((entry) => ({ callee: entry.callee, source: entry.source })),
+            calls_truncated: calls.length < (enclosingFunction?.calls.length ?? 0),
+            evidence_scope:
+              "The call expression, its syntactic usage, bounded imports, enclosing function, and bounded calls are shown; unresolved callee contracts are not evidence.",
+          },
+          data: {
+            usage: call.usage,
+            total_imports: document.imports.length,
+            total_calls: enclosingFunction?.calls.length ?? 0,
+            imports_truncated: imports.truncated,
+            calls_truncated: calls.length < (enclosingFunction?.calls.length ?? 0),
+          },
+          question: {
+            type: "choice" as const,
+            instructions: definition.instructions,
+            criteria: definition.criteria,
+          },
+        },
+      ];
+    });
   },
   diagnose(answer, candidate) {
     if (!isFinding(answer, definition.finding, options.threshold, options.minConfidence)) {
@@ -434,6 +457,33 @@ const structuredCallFact = (
   );
 };
 
+const smallestEnclosingFunction = (
+  range: { start: number; end: number },
+  functions: readonly FunctionTarget[],
+): FunctionTarget | undefined => {
+  return functions
+    .filter((fn) => fn.range.start <= range.start && fn.range.end >= range.end)
+    .toSorted(
+      (left, right) => left.range.end - left.range.start - (right.range.end - right.range.start),
+    )[0];
+};
+
+const isDeadPromiseAssignment = (call: StructuredCallFact, document: ParsedDocument): boolean => {
+  const fn = smallestEnclosingFunction(call.range, document.functions);
+  if (fn === undefined) {
+    return false;
+  }
+  const prefix = document.source.slice(fn.range.start, call.range.start);
+  const binding = prefix.match(
+    /(?:\b(?:const|let|var)\s+|(?:^|[;{}]\s*))([A-Za-z_$][\w$]*)\s*(?::[^=;]+)?=\s*$/u,
+  )?.[1];
+  if (binding === undefined) {
+    return false;
+  }
+  const suffix = document.source.slice(call.range.end, fn.range.end);
+  return !new RegExp(`\\b${escapeRegExp(binding)}\\b`, "u").test(suffix);
+};
+
 const nativePromiseCalls = (
   fn: FunctionTarget,
   document: ParsedDocument,
@@ -465,11 +515,22 @@ const isCancellablePlatformCall = (
   );
 };
 
-const isAbortListenerCall = (call: CallCapture): boolean => {
-  if (!/(?:^|\.)(?:signal|abortSignal)\.addEventListener$/iu.test(call.callee)) {
+const isAbortListenerCall = (call: CallCapture, signals: ReadonlySet<string>): boolean => {
+  const receiver = call.callee.match(/^([A-Za-z_$][\w$]*)\.addEventListener$/u)?.[1];
+  if (receiver === undefined || !signals.has(receiver)) {
     return false;
   }
   return /\.addEventListener\s*\(\s*["']abort["']/u.test(call.source);
+};
+
+const abortSignalParameters = (fn: FunctionTarget): ReadonlySet<string> => {
+  const signatureEnd = fn.source.search(/(?:=>|\{)/u);
+  const signature = signatureEnd < 0 ? fn.source : fn.source.slice(0, signatureEnd);
+  return new Set(
+    [...signature.matchAll(/\b([A-Za-z_$][\w$]*)\s*\??\s*:\s*AbortSignal\b/gu)].map(
+      (match) => match[1]!,
+    ),
+  );
 };
 
 const shadowsIdentifier = (source: string, identifier: string): boolean => {

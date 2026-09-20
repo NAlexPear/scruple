@@ -64,6 +64,34 @@ export function consume() {
   );
 });
 
+await test("ignored significant result evidence obeys the shared API bounds", () => {
+  const document = oxcParser().parse(
+    "contracts.ts",
+    `import { somethingVeryLong } from "./dependency.js";
+export function update() {
+  before();
+  repository.save(record);
+  after();
+}`,
+  );
+  const rule = apiContracts().rules["no-ignored-significant-results"]({
+    maxImportCharacters: 0,
+    maxCallSites: 1,
+  });
+  const candidate = rule.collect(document)[0];
+  assert.ok(candidate);
+  assert.match(
+    JSON.stringify(candidate.state),
+    /"imports":\[\],"imports_truncated":true[\s\S]*"calls":\[\{"callee":"before","source":"before\(\)"\}\],"calls_truncated":true/u,
+  );
+  assert.equal(
+    apiContracts()
+      .rules["no-ignored-significant-results"]({ maxFunctionCharacters: 20 })
+      .collect(document).length,
+    0,
+  );
+});
+
 await test("API contract rules select a deterministic bounded subset", () => {
   const document = oxcParser().parse(
     "contracts.ts",
@@ -182,6 +210,13 @@ await test("API contract rules abstain unless the configured decision margin is 
     null,
   );
   assert.ok(failureRule.diagnose(answer("ambiguous_failure_contract", 0.8, 0.7), candidate));
+});
+
+await test("API contract rules reject invalid evidence budgets", () => {
+  const factory = apiContracts().rules["no-ignored-significant-results"];
+  assert.throws(() => factory({ maxFunctionCharacters: 0 }), /maxFunctionCharacters/u);
+  assert.throws(() => factory({ maxImportCharacters: -1 }), /maxImportCharacters/u);
+  assert.throws(() => factory({ maxCallSites: 1.5 }), /maxCallSites/u);
 });
 
 await test("each API contract rule emits only its stable diagnostic", () => {

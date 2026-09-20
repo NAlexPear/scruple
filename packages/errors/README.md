@@ -8,4 +8,5 @@ pnpm add --save-dev @scruple/errors
 
 The rules evaluate normalized catch handlers for swallowed failures, lossy replacement errors, and
 dispatch based on unstable error messages. They abstain when recovery contracts, custom wrappers, or
-classifiers depend on code outside the bounded evidence.
+classifiers depend on code outside the bounded evidence. Redundant rethrow boundaries are selected
+from normalized exits, so comments and formatting do not hide an otherwise direct rethrow.

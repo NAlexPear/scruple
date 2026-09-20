@@ -7,7 +7,7 @@ interface SuppressionComment {
 
 interface SuppressionTarget {
   filename: string;
-  range: { start: number };
+  range: { start: number; end: number };
   location: { start: { line: number } };
 }
 
@@ -16,6 +16,7 @@ type SuppressionCommand = "disable" | "enable" | "disable-line" | "disable-next-
 interface SuppressionDirective {
   command: SuppressionCommand;
   rules?: ReadonlySet<string>;
+  sourceRange: { start: number; end: number };
   offset: number;
   line: number;
 }
@@ -46,7 +47,10 @@ export const createSuppressionFilter = (
     const targetLine = target.location.start.line;
     if (
       lineDirectives.some(
-        (directive) => directive.line === targetLine && appliesToRule(directive, ruleId),
+        (directive) =>
+          !isTargetDirective(directive, target) &&
+          directive.line === targetLine &&
+          appliesToRule(directive, ruleId),
       )
     ) {
       return true;
@@ -96,9 +100,17 @@ const parseDirective = (comment: SuppressionComment): SuppressionDirective | und
   return {
     command,
     ...(rules === undefined ? {} : { rules }),
+    sourceRange: comment.range,
     offset: comment.range.end,
     line,
   };
+};
+
+const isTargetDirective = (directive: SuppressionDirective, target: SuppressionTarget): boolean => {
+  return (
+    directive.sourceRange.start === target.range.start &&
+    directive.sourceRange.end === target.range.end
+  );
 };
 
 const appliesToRule = (directive: SuppressionDirective, ruleId: string): boolean => {

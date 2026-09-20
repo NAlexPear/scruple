@@ -9,7 +9,18 @@ import type {
 } from "@scruple/core";
 import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export type NoVacuousTestsOptions = DecisionRuleOptions;
+export interface NoVacuousTestsOptions extends DecisionRuleOptions {
+  /** Test callbacks larger than this are skipped rather than partially evaluated. */
+  maxFunctionCharacters?: number;
+  /** Maximum total import-source characters included in evidence. */
+  maxImportCharacters?: number;
+  /** Maximum direct test call sites included in evidence. */
+  maxCallSites?: number;
+  /** Maximum number of uniquely resolved local helpers included in evidence. */
+  maxHelperFunctions?: number;
+  /** Maximum total source characters included for local helpers. */
+  maxHelperCharacters?: number;
+}
 
 export interface RequireSpecificErrorAssertionsOptions extends NoVacuousTestsOptions {
   assertionCallPatterns?: RegExp[];
@@ -53,12 +64,14 @@ const nondeterministicCallees = new Set([
 ]);
 
 const noNondeterministicTests = (options: NoVacuousTestsOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options);
+  const resolved = resolveOptions(options);
   return testChoiceRule({
     description: "Tests should control nondeterministic inputs.",
     select: (document) =>
-      testFunctions(document).filter((fn) =>
-        fn.calls.some((call) => nondeterministicCallees.has(call.callee)),
+      testFunctions(document, resolved).filter((fn) =>
+        callsInTestAndHelpers(fn, document, resolved).some((call) =>
+          nondeterministicCallees.has(call.callee),
+        ),
       ),
     instructions:
       "Does this test depend on uncontrolled randomness or wall-clock time in a way that can change its outcome? Fake clocks, seeded or mocked randomness, and visible deterministic injection are controlled. Tests intentionally checking statistical or nondeterministic properties may be valid when their oracle is robust. Choose insufficient_context when control is hidden in helpers or framework setup.",
@@ -73,18 +86,17 @@ const noNondeterministicTests = (options: NoVacuousTestsOptions = {}): SemanticR
         "The evidence does not establish whether the nondeterministic source is controlled elsewhere.",
     },
     finding: "uncontrolled_nondeterminism",
-    threshold,
-    minConfidence,
+    options: resolved,
     message: "Control randomness or time so this test is deterministic.",
   });
 };
 
 const noVacuousTests = (options: NoVacuousTestsOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options);
+  const resolved = resolveOptions(options);
 
   return testChoiceRule({
     description: "Tests should verify meaningful behavior.",
-    select: testFunctions,
+    select: (document) => testFunctions(document, resolved),
     instructions:
       "Does this test contain an effective oracle that can fail when the behavior it claims to test is wrong? Use the title, invocation, imports, calls, and provided local helper bodies together. Count assertions, expected failures, snapshots, and interaction checks that are causally connected to the claimed behavior. Also allow an assertion-free smoke or completion oracle only when the title and body clearly establish that successful completion, loading, or absence of a crash is itself the intended contract. Merely arranging or executing code does not prove a more specific claimed result. For parameterized tests, judge whether each generated case checks its inputs. A skipped or focused modifier does not decide vacuity. If an unfamiliar imported helper might verify behavior but its implementation is unavailable, abstain rather than guessing.",
     criteria: {
@@ -98,8 +110,7 @@ const noVacuousTests = (options: NoVacuousTestsOptions = {}): SemanticRule => {
         "Missing helper semantics or other unavailable context prevents determining whether an apparent check verifies behavior.",
     },
     finding: "vacuous",
-    threshold,
-    minConfidence,
+    options: resolved,
     message: "This test appears to have no effective verification of behavior.",
   });
 };
@@ -107,12 +118,12 @@ const noVacuousTests = (options: NoVacuousTestsOptions = {}): SemanticRule => {
 const requireSpecificErrorAssertions = (
   options: RequireSpecificErrorAssertionsOptions = {},
 ): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options);
+  const resolved = resolveOptions(options);
   const patterns = options.assertionCallPatterns ?? defaultErrorAssertionCallPatterns;
   return testChoiceRule({
     description: "Error assertions should distinguish the failure promised by the test.",
     select: (document) =>
-      testFunctions(document).filter((fn) =>
+      testFunctions(document, resolved).filter((fn) =>
         fn.calls.some((call) => matchesAny(call.callee, patterns)),
       ),
     instructions:
@@ -128,8 +139,7 @@ const requireSpecificErrorAssertions = (
         "The available evidence does not establish the assertion helper's behavior or the stability of the failure contract.",
     },
     finding: "underspecified_error_oracle",
-    threshold,
-    minConfidence,
+    options: resolved,
     message: "Assert the expected error type or another stable failure property.",
   });
 };
@@ -137,14 +147,16 @@ const requireSpecificErrorAssertions = (
 const noFixedDelaySynchronization = (
   options: NoFixedDelaySynchronizationOptions = {},
 ): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options);
+  const resolved = resolveOptions(options);
   const patterns = options.delayCallPatterns ?? defaultDelayCallPatterns;
   return testChoiceRule({
     description: "Tests should wait for observable conditions instead of fixed delays.",
     select: (document) =>
-      testFunctions(document).filter(
+      testFunctions(document, resolved).filter(
         (fn) =>
-          fn.calls.some((call) => matchesAny(call.callee, patterns)) ||
+          callsInTestAndHelpers(fn, document, resolved).some((call) =>
+            matchesAny(call.callee, patterns),
+          ) ||
           (document.facts?.calls.some(
             (call) =>
               call.callee !== undefined &&
@@ -169,8 +181,7 @@ const noFixedDelaySynchronization = (
         "The available evidence does not establish whether an opaque helper sleeps or waits for a condition.",
     },
     finding: "fixed_delay_synchronization",
-    threshold,
-    minConfidence,
+    options: resolved,
     message: "Wait for an observable condition instead of using a fixed delay.",
   });
 };
@@ -181,8 +192,7 @@ interface TestChoiceRuleDefinition {
   instructions: JsonValue;
   criteria: Record<string, JsonValue>;
   finding: string;
-  threshold: number;
-  minConfidence: number;
+  options: ResolvedOptions;
   message: string;
 }
 
@@ -192,7 +202,7 @@ const testChoiceRule = (definition: TestChoiceRuleDefinition): SemanticRule => {
     collect(document) {
       return definition.select(document).map((fn) => ({
         target: fn,
-        state: functionState(fn, document),
+        state: functionState(fn, document, definition.options),
         question: {
           type: "choice",
           instructions: definition.instructions,
@@ -205,7 +215,10 @@ const testChoiceRule = (definition: TestChoiceRuleDefinition): SemanticRule => {
         return null;
       }
       const probability = answer.probabilities[definition.finding] ?? 0;
-      if (probability < definition.threshold || answer.confidence < definition.minConfidence) {
+      if (
+        probability < definition.options.threshold ||
+        answer.confidence < definition.options.minConfidence
+      ) {
         return null;
       }
       return {
@@ -219,25 +232,75 @@ const testChoiceRule = (definition: TestChoiceRuleDefinition): SemanticRule => {
   };
 };
 
-const testFunctions = (document: ParsedDocument): FunctionTarget[] => {
-  return document.functions.filter((fn) => fn.kind === "test");
+interface ResolvedOptions {
+  threshold: number;
+  minConfidence: number;
+  maxFunctionCharacters: number;
+  maxImportCharacters: number;
+  maxCallSites: number;
+  maxHelperFunctions: number;
+  maxHelperCharacters: number;
+}
+
+interface ResolvedHelpers {
+  helpers: FunctionTarget[];
+  ambiguousNames: string[];
+}
+
+const testFunctions = (document: ParsedDocument, options: ResolvedOptions): FunctionTarget[] => {
+  return document.functions.filter(
+    (fn) =>
+      fn.kind === "test" &&
+      fn.source.length > 0 &&
+      fn.source.length <= options.maxFunctionCharacters,
+  );
 };
 
-const functionState = (fn: FunctionTarget, document: ParsedDocument): JsonValue => {
+const functionState = (
+  fn: FunctionTarget,
+  document: ParsedDocument,
+  options: ResolvedOptions,
+): JsonValue => {
+  const imports = boundedStrings(document.imports, options.maxImportCharacters);
+  const resolved = resolveSupportingFunctions(fn, document);
+  const helpers = boundedHelpers(resolved.helpers, options);
+  const calls = fn.calls.slice(0, options.maxCallSites);
   return {
     language: document.language,
-    imports: document.imports,
+    imports: imports.values,
+    imports_truncated: imports.truncated,
     test: {
       name: fn.testName ?? null,
       invocation: fn.enclosingSource ?? fn.source,
       callback: fn.source,
-      calls: fn.calls.map((call) => call.callee),
+      calls: calls.map((call) => call.callee),
+      calls_truncated: calls.length < fn.calls.length,
     },
-    local_helpers: supportingFunctions(fn, document),
+    local_helpers: helpers.values.map((helper) => ({
+      name: helper.name ?? null,
+      source: helper.source,
+    })),
+    helpers_truncated: helpers.truncated,
+    ambiguous_helper_names: resolved.ambiguousNames,
+    evidence_scope:
+      "Bounded test-local evidence and uniquely resolvable visible helpers only; ambiguous or unavailable helper behavior is not inferred.",
   };
 };
 
-const supportingFunctions = (fn: FunctionTarget, document: ParsedDocument): JsonValue[] => {
+const callsInTestAndHelpers = (
+  fn: FunctionTarget,
+  document: ParsedDocument,
+  options: ResolvedOptions,
+): Array<{ callee: string }> => {
+  const resolved = resolveSupportingFunctions(fn, document);
+  const helpers = boundedHelpers(resolved.helpers, options);
+  return [...fn.calls, ...helpers.values.flatMap((helper) => helper.calls)];
+};
+
+const resolveSupportingFunctions = (
+  fn: FunctionTarget,
+  document: ParsedDocument,
+): ResolvedHelpers => {
   const functionsByName = new Map<string, FunctionTarget[]>();
   for (const candidate of document.functions) {
     if (candidate.kind !== "function" || candidate.name === undefined) {
@@ -248,26 +311,147 @@ const supportingFunctions = (fn: FunctionTarget, document: ParsedDocument): Json
     functionsByName.set(candidate.name, matches);
   }
 
-  const pending = fn.calls.map((call) => call.callee);
+  const pending: Array<{ name: string; caller: FunctionTarget }> = fn.calls.map((call) => ({
+    name: call.callee,
+    caller: fn,
+  }));
   const seen = new Set<string>();
-  const helpers: JsonValue[] = [];
-  for (const name of pending) {
-    if (seen.has(name)) {
+  const helpers: FunctionTarget[] = [];
+  const ambiguousNames = new Set<string>();
+  for (const entry of pending) {
+    const key = `${entry.caller.range.start}:${entry.name}`;
+    if (seen.has(key)) {
       continue;
     }
-    seen.add(name);
-    for (const helper of functionsByName.get(name) ?? []) {
-      helpers.push({ name, source: helper.source });
-      pending.push(...helper.calls.map((call) => call.callee));
+    seen.add(key);
+    const visible = (functionsByName.get(entry.name) ?? []).filter((candidate) =>
+      isPlausiblyVisible(candidate, entry.caller, document.functions),
+    );
+    if (visible.length !== 1) {
+      if (visible.length > 1) {
+        ambiguousNames.add(entry.name);
+      }
+      continue;
     }
+    const helper = visible[0]!;
+    if (!helpers.includes(helper)) {
+      helpers.push(helper);
+    }
+    pending.push(...helper.calls.map((call) => ({ name: call.callee, caller: helper })));
   }
-  return helpers;
+  return {
+    helpers,
+    ambiguousNames: [...ambiguousNames].toSorted(),
+  };
 };
 
-const decisionOptions = (
-  options: NoVacuousTestsOptions,
-): { threshold: number; minConfidence: number } => {
-  return resolveDecisionOptions(options, { threshold: 0.9, minConfidence: 0.7 });
+const isPlausiblyVisible = (
+  candidate: FunctionTarget,
+  caller: FunctionTarget,
+  functions: readonly FunctionTarget[],
+): boolean => {
+  if (candidate === caller || candidate.kind !== "function") {
+    return false;
+  }
+  if (candidate.range.start >= caller.range.start && candidate.range.end <= caller.range.end) {
+    return true;
+  }
+  return (
+    immediateContainingFunction(candidate, functions) ===
+    immediateContainingFunction(caller, functions)
+  );
+};
+
+const immediateContainingFunction = (
+  fn: FunctionTarget,
+  functions: readonly FunctionTarget[],
+): FunctionTarget | undefined => {
+  return functions
+    .filter(
+      (candidate) =>
+        candidate !== fn &&
+        candidate.range.start <= fn.range.start &&
+        candidate.range.end >= fn.range.end,
+    )
+    .toSorted(
+      (left, right) => left.range.end - left.range.start - (right.range.end - right.range.start),
+    )[0];
+};
+
+const boundedStrings = (
+  values: readonly string[],
+  maximumCharacters: number,
+): { values: string[]; truncated: boolean } => {
+  const bounded: string[] = [];
+  let characters = 0;
+  for (const value of values) {
+    const next = characters + (bounded.length === 0 ? 0 : 1) + value.length;
+    if (next > maximumCharacters) {
+      return { values: bounded, truncated: true };
+    }
+    bounded.push(value);
+    characters = next;
+  }
+  return { values: bounded, truncated: false };
+};
+
+const boundedHelpers = (
+  helpers: readonly FunctionTarget[],
+  options: ResolvedOptions,
+): { values: FunctionTarget[]; truncated: boolean } => {
+  const values: FunctionTarget[] = [];
+  let characters = 0;
+  for (const helper of helpers) {
+    if (
+      values.length >= options.maxHelperFunctions ||
+      characters + helper.source.length > options.maxHelperCharacters
+    ) {
+      return { values, truncated: true };
+    }
+    values.push(helper);
+    characters += helper.source.length;
+  }
+  return { values, truncated: false };
+};
+
+const resolveOptions = (options: NoVacuousTestsOptions): ResolvedOptions => {
+  const decision = resolveDecisionOptions(options, { threshold: 0.9, minConfidence: 0.7 });
+  return {
+    ...decision,
+    maxFunctionCharacters: integerOption(
+      "maxFunctionCharacters",
+      options.maxFunctionCharacters,
+      8_000,
+      1,
+    ),
+    maxImportCharacters: integerOption(
+      "maxImportCharacters",
+      options.maxImportCharacters,
+      2_000,
+      0,
+    ),
+    maxCallSites: integerOption("maxCallSites", options.maxCallSites, 50, 0),
+    maxHelperFunctions: integerOption("maxHelperFunctions", options.maxHelperFunctions, 10, 0),
+    maxHelperCharacters: integerOption(
+      "maxHelperCharacters",
+      options.maxHelperCharacters,
+      8_000,
+      0,
+    ),
+  };
+};
+
+const integerOption = (
+  name: string,
+  value: number | undefined,
+  fallback: number,
+  minimum: number,
+): number => {
+  const resolved = value ?? fallback;
+  if (!Number.isSafeInteger(resolved) || resolved < minimum) {
+    throw new RangeError(`${name} must be a safe integer greater than or equal to ${minimum}`);
+  }
+  return resolved;
 };
 
 const matchesAny = (value: string, patterns: RegExp[]): boolean => {

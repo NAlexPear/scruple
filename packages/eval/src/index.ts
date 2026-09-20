@@ -3,7 +3,9 @@ import type {
   DecisionProvider,
   DecisionResponse,
   PluginMap,
+  RuleCandidate,
   RuleConfiguration,
+  SemanticRule,
   SourceParser,
 } from "@scruple/core";
 import { runScruple } from "@scruple/core";
@@ -16,8 +18,8 @@ export interface EvalFixture {
   source: string;
   ruleId: string;
   expectedFinding: boolean;
-  expectedCandidates?: number;
-  expectedChoice?: string;
+  expectedCandidates: number;
+  expectedChoices: string[];
   expectedAbstention?: boolean;
   rationale: string;
   tags: string[];
@@ -28,9 +30,9 @@ export interface EvalCaseResult {
   ruleId: string;
   expectedFinding: boolean;
   actualFinding: boolean;
-  expectedCandidates?: number;
+  expectedCandidates: number;
   actualCandidates: number;
-  expectedChoice?: string;
+  expectedChoices: string[];
   actualChoices: string[];
   expectedAbstention?: boolean;
   actualAbstention: boolean;
@@ -80,23 +82,36 @@ export interface RunEvaluationOptions {
   repetition: number;
 }
 
+interface FixtureDefaults {
+  expectedCandidates?: number;
+  ruleChoices?: Record<string, { finding: string; safe: string }>;
+}
+
 export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
-  if (!Array.isArray(value)) {
-    throw new TypeError("Evaluation fixtures must be an array");
-  }
+  const { entries, defaults } = fixtureEntries(value);
   const ids = new Set<string>();
-  return value.map((entry, index) => {
+  const fixtures: EvalFixture[] = [];
+  entries.forEach((entry, index) => {
     if (!isRecord(entry)) {
       throw new Error(`Evaluation fixture ${index} must be an object`);
     }
+    const ruleId = requiredString(entry, "rule_id", index);
+    const expectedFinding = requiredBoolean(entry, "expected_finding", index);
+    const expectedCandidates = expectedCandidateCount(entry, defaults, index);
     const fixture: EvalFixture = {
       id: requiredString(entry, "id", index),
       filename: requiredString(entry, "filename", index),
       source: requiredString(entry, "source", index),
-      ruleId: requiredString(entry, "rule_id", index),
-      expectedFinding: requiredBoolean(entry, "expected_finding", index),
-      ...optionalExpectedCandidates(entry, index),
-      ...optionalExpectedChoice(entry, index),
+      ruleId,
+      expectedFinding,
+      expectedCandidates,
+      expectedChoices: expectedChoices(
+        entry,
+        defaults.ruleChoices?.[ruleId],
+        expectedFinding,
+        expectedCandidates,
+        index,
+      ),
       ...optionalExpectedAbstention(entry, index),
       rationale: requiredString(entry, "rationale", index),
       tags: requiredStrings(entry, "tags", index),
@@ -105,8 +120,69 @@ export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
       throw new Error(`Duplicate evaluation fixture ID: ${fixture.id}`);
     }
     ids.add(fixture.id);
-    return fixture;
+    fixtures.push(fixture);
   });
+  return fixtures;
+};
+
+export const validateEvalCorpus = (
+  fixtures: readonly EvalFixture[],
+  parser: SourceParser,
+  plugins: PluginMap,
+): void => {
+  const fixturesByRule = new Map<string, EvalFixture[]>();
+  for (const fixture of fixtures) {
+    const ruleFixtures = fixturesByRule.get(fixture.ruleId) ?? [];
+    ruleFixtures.push(fixture);
+    fixturesByRule.set(fixture.ruleId, ruleFixtures);
+  }
+  const registeredRules = new Map<string, SemanticRule>();
+  for (const [namespace, plugin] of Object.entries(plugins)) {
+    for (const [ruleName, factory] of Object.entries(plugin.rules)) {
+      registeredRules.set(`${namespace}/${ruleName}`, factory());
+    }
+  }
+
+  for (const ruleId of fixturesByRule.keys()) {
+    if (!registeredRules.has(ruleId)) {
+      throw new Error(`Evaluation fixture rule is not registered: ${ruleId}`);
+    }
+  }
+  for (const [ruleId, rule] of registeredRules) {
+    const ruleFixtures = fixturesByRule.get(ruleId) ?? [];
+    if (ruleFixtures.length === 0) {
+      throw new Error(`Registered semantic rule has no evaluation fixtures: ${ruleId}`);
+    }
+    const outcomes = new Set(ruleFixtures.map((fixture) => fixture.expectedFinding));
+    if (!outcomes.has(true) || !outcomes.has(false)) {
+      throw new Error(`Evaluation rule requires positive and safe fixtures: ${ruleId}`);
+    }
+    for (const fixture of ruleFixtures) {
+      const candidates = rule.collect(parser.parse(fixture.filename, fixture.source));
+      if (candidates.length !== fixture.expectedCandidates) {
+        throw new Error(
+          `${fixture.id} expected ${fixture.expectedCandidates} candidates for ${ruleId}, received ${candidates.length}`,
+        );
+      }
+      assertUniqueCandidates(fixture, candidates);
+      if (fixture.expectedChoices.length !== candidates.length) {
+        throw new Error(
+          `${fixture.id} expected_choices must contain one choice per candidate (${candidates.length})`,
+        );
+      }
+      candidates.forEach((candidate, index) => {
+        if (candidate.question.type !== "choice") {
+          throw new Error(`${fixture.id} candidate ${index} does not use a choice question`);
+        }
+        const expectedChoice = fixture.expectedChoices[index];
+        if (expectedChoice === undefined || !(expectedChoice in candidate.question.criteria)) {
+          throw new Error(
+            `${fixture.id} expected choice ${String(expectedChoice)} is not a criterion for candidate ${index}`,
+          );
+        }
+      });
+    }
+  }
 };
 
 export const runEvalCase = async (
@@ -126,7 +202,18 @@ export const runEvalCase = async (
       modelCalls += 1;
       const response = await provider.evaluate(request, signal);
       model = response.model;
-      answers.push(...Object.values(response.answers));
+      const expectedIds = Object.keys(request.questions);
+      const answerIds = Object.keys(response.answers);
+      const missingIds = expectedIds.filter((id) => !(id in response.answers));
+      const unexpectedIds = answerIds.filter((id) => !(id in request.questions));
+      if (missingIds.length > 0 || unexpectedIds.length > 0) {
+        const details = [
+          ...(missingIds.length === 0 ? [] : [`missing: ${missingIds.join(", ")}`]),
+          ...(unexpectedIds.length === 0 ? [] : [`unexpected: ${unexpectedIds.join(", ")}`]),
+        ];
+        throw new Error(`Provider answer IDs do not match request (${details.join("; ")})`);
+      }
+      answers.push(...expectedIds.map((id) => response.answers[id]!));
       return response;
     },
   };
@@ -150,10 +237,7 @@ export const runEvalCase = async (
   );
   const actualAbstention =
     actualChoices.length > 0 && actualChoices.every((choice) => choice === "insufficient_context");
-  const choiceAccepted =
-    fixture.expectedChoice === undefined ||
-    (actualChoices.length > 0 &&
-      actualChoices.every((choice) => choice === fixture.expectedChoice));
+  const choiceAccepted = arraysEqual(actualChoices, fixture.expectedChoices);
   const abstentionAccepted =
     fixture.expectedAbstention === undefined || fixture.expectedAbstention === actualAbstention;
   return {
@@ -161,11 +245,9 @@ export const runEvalCase = async (
     ruleId: fixture.ruleId,
     expectedFinding: fixture.expectedFinding,
     actualFinding,
-    ...(fixture.expectedCandidates === undefined
-      ? {}
-      : { expectedCandidates: fixture.expectedCandidates }),
+    expectedCandidates: fixture.expectedCandidates,
     actualCandidates,
-    ...(fixture.expectedChoice === undefined ? {} : { expectedChoice: fixture.expectedChoice }),
+    expectedChoices: fixture.expectedChoices,
     actualChoices,
     ...(fixture.expectedAbstention === undefined
       ? {}
@@ -174,8 +256,7 @@ export const runEvalCase = async (
     accepted:
       errors.length === 0 &&
       actualFinding === fixture.expectedFinding &&
-      (fixture.expectedCandidates === undefined ||
-        actualCandidates === fixture.expectedCandidates) &&
+      actualCandidates === fixture.expectedCandidates &&
       choiceAccepted &&
       abstentionAccepted,
     diagnostics: result.diagnostics.length,
@@ -248,7 +329,11 @@ const sum = (
   return results.reduce((total, result) => total + select(result), 0);
 };
 
-const requiredString = (value: Record<string, unknown>, key: string, index: number): string => {
+const requiredString = (
+  value: Record<string, unknown>,
+  key: string,
+  index: number | string,
+): string => {
   const entry = value[key];
   if (typeof entry !== "string" || entry.length === 0) {
     throw new Error(`Evaluation fixture ${index} requires a nonempty ${key}`);
@@ -264,32 +349,91 @@ const requiredBoolean = (value: Record<string, unknown>, key: string, index: num
   return entry;
 };
 
-const optionalExpectedChoice = (
-  value: Record<string, unknown>,
-  index: number,
-): { expectedChoice?: string } => {
-  const entry = value["expected_choice"];
-  if (entry === undefined) {
-    return {};
+const fixtureEntries = (value: unknown): { entries: unknown[]; defaults: FixtureDefaults } => {
+  if (Array.isArray(value)) {
+    return { entries: value, defaults: {} };
   }
-  if (typeof entry !== "string" || entry.length === 0) {
-    throw new TypeError(`Evaluation fixture ${index} requires a nonempty expected_choice`);
+  if (!isRecord(value) || !Array.isArray(value["fixtures"])) {
+    throw new TypeError("Evaluation fixtures must be an array or a corpus object");
   }
-  return { expectedChoice: entry };
+  const defaultCandidates = value["default_expected_candidates"];
+  if (
+    typeof defaultCandidates !== "number" ||
+    !Number.isSafeInteger(defaultCandidates) ||
+    defaultCandidates < 0
+  ) {
+    throw new TypeError("Evaluation corpus requires a nonnegative default_expected_candidates");
+  }
+  const rawRuleChoices = value["rule_choices"];
+  if (!isRecord(rawRuleChoices)) {
+    throw new TypeError("Evaluation corpus requires rule_choices");
+  }
+  const ruleChoices: Record<string, { finding: string; safe: string }> = {};
+  for (const [ruleId, choices] of Object.entries(rawRuleChoices)) {
+    if (!isRecord(choices)) {
+      throw new TypeError(`Evaluation rule choices for ${ruleId} must be an object`);
+    }
+    ruleChoices[ruleId] = {
+      finding: requiredString(choices, "finding", ruleId),
+      safe: requiredString(choices, "safe", ruleId),
+    };
+  }
+  return {
+    entries: value["fixtures"],
+    defaults: { expectedCandidates: defaultCandidates, ruleChoices },
+  };
 };
 
-const optionalExpectedCandidates = (
+const expectedChoices = (
   value: Record<string, unknown>,
+  defaults: { finding: string; safe: string } | undefined,
+  expectedFinding: boolean,
+  expectedCandidates: number,
   index: number,
-): { expectedCandidates?: number } => {
-  const entry = value["expected_candidates"];
-  if (entry === undefined) {
-    return {};
+): string[] => {
+  const entries = value["expected_choices"];
+  if (entries !== undefined) {
+    if (!Array.isArray(entries)) {
+      throw new TypeError(`Evaluation fixture ${index} requires string array expected_choices`);
+    }
+    const choices = entries.filter((entry): entry is string => typeof entry === "string");
+    if (choices.length !== entries.length || choices.some((choice) => choice.length === 0)) {
+      throw new TypeError(`Evaluation fixture ${index} requires string array expected_choices`);
+    }
+    return choices;
   }
+  const entry = value["expected_choice"];
+  if (entry !== undefined && (typeof entry !== "string" || entry.length === 0)) {
+    throw new TypeError(`Evaluation fixture ${index} requires a nonempty expected_choice`);
+  }
+  if (expectedCandidates === 0) {
+    if (entry !== undefined) {
+      throw new Error(`Evaluation fixture ${index} cannot expect a choice with zero candidates`);
+    }
+    return [];
+  }
+  if (expectedCandidates !== 1) {
+    throw new Error(
+      `Evaluation fixture ${index} requires expected_choices for ${expectedCandidates} candidates`,
+    );
+  }
+  const choice = entry ?? (expectedFinding ? defaults?.finding : defaults?.safe);
+  if (choice === undefined) {
+    throw new Error(`Evaluation fixture ${index} requires an exact expected choice`);
+  }
+  return [choice];
+};
+
+const expectedCandidateCount = (
+  value: Record<string, unknown>,
+  defaults: FixtureDefaults,
+  index: number,
+): number => {
+  const entry = value["expected_candidates"] ?? defaults.expectedCandidates;
   if (typeof entry !== "number" || !Number.isSafeInteger(entry) || entry < 0) {
     throw new TypeError(`Evaluation fixture ${index} requires a nonnegative expected_candidates`);
   }
-  return { expectedCandidates: entry };
+  return entry;
 };
 
 const optionalExpectedAbstention = (
@@ -325,6 +469,31 @@ const hasRule = (plugins: PluginMap, ruleId: string): boolean => {
   }
   const plugin = plugins[ruleId.slice(0, separator)];
   return plugin?.rules[ruleId.slice(separator + 1)] !== undefined;
+};
+
+const assertUniqueCandidates = (
+  fixture: EvalFixture,
+  candidates: readonly RuleCandidate[],
+): void => {
+  const identities = new Set<string>();
+  for (const candidate of candidates) {
+    const identity = JSON.stringify([
+      candidate.target.kind,
+      candidate.target.filename,
+      candidate.target.range.start,
+      candidate.target.range.end,
+    ]);
+    if (identities.has(identity)) {
+      throw new Error(
+        `${fixture.id} produced a duplicate candidate at ${candidate.target.location.start.line}`,
+      );
+    }
+    identities.add(identity);
+  }
+};
+
+const arraysEqual = (left: readonly string[], right: readonly string[]): boolean => {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {

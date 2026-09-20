@@ -294,18 +294,25 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
 
 const commentState = (comment: CommentTarget, document: ParsedDocument): JsonValue => {
   const enclosingCode = comment.enclosingSource;
+  const context =
+    enclosingCode !== undefined && enclosingCode.length <= MAX_CONTEXT_CHARACTERS
+      ? enclosingCode
+      : nearbySource(document.source, comment.range.start, comment.range.end);
+  const source = boundedEvidence(comment.source, MAX_COMMENT_CHARACTERS);
+  const value = boundedEvidence(comment.value, MAX_COMMENT_CHARACTERS);
+  const enclosing = boundedEvidence(context, MAX_CONTEXT_CHARACTERS);
   return {
     language: document.language,
     comment: {
-      source: comment.source,
-      value: comment.value,
+      source: source.value,
+      source_truncated: source.truncated,
+      value: value.value,
+      value_truncated: value.truncated,
       style: comment.style,
     },
     context: {
-      enclosing_code:
-        enclosingCode !== undefined && enclosingCode.length <= 1_000
-          ? enclosingCode
-          : nearbySource(document.source, comment.range.start, comment.range.end),
+      enclosing_code: enclosing.value,
+      enclosing_code_truncated: enclosing.truncated,
     },
   };
 };
@@ -339,7 +346,7 @@ const isIgnoredComment = (comment: CommentTarget): boolean => {
 };
 
 const isTodoCandidate = (comment: CommentTarget): boolean => {
-  return /^(?:\s*\*?\s*)(?:TODO|FIXME|HACK)\b/imu.test(comment.value);
+  return /^(?:\s*\*?\s*)(?:@todo|TODO|FIXME|HACK)\b/imu.test(comment.value);
 };
 
 const isSuppressionCandidate = (comment: CommentTarget): boolean => {
@@ -354,10 +361,38 @@ const isDeprecationCandidate = (comment: CommentTarget): boolean => {
 
 const isChangeHistoryCandidate = (comment: CommentTarget): boolean => {
   return (
-    /\b(?:before|changed|formerly|no longer|old implementation|older|previously|removed|replaced|used to|was using|were using)\b/iu.test(
+    /\b(?:formerly|no longer|old implementation|previous implementation|previously|used to|was using|were using)\b/iu.test(
       comment.value,
-    ) || /\b(?:migrated|moved|switched)\s+from\b/iu.test(comment.value)
+    ) ||
+    /^(?:\s*\*?\s*)(?:changed|migrated|moved|switched|updated)\s+from\b/imu.test(comment.value) ||
+    /^(?:\s*\*?\s*)(?:changed|renamed|updated)\b[^\r\n]{0,80}\bto\b/imu.test(comment.value) ||
+    /^(?:\s*\*?\s*)replaced\b[^\r\n]{0,80}\bwith\b/imu.test(comment.value) ||
+    /^(?:\s*\*?\s*)removed\b[^\r\n]{0,80}\b(?:because|in favor of)\b/imu.test(comment.value) ||
+    /^(?:\s*\*?\s*)(?:added|introduced)\s+(?:for|in|to support)\b/imu.test(comment.value) ||
+    /^(?:\s*\*?\s*)older\s+(?:browsers?|clients?|releases?|runtimes?|systems?|versions?)\b[^\r\n]{0,80}\b(?:expected|required|sent|supported|used)\b/imu.test(
+      comment.value,
+    )
   );
+};
+
+const MAX_COMMENT_CHARACTERS = 2_000;
+const MAX_CONTEXT_CHARACTERS = 1_000;
+const TRUNCATION_MARKER = "\n… evidence truncated …\n";
+
+const boundedEvidence = (
+  value: string,
+  maximumCharacters: number,
+): { value: string; truncated: boolean } => {
+  if (value.length <= maximumCharacters) {
+    return { value, truncated: false };
+  }
+  const available = maximumCharacters - TRUNCATION_MARKER.length;
+  const headLength = Math.ceil(available / 2);
+  const tailLength = Math.floor(available / 2);
+  return {
+    value: `${value.slice(0, headLength)}${TRUNCATION_MARKER}${value.slice(-tailLength)}`,
+    truncated: true,
+  };
 };
 
 const nearbySource = (source: string, start: number, end: number): string => {

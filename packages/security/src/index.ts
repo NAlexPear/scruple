@@ -28,7 +28,17 @@ const authorizationCalls = [
   /(?:^|\.)(?:allow|authori[sz]e\w*|can|checkAccess|hasPermission|isAllowed|requirePermission)$/iu,
   /(?:^|\.)(?:grant|setRole|setScope|updatePermission)$/iu,
 ];
-const responseSinks = [/(?:^|\.)(?:json|send|sendFile|end|render|redirect)$/u];
+const sensitiveOutputSinks = [
+  // HTTP and framework responses.
+  /(?:^|\.)(?:download|end|json|jsonp|redirect|render|respondWith|send|sendFile|sendStatus|write)$/u,
+  /(?:^|\.)Response\.json$/u,
+  // Filesystem output.
+  /^(?:appendFile|appendFileSync|writeFile|writeFileSync)$/u,
+  /(?:^|\.)(?:fs|promises)\.(?:appendFile|writeFile)$/u,
+  /^(?:Bun\.write|Deno\.(?:writeFile|writeTextFile))$/u,
+  // Node-style stream transfer and pipeline helpers.
+  /(?:^|\.)(?:pipe|pipeline)$/u,
+];
 const commandExecutionSinks = [
   /(?:^|\.)(?:exec|execFile|execFileSync|execSync|spawn|spawnSync)$/u,
   /^(?:eval|Function)$/u,
@@ -42,6 +52,14 @@ const requestBoundaryPatterns = [
   /\b(?:req(?:uest)?|ctx)\s*\.\s*(?:body|cookies?|headers?|params|query)\b/iu,
   /\bctx\s*\.\s*request\s*\.\s*(?:body|cookies?|headers?|params|query)\b/iu,
 ];
+const evidenceBudgets = {
+  functionCharacters: 4_000,
+  surroundingCharacters: 2_000,
+  importCount: 10,
+  importCharacters: 500,
+  callCount: 20,
+  callCharacters: 1_000,
+} as const;
 
 export const security = (): SecurityPlugin => {
   return definePlugin({
@@ -68,7 +86,7 @@ const noUserControlledAuthorization = (options: SecurityRuleOptions = {}): Seman
       ),
     question: {
       instructions:
-        "Does this function visibly grant access, assign authority, or make an authorization decision from attacker-controlled authority claims? Treat request bodies, query strings, route parameters, unverified headers/cookies, and raw client payloads as attacker-controlled. A resource ID is not itself an authority claim. Treat an authenticated principal, verified token claims, a server-side lookup, or an explicit policy/guard as trusted only when the supplied file evidence establishes that provenance. Account for visible route middleware and guards in `surrounding_source`. If provenance, middleware behavior, or the actual authorization decision is outside the supplied file evidence, choose `insufficient_context`; absence of a visible check is not enough for a finding.",
+        "Does this function visibly grant access, assign authority, or make an authorization decision from attacker-controlled authority claims? Treat request bodies, query strings, route parameters, unverified headers/cookies, and raw client payloads as attacker-controlled. A resource ID is not itself an authority claim. Treat an authenticated principal, verified token claims, a server-side lookup, or an explicit policy/guard as trusted only when the bounded evidence establishes that provenance. Account for visible route middleware and guards in `surrounding_source`. If provenance, middleware behavior, or the actual authorization decision is outside the bounded evidence, choose `insufficient_context`; absence of a visible check is not enough for a finding.",
       criteria: {
         user_controlled_authorization:
           "Visible code uses an attacker-controlled role, permission, scope, ownership, tenant, admin, or equivalent authority claim to grant access or persist/issue authority without validating it against a trusted server-side source.",
@@ -77,7 +95,7 @@ const noUserControlledAuthorization = (options: SecurityRuleOptions = {}): Seman
         not_authorization:
           "The authority-related terms do not participate in granting access, assigning authority, or making an authorization decision.",
         insufficient_context:
-          "The supplied file does not establish the value's trust boundary or whether an external guard or policy validates the decision.",
+          "The bounded evidence does not establish the value's trust boundary or whether an external guard or policy validates the decision.",
       },
     },
     finding: "user_controlled_authorization",
@@ -93,20 +111,20 @@ const noSensitiveDataExposure = (options: SecurityRuleOptions = {}): SemanticRul
     description: "Responses and rendered output should not expose sensitive data.",
     select: (document) =>
       implementationFunctions(document).filter((fn) =>
-        fn.calls.some((call) => matchesAny(call.callee, responseSinks)),
+        fn.calls.some((call) => matchesAny(call.callee, sensitiveOutputSinks)),
       ),
     question: {
       instructions:
-        "Does this function visibly disclose sensitive data through a response, rendered output, redirect, or file transfer? Sensitive data includes credentials, authentication/session tokens, private keys, password material, and confidential personal or tenant data whose confidentiality is evident from the supplied file. Logging is owned by the observability/no-sensitive-logs rule and is outside this rule. Trace visible projection, redaction, masking, and sanitization before the response sink. Do not assume a helper sanitizes or leaks data when its implementation or contract is not supplied. If sensitivity, data shape, helper behavior, or access boundary is not established by this file, choose `insufficient_context`.",
+        "Does this function visibly disclose sensitive data through a selected HTTP response, rendered output, redirect, filesystem write, or stream sink? Sensitive data includes credentials, authentication/session tokens, private keys, password material, and confidential personal or tenant data whose confidentiality is evident from the bounded evidence. Logging is owned by the observability/no-sensitive-logs rule and is outside this rule. Trace visible projection, redaction, masking, and sanitization before the output sink. Do not assume a helper sanitizes or leaks data when its implementation or contract is not supplied. If sensitivity, data shape, helper behavior, or the destination boundary is not established by the bounded evidence, choose `insufficient_context`.",
       criteria: {
         sensitive_data_exposure:
           "Visible data flow sends sensitive fields or values to a response or output sink without effective removal, masking, or another visible protection.",
         protected_output:
           "Visible code removes, masks, projects away, or otherwise protects the sensitive data before the sink.",
         no_sensitive_data:
-          "The visible value reaching the sink contains no data shown by this file to be sensitive.",
+          "The visible value reaching the sink contains no data shown by the bounded evidence to be sensitive.",
         insufficient_context:
-          "The supplied file does not establish the data's sensitivity, shape, sanitization, or destination boundary.",
+          "The bounded evidence does not establish the data's sensitivity, shape, sanitization, or destination boundary.",
       },
     },
     finding: "sensitive_data_exposure",
@@ -239,21 +257,63 @@ const functionState = (
   document: ParsedDocument,
   includeSurroundingSource: boolean,
 ): JsonValue => {
+  const imports = document.imports.slice(0, evidenceBudgets.importCount);
+  const calls = fn.calls.slice(0, evidenceBudgets.callCount);
+  const boundedFunction = boundedExcerpt(fn.source, evidenceBudgets.functionCharacters);
   const context: { [key: string]: JsonValue } = {
-    evidence_boundary: includeSurroundingSource ? "current_file" : "current_function",
+    evidence_boundary: includeSurroundingSource
+      ? "bounded_file_excerpt"
+      : "bounded_current_function",
   };
+  let surroundingTruncated = false;
   if (includeSurroundingSource) {
-    context["surrounding_source"] = nearbySource(document.source, fn.range.start, fn.range.end);
+    const surrounding = nearbySource(document.source, fn.range.start, fn.range.end);
+    context["surrounding_source"] = surrounding.source;
+    context["surrounding_range"] = surrounding.range;
+    surroundingTruncated = surrounding.truncated;
   }
   return {
     language: document.language,
-    imports: document.imports,
+    imports: imports.map((entry) => boundedExcerpt(entry, evidenceBudgets.importCharacters).source),
     function: {
       name: fn.name ?? null,
-      source: fn.source,
-      calls: fn.calls.map((call) => ({ callee: call.callee, source: call.source })),
+      source: boundedFunction.source,
+      calls: calls.map((call) => ({
+        callee: call.callee,
+        source: boundedExcerpt(call.source, evidenceBudgets.callCharacters).source,
+      })),
     },
     context,
+    evidence: {
+      scope:
+        "Only the bounded function, imports, calls, and optional same-file excerpt shown are evidence; hidden helpers and runtime contracts are unknown.",
+      budgets: {
+        function_characters: evidenceBudgets.functionCharacters,
+        surrounding_characters: includeSurroundingSource
+          ? evidenceBudgets.surroundingCharacters
+          : 0,
+        import_count: evidenceBudgets.importCount,
+        import_characters_each: evidenceBudgets.importCharacters,
+        call_count: evidenceBudgets.callCount,
+        call_characters_each: evidenceBudgets.callCharacters,
+      },
+      truncation: {
+        function_source: boundedFunction.truncated,
+        file_excerpt: surroundingTruncated,
+        imports:
+          document.imports.length > imports.length ||
+          imports.some((entry) => entry.length > evidenceBudgets.importCharacters),
+        calls:
+          fn.calls.length > calls.length ||
+          calls.some((call) => call.source.length > evidenceBudgets.callCharacters),
+      },
+      totals: {
+        function_characters: fn.source.length,
+        file_characters: document.source.length,
+        imports: document.imports.length,
+        calls: fn.calls.length,
+      },
+    },
   };
 };
 
@@ -272,9 +332,36 @@ const directBoundaryFunctions = (
   );
 };
 
-const nearbySource = (source: string, start: number, end: number): string => {
-  const radius = 1_000;
-  return source.slice(Math.max(0, start - radius), Math.min(source.length, end + radius));
+const nearbySource = (
+  source: string,
+  start: number,
+  end: number,
+): { source: string; range: { start: number; end: number }; truncated: boolean } => {
+  const center = Math.floor((start + end) / 2);
+  const excerptStart = Math.max(0, center - Math.floor(evidenceBudgets.surroundingCharacters / 2));
+  const excerptEnd = Math.min(source.length, excerptStart + evidenceBudgets.surroundingCharacters);
+  const adjustedStart = Math.max(0, excerptEnd - evidenceBudgets.surroundingCharacters);
+  return {
+    source: source.slice(adjustedStart, excerptEnd),
+    range: { start: adjustedStart, end: excerptEnd },
+    truncated: adjustedStart > 0 || excerptEnd < source.length,
+  };
+};
+
+const boundedExcerpt = (
+  source: string,
+  maxCharacters: number,
+): { source: string; truncated: boolean } => {
+  if (source.length <= maxCharacters) {
+    return { source, truncated: false };
+  }
+  const marker = "\n… evidence truncated …\n";
+  const retained = maxCharacters - marker.length;
+  const prefix = Math.ceil(retained / 2);
+  return {
+    source: `${source.slice(0, prefix)}${marker}${source.slice(source.length - (retained - prefix))}`,
+    truncated: true,
+  };
 };
 
 const matchesAny = (value: string, patterns: readonly RegExp[]): boolean => {

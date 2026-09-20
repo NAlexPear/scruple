@@ -66,12 +66,30 @@ const noUselessCatchBoundaries = (options: NoSwallowedErrorsOptions = {}): Seman
 
 const isDirectRethrowOnly = (handler: ErrorHandlerTarget): boolean => {
   const binding = handler.binding;
-  if (binding === undefined || !identifierPattern.test(binding)) {
+  if (
+    binding === undefined ||
+    !identifierPattern.test(binding) ||
+    handler.calls.length > 0 ||
+    handler.exits.length !== 1
+  ) {
     return false;
   }
-  return new RegExp(`^\\{\\s*throw\\s+${escapeRegularExpression(binding)}\\s*;?\\s*\\}$`, "u").test(
-    handler.bodySource,
-  );
+  const exit = handler.exits[0]!;
+  if (exit.kind !== "throw" || !directRethrowPattern(binding).test(withoutComments(exit.source))) {
+    return false;
+  }
+  const relativeStart = exit.range.start - handler.range.start;
+  const relativeEnd = exit.range.end - handler.range.start;
+  const bodyWithoutExit = `${handler.source.slice(0, relativeStart)}${handler.source.slice(relativeEnd)}`;
+  const structuralRemainder = withoutComments(bodyWithoutExit)
+    .replace(/^catch\s*(?:\([^)]*\))?\s*\{/u, "")
+    .replace(/\}\s*$/u, "")
+    .trim();
+  return structuralRemainder.length === 0;
+};
+
+const withoutComments = (source: string): string => {
+  return source.replaceAll(/\/\*[\s\S]*?\*\/|\/\/[^\n\r]*/gu, "").trim();
 };
 
 const noSwallowedErrors = (options: NoSwallowedErrorsOptions = {}): SemanticRule => {

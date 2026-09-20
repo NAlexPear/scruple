@@ -28,7 +28,7 @@ await test("async plugin registers the conservative rule set", () => {
   ]);
 });
 
-await test("unobserved async work selects only bare async-looking calls", () => {
+await test("unobserved async work selects discarded calls and dead promise assignments", () => {
   const document = parser.parse(
     "work.ts",
     `export async function run() {
@@ -38,6 +38,11 @@ await test("unobserved async work selects only bare async-looking calls", () => 
 }
 export function observed() {
   const pending = client.sendAsync(payload);
+  const awaited = client.flushAsync();
+  const handled = client.closeAsync();
+  const dead = client.writeFile(payload);
+  await awaited;
+  handled.catch(reportError);
   consume(client.flushAsync());
   if (client.isReady()) proceed();
   return pending;
@@ -49,9 +54,10 @@ export function observed() {
 
   assert.deepEqual(
     candidates.map((candidate) => candidate.target.source),
-    ["client.sendAsync(payload)"],
+    ["client.sendAsync(payload)", "client.writeFile(payload)"],
   );
   assert.equal(candidates[0]?.data?.["usage"], "expression");
+  assert.equal(candidates[1]?.data?.["usage"], "assignment");
   const candidate = candidates[0];
   assert.ok(candidate?.question.type === "choice");
   assert.deepEqual(Object.keys(candidate.question.criteria), [
@@ -250,8 +256,8 @@ export async function custom(Promise: RaceApi, tasks: Promise<void>[]) {
 await test("abort listener cleanup selection excludes unrelated event targets and event types", () => {
   const document = parser.parse(
     "listeners.ts",
-    `export function attach(signal: AbortSignal) {
-  signal.addEventListener("abort", onAbort);
+    `export function attach(cancellation: AbortSignal) {
+  cancellation.addEventListener("abort", onAbort);
 }
 export function attachOnce(abortSignal: AbortSignal) {
   abortSignal.addEventListener("abort", onAbort, { once: true });
@@ -261,6 +267,9 @@ export function otherEvent(signal: AbortSignal) {
 }
 export function otherTarget(target: EventTarget, signal: AbortSignal) {
   target.addEventListener("abort", onAbort);
+}
+export function misleadingName(signal: EventTarget) {
+  signal.addEventListener("abort", onAbort);
 }
 `,
   );
@@ -279,6 +288,35 @@ export function otherTarget(target: EventTarget, signal: AbortSignal) {
     "bounded_or_operation_owned",
     "insufficient_context",
   ]);
+  assert.match(JSON.stringify(candidates[1]?.question), /once-only registration alone/u);
+});
+
+await test("async call-level evidence obeys function, import, and call budgets", () => {
+  const document = parser.parse(
+    "bounded-call.ts",
+    `import { somethingVeryLong } from "./dependency.js";
+export function run() {
+  first();
+  client.sendAsync(payload);
+  last();
+}`,
+  );
+  const bounded = asyncRules()
+    .rules["no-unobserved-async-work"]({
+      maxImportCharacters: 0,
+      maxCallSites: 1,
+    })
+    .collect(document)[0];
+  assert.ok(bounded);
+  assert.match(
+    JSON.stringify(bounded.state),
+    /"imports":\[\],"imports_truncated":true[\s\S]*"calls":\[\{"callee":"first","source":"first\(\)"\}\],"calls_truncated":true/u,
+  );
+  assert.equal(
+    asyncRules().rules["no-unobserved-async-work"]({ maxFunctionCharacters: 20 }).collect(document)
+      .length,
+    0,
+  );
 });
 
 await test("async evidence is bounded without truncating function source", () => {

@@ -47,8 +47,10 @@ const iterationCallPatterns = [/(?:^|\.)(?:flatMap|forEach|map|reduce)$/u];
 const loopSourcePattern =
   /\b(?:for\s*(?:await\s*)?\(|for\s+(?:await\s+)?(?:const|let|var)\b|while\s*\()/u;
 const transactionCallPatterns = [/(?:^|\.)(?:\$transaction|transaction)$/u];
-const paginationPattern = /\b(?:limit|offset|skip|take)\b/iu;
-const orderingPattern = /\b(?:order\s+by|orderBy|order_by)\b/iu;
+const paginationOptionNames = new Set(["limit", "offset", "skip", "take"]);
+const orderingOptionNames = new Set(["orderby", "order_by"]);
+const maxEvidenceItems = 20;
+const maxFunctionCharacters = 12_000;
 
 export const relationalDatabases = (): RelationalDatabasesPlugin => {
   return definePlugin({
@@ -85,9 +87,9 @@ const preferDatabaseJoin = (options: PreferDatabaseJoinOptions = {}): SemanticRu
             fn,
             document,
             evidence: {
-              database_calls: databaseCalls.map((call) => callEvidence(call)),
-              database_sources: uniqueSources(databaseCalls),
-              collection_operations: collectionOperations.map((call) => callEvidence(call)),
+              database_calls: callEvidenceList(databaseCalls),
+              database_sources: uniqueSources(databaseCalls).slice(0, maxEvidenceItems),
+              collection_operations: callEvidenceList(collectionOperations),
             },
             instructions:
               "Does this function combine results from multiple queries to the same relational database in application memory when that database layer could reasonably do the work? Verify that the selected calls produce the relevant query results, target a compatible store, and are actually combined by the collection operation. Consider joins, relation includes, aggregations, subqueries, and filtered queries. Do not infer database provenance or backend capabilities that the supplied file does not establish.",
@@ -151,8 +153,8 @@ const noQueryInLoop = (options: DatabaseRuleOptions = {}): SemanticRule => {
             fn,
             document,
             evidence: {
-              database_calls_in_iteration: suspectedCalls.map((call) => callEvidence(call)),
-              iteration_calls: iterationCalls.map((call) => callEvidence(call)),
+              database_calls_in_iteration: callEvidenceList(suspectedCalls),
+              iteration_calls: callEvidenceList(iterationCalls),
               loop_syntax_present: hasLoop,
             },
             instructions:
@@ -195,23 +197,25 @@ const requireTransactionScopedClient = (options: DatabaseRuleOptions = {}): Sema
           if (!matchesAny(call.callee, transactionCallPatterns)) {
             return [];
           }
-          const binding = transactionBinding(call.source);
-          if (binding === undefined) {
+          const bindings = transactionBindings(call, document);
+          if (bindings.length === 0) {
             return [];
           }
+          const aliases = receiverAliases(call.range, document);
           const databaseCalls = databaseCallsWithin(
             call.range,
             document,
             databasePatterns,
             options,
-            binding,
+            new Set(bindings),
+            aliases,
           ).filter((candidate) => candidate.range.start !== call.range.start);
           const escapedCalls = databaseCalls.filter(
-            (candidate) => callRoot(candidate.callee) !== binding,
+            (candidate) => !bindings.includes(resolveReceiver(callRoot(candidate.callee), aliases)),
           );
           return escapedCalls.length === 0
             ? []
-            : [{ transactionCall: call, binding, escapedCalls, databaseCalls }];
+            : [{ transactionCall: call, binding: bindings[0]!, escapedCalls, databaseCalls }];
         });
         const manualCandidates = manualTransactionEscapes(fn, document, databasePatterns, options);
 
@@ -222,8 +226,8 @@ const requireTransactionScopedClient = (options: DatabaseRuleOptions = {}): Sema
             evidence: {
               transaction_call: callEvidence(evidence.transactionCall),
               transaction_binding: evidence.binding,
-              database_calls: evidence.databaseCalls.map((call) => callEvidence(call)),
-              suspected_escaped_calls: evidence.escapedCalls.map((call) => callEvidence(call)),
+              database_calls: callEvidenceList(evidence.databaseCalls),
+              suspected_escaped_calls: callEvidenceList(evidence.escapedCalls),
             },
             instructions:
               "Does this function execute database work through a global, pooled, or otherwise different client while a transaction is open, causing that work to escape the transaction? For callback transactions, operations that must roll back together should use the supplied transaction binding. For manual transactions, BEGIN, work, COMMIT, and ROLLBACK must use the same checked-out client. Allow a visibly intentional operation outside the atomic unit, and abstain when receiver aliases or helper contracts are not established.",
@@ -260,7 +264,10 @@ const requireDeterministicPaginationOrder = (options: DatabaseRuleOptions = {}):
     collect(document) {
       return implementationFunctions(document).flatMap((fn) => {
         const unorderedCalls = directDatabaseCalls(fn, document, databasePatterns, options).filter(
-          (call) => paginationPattern.test(call.source) && !orderingPattern.test(call.source),
+          (call) => {
+            const evidence = paginationEvidence(call, document);
+            return evidence?.paginated === true && !evidence.ordered;
+          },
         );
         if (unorderedCalls.length === 0) {
           return [];
@@ -271,7 +278,7 @@ const requireDeterministicPaginationOrder = (options: DatabaseRuleOptions = {}):
             fn,
             document,
             evidence: {
-              unordered_paginated_calls: unorderedCalls.map((call) => callEvidence(call)),
+              unordered_paginated_calls: callEvidenceList(unorderedCalls),
             },
             instructions:
               "Does this function use LIMIT/OFFSET, skip/take, or an equivalent mechanism to return pages of relational query results without an explicit deterministic ordering? Flag only actual pagination where repeatable page membership matters. Allow deliberate unordered sampling, aggregate or singleton queries, and limits used only as safety caps. Do not claim an ordering is unique without schema evidence.",
@@ -313,7 +320,7 @@ const functionCandidate = (definition: FunctionCandidateDefinition): RuleCandida
     target: definition.fn,
     state: {
       language: definition.document.language,
-      imports: definition.document.imports,
+      imports: boundedUnique(definition.document.imports, (entry) => entry),
       function: definition.fn.source,
       evidence: definition.evidence,
       context: { evidence_boundary: "current_file" },
@@ -384,7 +391,8 @@ const databaseCallsWithin = (
   document: ParsedDocument,
   patterns: RegExp[],
   options: DatabaseRuleOptions,
-  scopedReceiver: string,
+  scopedReceivers: Set<string>,
+  aliases: Map<string, string>,
 ): CallCapture[] => {
   return document.functions
     .flatMap((fn) => fn.calls)
@@ -392,9 +400,33 @@ const databaseCallsWithin = (
       (call) =>
         call.range.start >= range.start &&
         call.range.end <= range.end &&
-        (callRoot(call.callee) === scopedReceiver ||
-          isDatabaseCall(call, document, patterns, options)),
+        (scopedReceivers.has(resolveReceiver(callRoot(call.callee), aliases)) ||
+          isDatabaseCallWithAliases(call, document, patterns, options, aliases)),
     );
+};
+
+const isDatabaseCallWithAliases = (
+  call: CallCapture,
+  document: ParsedDocument,
+  patterns: RegExp[],
+  options: DatabaseRuleOptions,
+  aliases: Map<string, string>,
+): boolean => {
+  if (isDatabaseCall(call, document, patterns, options)) {
+    return true;
+  }
+  const root = callRoot(call.callee);
+  const resolved = resolveReceiver(root, aliases);
+  if (resolved === root) {
+    return false;
+  }
+  const resolvedCallee = `${resolved}${call.callee.slice(root.length)}`;
+  return (
+    matchesAny(resolvedCallee, patterns) ||
+    (options.databaseCallPatterns === undefined &&
+      matchesAny(document.imports.join("\n"), databaseImportPatterns) &&
+      matchesAny(resolvedCallee, importedDatabaseReceiverPatterns))
+  );
 };
 
 const callsAfterFirstLoop = (fn: FunctionTarget, calls: CallCapture[]): CallCapture[] => {
@@ -458,8 +490,14 @@ const manualTransactionEscapes = (
     return [];
   }
   const binding = callRoot(beginCall.callee);
-  const databaseCalls = directDatabaseCalls(fn, document, patterns, options);
-  const escapedCalls = databaseCalls.filter((call) => callRoot(call.callee) !== binding);
+  const aliases = receiverAliases(fn.range, document);
+  const databaseCalls = fn.calls.filter((call) =>
+    isDatabaseCallWithAliases(call, document, patterns, options, aliases),
+  );
+  const resolvedBinding = resolveReceiver(binding, aliases);
+  const escapedCalls = databaseCalls.filter(
+    (call) => resolveReceiver(callRoot(call.callee), aliases) !== resolvedBinding,
+  );
   return escapedCalls.length === 0
     ? []
     : [{ transactionCall: beginCall, binding, databaseCalls, escapedCalls }];
@@ -472,8 +510,95 @@ const transactionBinding = (source: string): string | undefined => {
     .find((binding) => binding !== undefined);
 };
 
+const transactionBindings = (call: CallCapture, document: ParsedDocument): string[] => {
+  const fact = structuredCall(call, document);
+  const bindings = fact?.arguments.find((argument) => argument.kind === "function")?.bindings?.[0];
+  if (bindings !== undefined && bindings.length > 0) {
+    return bindings;
+  }
+  const fallback = transactionBinding(call.source);
+  return fallback === undefined ? [] : [fallback];
+};
+
+const receiverAliases = (
+  range: { start: number; end: number },
+  document: ParsedDocument,
+): Map<string, string> => {
+  const grouped = new Map<string, Set<string>>();
+  for (const alias of document.facts?.aliases ?? []) {
+    if (alias.range.start < range.start || alias.range.end > range.end) {
+      continue;
+    }
+    const targets = grouped.get(alias.binding) ?? new Set<string>();
+    targets.add(callRoot(alias.target));
+    grouped.set(alias.binding, targets);
+  }
+  const aliases = new Map<string, string>();
+  for (const [binding, targets] of grouped) {
+    const target = [...targets][0];
+    if (targets.size === 1 && target !== undefined && binding !== target) {
+      aliases.set(binding, target);
+    }
+  }
+  return aliases;
+};
+
+const resolveReceiver = (receiver: string, aliases: Map<string, string>): string => {
+  const seen = new Set<string>();
+  let current = receiver;
+  while (!seen.has(current)) {
+    seen.add(current);
+    const target = aliases.get(current);
+    if (target === undefined) {
+      return current;
+    }
+    current = target;
+  }
+  return receiver;
+};
+
+const paginationEvidence = (
+  call: CallCapture,
+  document: ParsedDocument,
+): { paginated: boolean; ordered: boolean } | undefined => {
+  const fact = structuredCall(call, document);
+  if (fact === undefined) {
+    return undefined;
+  }
+  for (const argument of fact.arguments) {
+    if (argument.kind === "object") {
+      const properties = (argument.properties ?? []).map((property) => property.toLowerCase());
+      if (properties.some((property) => paginationOptionNames.has(property))) {
+        return {
+          paginated: true,
+          ordered: properties.some((property) => orderingOptionNames.has(property)),
+        };
+      }
+    }
+  }
+  const query = fact.arguments[0]?.value;
+  if (typeof query !== "string" || !/(?:^|\.)query$/iu.test(call.callee)) {
+    return undefined;
+  }
+  const tokens = sqlStructure(query);
+  return {
+    paginated: /\b(?:limit|offset)\b/iu.test(tokens),
+    ordered: /\border\s+by\b/iu.test(tokens),
+  };
+};
+
+const sqlStructure = (query: string): string => {
+  return query.replaceAll(/--[^\n]*|\/\*[\s\S]*?\*\/|'(?:''|[^'])*'/gu, " ");
+};
+
 const callEvidence = (call: CallCapture): JsonValue => {
   return { callee: call.callee, source: call.source };
+};
+
+const callEvidenceList = (calls: CallCapture[]): JsonValue[] => {
+  return boundedUnique(calls, (call) => `${call.callee}:${call.source}`).map((call) =>
+    callEvidence(call),
+  );
 };
 
 const callRoot = (callee: string): string => {
@@ -484,8 +609,27 @@ const uniqueSources = (calls: CallCapture[]): JsonValue[] => {
   return [...new Set(calls.map((call) => callRoot(call.callee)))];
 };
 
+const boundedUnique = <Value>(values: Value[], key: (value: Value) => string): Value[] => {
+  const seen = new Set<string>();
+  const result: Value[] = [];
+  for (const value of values) {
+    const identity = key(value);
+    if (!seen.has(identity)) {
+      seen.add(identity);
+      result.push(value);
+    }
+    if (result.length === maxEvidenceItems) {
+      break;
+    }
+  }
+  return result;
+};
+
 const implementationFunctions = (document: ParsedDocument): FunctionTarget[] => {
-  return document.functions.filter((fn) => fn.kind === "function" && fn.source.length > 0);
+  return document.functions.filter(
+    (fn) =>
+      fn.kind === "function" && fn.source.length > 0 && fn.source.length <= maxFunctionCharacters,
+  );
 };
 
 const decisionOptions = (

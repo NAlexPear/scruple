@@ -162,6 +162,34 @@ await test("stable telemetry name selection supports explicit custom name sinks"
   assert.equal(rule.collect(document).length, 1, "stateful custom patterns remain deterministic");
 });
 
+await test("custom error and exception sinks preserve semantic kinds", () => {
+  const document = oxcParser().parse(
+    "custom-errors.ts",
+    `function report(error: Error) {
+  audit.failed(error);
+  monitor.notice(error);
+  events.emit(error);
+}`,
+  );
+  const options = {
+    errorLoggingCallPatterns: [/(?:^|\.)failed$/gu],
+    exceptionTelemetryCallPatterns: [/(?:^|\.)notice$/gu],
+    telemetryCallPatterns: [/(?:^|\.)emit$/gu],
+  };
+  const rule = observability().rules["no-unactionable-errors"](options);
+  const candidates = rule.collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    ["audit.failed(error)", "monitor.notice(error)"],
+  );
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.data?.["kind"]),
+    ["error_log", "exception_telemetry"],
+  );
+  assert.equal(rule.collect(document).length, 2, "stateful custom patterns remain deterministic");
+});
+
 await test("duplicate error reporting selects only direct repeated catch-binding reports", () => {
   const source = `export async function duplicate() {
   try { await charge(); } catch (error) {
@@ -239,6 +267,52 @@ await test("duplicate error reporting explicitly abstains on dual-emission polic
   assert.equal(rule.diagnose(choice("duplicate_same_exception", 0.89, 0.99), candidate), null);
 });
 
+await test("duplicate error reporting honors semantic and dedicated custom patterns", () => {
+  const document = oxcParser().parse(
+    "custom-reporting.ts",
+    `function semanticCustom() {
+  try { work(); } catch (error) {
+    audit.failed(error);
+    monitor.notice(error);
+  }
+}
+
+function dedicatedCustom() {
+  try { work(); } catch (error) {
+    legacy.publish(error);
+    fallback.publish(error);
+  }
+}
+
+function opaqueAlias() {
+  try { work(); } catch (error) {
+    const alias = error;
+    legacy.publish(alias);
+    fallback.publish(alias);
+  }
+}`,
+  );
+  const semantic = observability().rules["no-duplicate-error-reporting"]({
+    errorLoggingCallPatterns: [/(?:^|\.)failed$/gu],
+    exceptionTelemetryCallPatterns: [/(?:^|\.)notice$/gu],
+  });
+  const dedicated = observability().rules["no-duplicate-error-reporting"]({
+    duplicateErrorReportingCallPatterns: [/(?:^|\.)publish$/gu],
+  });
+
+  assert.equal(semantic.collect(document).length, 1);
+  assert.deepEqual(semantic.collect(document)[0]?.data?.["reporting_calls"], [
+    "audit.failed",
+    "monitor.notice",
+  ]);
+  const dedicatedCandidates = dedicated.collect(document);
+  assert.equal(dedicatedCandidates.length, 1);
+  assert.deepEqual(dedicatedCandidates[0]?.data?.["reporting_calls"], [
+    "legacy.publish",
+    "fallback.publish",
+  ]);
+});
+
 await test("duplicate error evidence remains bounded", () => {
   const padding = "void value;\n".repeat(800);
   const candidate = observability()
@@ -258,5 +332,25 @@ await test("duplicate error evidence remains bounded", () => {
   assert.ok(candidate);
   const state = JSON.stringify(candidate.state);
   assert.ok(state.length < 9_000);
+  assert.match(state, /excerpt truncated/u);
+  assert.match(state, /"catch_characters":2000/u);
+  assert.match(state, /"catch_body":true/u);
+});
+
+await test("call evidence exposes deterministic budgets and truncation metadata", () => {
+  const candidate = observability()
+    .rules["no-sensitive-logs"]()
+    .collect(
+      oxcParser().parse(
+        "large-call.ts",
+        `function record(secret: string) { logger.info("${"x".repeat(2_100)}", secret); }`,
+      ),
+    )[0];
+  assert.ok(candidate);
+  const state = JSON.stringify(candidate.state);
+
+  assert.match(state, /"call_characters":2000/u);
+  assert.match(state, /"context_characters":1500/u);
+  assert.match(state, /"call":true/u);
   assert.match(state, /excerpt truncated/u);
 });

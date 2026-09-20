@@ -224,6 +224,7 @@ test.each([[1, 2, 3]])("adds %s and %s", (left, right, expected) => {
   assert.deepEqual(candidate.state, {
     language: "typescript",
     imports: ['import { expect } from "vitest";'],
+    imports_truncated: false,
     test: {
       name: "adds %s and %s",
       invocation: `test.each([[1, 2, 3]])("adds %s and %s", (left, right, expected) => {
@@ -233,6 +234,7 @@ test.each([[1, 2, 3]])("adds %s and %s", (left, right, expected) => {
   assertSum(left, right, expected);
 }`,
       calls: ["assertSum"],
+      calls_truncated: false,
     },
     local_helpers: [
       {
@@ -248,6 +250,10 @@ test.each([[1, 2, 3]])("adds %s and %s", (left, right, expected) => {
 }`,
       },
     ],
+    helpers_truncated: false,
+    ambiguous_helper_names: [],
+    evidence_scope:
+      "Bounded test-local evidence and uniquely resolvable visible helpers only; ambiguous or unavailable helper behavior is not inferred.",
   });
 });
 
@@ -831,6 +837,61 @@ await test("engine supports all-rule suppression and selective re-enabling", asy
   );
   assert.equal(result.stats.candidates, 3);
   assert.equal(result.stats.requests, 2);
+});
+
+await test("suppression directives remain auditable without disabling normal suppression", async () => {
+  const cases = [
+    {
+      name: "line",
+      source:
+        "// scruple-disable-line comments/require-justified-suppressions -- TODO\nconst value = 1;\n",
+      diagnosticLines: [1],
+    },
+    {
+      name: "next-line",
+      source:
+        "// scruple-disable-next-line comments/require-justified-suppressions -- TODO\n" +
+        "// eslint-disable-next-line no-console\n" +
+        "console.log(value);\n",
+      diagnosticLines: [1],
+    },
+    {
+      name: "range",
+      source:
+        "// scruple-disable comments/require-justified-suppressions -- TODO\n" +
+        "// eslint-disable-next-line no-console\n" +
+        "console.log(value);\n" +
+        "// scruple-enable comments/require-justified-suppressions\n",
+      diagnosticLines: [1],
+    },
+    {
+      name: "all-rule",
+      source: "// scruple-disable-line -- TODO\nconst value = 1;\n",
+      diagnosticLines: [1],
+    },
+  ];
+
+  await Promise.all(
+    cases.map(async (entry) => {
+      const result = await runScruple(
+        {
+          parser: oxcParser(),
+          provider: findingProvider("unjustified_suppression"),
+          plugins: { comments: comments() },
+          rules: { "comments/require-justified-suppressions": "warn" },
+        },
+        [{ filename: `${entry.name}.ts`, source: entry.source }],
+      );
+
+      assert.deepEqual(result.errors, [], entry.name);
+      assert.deepEqual(
+        result.diagnostics.map((diagnostic) => diagnostic.location.start.line),
+        entry.diagnosticLines,
+        entry.name,
+      );
+      assert.equal(result.stats.candidates, entry.diagnosticLines.length, entry.name);
+    }),
+  );
 });
 
 await test("engine honors the provider concurrency limit", async () => {
