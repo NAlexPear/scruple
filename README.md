@@ -11,6 +11,7 @@
 <p align="center">
   <a href="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/NAlexPear/scruple/ci.yml?branch=main&event=push&label=main" alt="Main CI status"></a>
   <a href="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml"><img src="https://img.shields.io/github/actions/workflow/status/NAlexPear/scruple/docs.yml?branch=main&event=push&label=docs" alt="Docs CI status"></a>
+  <a href="https://github.com/NAlexPear/scruple/actions/workflows/scruple.yml"><img src="https://img.shields.io/github/actions/workflow/status/NAlexPear/scruple/scruple.yml?branch=main&event=push&label=scruple" alt="Scruple status"></a>
   <a href="https://www.npmjs.com/package/@scruple/cli"><img src="https://img.shields.io/npm/v/%40scruple%2Fcli?label=npm" alt="Published npm version"></a>
 </p>
 
