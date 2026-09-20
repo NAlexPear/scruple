@@ -28,14 +28,20 @@ import { jevProvider } from "@scruple/provider-jev";
 import { relationalDatabases } from "@scruple/relational-databases";
 import { tests } from "@scruple/tests";
 
+const apiKey = process.env["TYPESAFE_API_KEY"];
+if (apiKey === undefined) {
+  throw new Error("TYPESAFE_API_KEY is required");
+}
+
 export default defineConfig({
   parser: oxcParser(),
-  provider: jevProvider(),
+  provider: jevProvider({ apiKey }),
   plugins: [...comments(), ...tests(), ...relationalDatabases()],
 });
 ```
 
-Set `TYPESAFE_API_KEY`, then check source files:
+The configuration chooses where to obtain the API key; this example reads it from the environment.
+Then check source files:
 
 ```sh
 pnpm exec scruple check "src/**/*.{ts,tsx}"

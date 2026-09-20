@@ -3,14 +3,21 @@ import test from "node:test";
 
 import { jevProvider } from "@scruple/provider-jev";
 
-await test("Jev provider supports injected fetch and sends provider-neutral questions", async () => {
+await test("Jev provider uses its explicit API key and sends provider-neutral questions", async (t) => {
   let requestBody: unknown;
+  const originalApiKey = process.env["TYPESAFE_API_KEY"];
+  process.env["TYPESAFE_API_KEY"] = "environment-key-must-not-be-used";
+  t.after(() => {
+    restoreEnvironment("TYPESAFE_API_KEY", originalApiKey);
+  });
+  assert.throws(() => jevProvider({ apiKey: " " }), /apiKey must not be empty/u);
   const provider = jevProvider({
     apiKey: "test-key",
     model: "jev-test",
     maxRetries: 0,
     fetch: (input, init) => {
       assert.equal(input, "https://api.typesafe.ai/v1/systemone");
+      assert.equal(new Headers(init?.headers).get("authorization"), "Bearer test-key");
       const body = init?.body;
       assert.ok(typeof body === "string");
       requestBody = JSON.parse(body);
@@ -43,3 +50,11 @@ await test("Jev provider supports injected fetch and sends provider-neutral ques
     usage: { inputTokens: 12, outputTokens: 3 },
   });
 });
+
+function restoreEnvironment(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}

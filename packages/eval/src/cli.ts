@@ -48,7 +48,11 @@ try {
 
 function createProvider(spec: EvalProviderSpec): DecisionProvider {
   if (spec.provider === "jev") {
-    return jevProvider({ model: spec.model });
+    const apiKey = process.env["TYPESAFE_API_KEY"];
+    if (apiKey === undefined || apiKey.length === 0) {
+      throw new Error("TYPESAFE_API_KEY is required for Jev evaluations");
+    }
+    return jevProvider({ apiKey, model: spec.model });
   }
   if (!isLayaModel(spec.model)) {
     throw new Error(`Unsupported Laya model: ${spec.model}`);

@@ -15,7 +15,7 @@ import {
 } from "@typesafe-ai/sdk";
 
 export interface JevProviderOptions {
-  apiKey?: string;
+  apiKey: string;
   baseURL?: string;
   model?: string;
   timeoutMs?: number;
@@ -23,16 +23,17 @@ export interface JevProviderOptions {
   fetch?: Fetch;
 }
 
-export function jevProvider(options: JevProviderOptions = {}): DecisionProvider {
+export function jevProvider(options: JevProviderOptions): DecisionProvider {
+  if (options.apiKey.trim().length === 0) {
+    throw new TypeError("Jev apiKey must not be empty");
+  }
   const model = options.model ?? "jev-1.13.0";
   const clientConfig: TypeSafeClientConfig = {
+    apiKey: options.apiKey,
     defaultModel: model,
     timeout: options.timeoutMs ?? 10_000,
     retry: { maxRetries: options.maxRetries ?? 2 },
   };
-  if (options.apiKey !== undefined) {
-    clientConfig.apiKey = options.apiKey;
-  }
   if (options.baseURL !== undefined) {
     clientConfig.baseURL = options.baseURL;
   }
