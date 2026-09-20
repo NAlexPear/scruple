@@ -44,4 +44,8 @@ Without `--config`, Scruple checks these names in order:
 
 `--format json` prints the complete run result, including diagnostics, operational errors, and statistics. Use it for CI integrations that need structured locations, probabilities, confidence, model IDs, or token counts.
 
-Add `--explain` to retain every provider answer in a `decisions` array, including safe answers and `insufficient_context` abstentions that do not produce diagnostics. Without `--explain`, answers that do not diagnose are discarded to keep normal output small. Stylish explain output prints one compact line per evaluated candidate.
+Add `--explain` to retain every **final candidate decision** in a `decisions` array, including safe
+answers and `insufficient_context` abstentions that do not produce diagnostics. Collection
+classifications are filtering steps and are not included. Without `--explain`, final answers that do
+not diagnose are discarded to keep normal output small. Stylish explain output prints one compact line
+per evaluated candidate.

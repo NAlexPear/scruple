@@ -117,7 +117,10 @@ Use a full rule ID to suppress an exceptional target without disabling the rule 
 const status = deriveStatus();
 ```
 
-Scruple also supports `scruple-disable-line` and paired `scruple-disable` and `scruple-enable` region comments. Suppressed candidates are removed before provider evaluation. See [inline suppressions](https://scruple.dev/guide/configuration#inline-suppressions) for the complete syntax.
+Scruple also supports `scruple-disable-line` and paired `scruple-disable` and `scruple-enable` region
+comments. Suppressed targets are removed before collection classification or final provider evaluation.
+See [inline suppressions](https://scruple.dev/guide/configuration#inline-suppressions) for the complete
+syntax.
 
 ## Plugins and rules
 
@@ -134,18 +137,19 @@ Every team has standards that live in review comments. Scruple turns those repea
 
 If a review comment starts with "we usually," it may belong in a Scruple rule. [Write your own rule](https://scruple.dev/guide/writing-a-plugin).
 
-A rule selects the code it needs and asks the provider a fixed question. It then compares the answer
-with fixed thresholds. If the answer passes, the rule reports its own diagnostic. Otherwise, it
-reports nothing. Provider answers and which findings appear may vary. Rules provide fixed diagnostic
-text and never ask a model to generate messages or fixes.
+A rule starts from bounded targets found by the parser. It can select candidates from syntax alone or
+ask the provider a small classification question when names and spelling are ambiguous. Each selected
+candidate then receives the rule's fixed decision question. The rule compares that answer with fixed
+thresholds and reports its own diagnostic or nothing. Provider answers and which findings appear may
+vary. Rules provide fixed diagnostic text and never ask a model to generate messages or fixes.
 
 OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
 calls, and facts rather than serialized syntax trees. Both parsers and decision providers are
 swappable through the `SourceParser` and `DecisionProvider` interfaces.
 
 ```text
-source → parser → normalized targets → enabled plugin rules → decision provider → diagnostics
-           OXC                                                   Jev
+source → parser → possible targets → rules → selected candidates → decisions → diagnostics
+           OXC                    ↘ provider classification ↗       Jev
 ```
 
 ## License

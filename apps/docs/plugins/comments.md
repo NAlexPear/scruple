@@ -57,7 +57,11 @@ rules: { "comments/prefer-concise-comments": ["warn", { minCharacters: 160 }] }
 
 ## `comments/require-actionable-todos`
 
-Checks TODO, FIXME, and HACK comments for enough context to identify work, rationale, a removal condition, or a relevant issue. It does not require an owner, date, or ticket. Defaults: `threshold: 0.8`, `minConfidence: 0.7`.
+The provider first classifies each bounded, non-directive comment as a future-work marker or ordinary
+prose. This recognizes variants such as `todo:`, `to-do:`, FIXME, and HACK without treating “to-do
+list” as a marker. Selected comments are then checked for enough context to identify work, rationale, a
+removal condition, or a relevant issue. The rule does not require an owner, date, or ticket. Defaults:
+`threshold: 0.8`, `minConfidence: 0.7`.
 
 ## `comments/require-justified-suppressions`
 

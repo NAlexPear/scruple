@@ -207,7 +207,7 @@ Usage:
 
 Options:
   -c, --config <path>   Config file (default: scruple.config.ts)
-      --explain         Include every provider decision, including accepted and abstained candidates
+      --explain         Include final candidate decisions, not collection classifications
   -f, --format <format> stylish or json (default: stylish)
   -h, --help            Show this help
 

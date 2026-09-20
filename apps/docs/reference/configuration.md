@@ -33,3 +33,8 @@ A `SourceParser` supplies an `id`, a `supports(filename)` predicate, and `parse(
 A `DecisionProvider` supplies an `id`, `evaluate(request, signal?)`, an optional `close()`, and its
 preferred request concurrency. Requests contain JSON state and named typed questions. Responses
 return named answers, a resolved model ID, and optional token usage.
+
+The engine gives asynchronous rule collectors a restricted, target-aware provider view. A collector
+can classify a bounded possible target, but cannot close or reconfigure the provider. Scruple applies
+the same cancellation, concurrency, suppression, request counting, and token accounting to collection
+and final decision requests.

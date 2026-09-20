@@ -1,6 +1,10 @@
 # Jev provider
 
-`@scruple/provider-jev` sends each rule's selected code and fixed questions to Jev through `@typesafe-ai/sdk`. Requests use HTTPS. TypeSafe publishes [current Jev model pricing](https://docs.typesafe.ai/models). Jev 1.13 is currently $0.042 per million input tokens, with output tokens free.
+`@scruple/provider-jev` sends bounded code evidence and fixed questions to Jev through
+`@typesafe-ai/sdk`. This includes final candidate decisions and any collection classifications a rule
+uses to recognize ambiguous candidates. Requests use HTTPS. TypeSafe publishes
+[current Jev model pricing](https://docs.typesafe.ai/models). Jev 1.13 is currently $0.042 per million
+input tokens, with output tokens free.
 
 ```sh
 pnpm add --save-dev @scruple/provider-jev
@@ -27,7 +31,8 @@ const provider = jevProvider({ apiKey });
 | `maxRetries`  | `2`            | SDK retry count                        |
 | `fetch`       | Runtime fetch  | Custom fetch implementation            |
 
-The provider reports input and output token usage in Scruple's run statistics.
+The provider reports input and output token usage in Scruple's run statistics. The request count and
+token totals include collection classifications as well as final candidate decisions.
 
 Review the Jev service's current data handling and billing terms before sending repository code. Scruple does not make claims here about service retention or model training.
 

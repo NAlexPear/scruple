@@ -13,9 +13,9 @@ Compilers and linters work best when syntax or types can prove the answer. Scrup
 Scruple limits what the model can do:
 
 1. The parser finds comments, functions, tests, calls, and other parts of the code.
-2. Each rule chooses the code it needs and asks one fixed question.
-3. Jev answers that question.
-4. The rule decides whether the answer is strong enough to report.
+2. Each rule narrows those bounded targets. When relevance is ambiguous, it can ask Jev a small classification question.
+3. The rule asks one fixed decision question about each selected candidate.
+4. Jev answers that question, and the rule decides whether the answer is strong enough to report.
 
 The model never writes warnings or fixes. Each rule controls the warning, severity, location, and required score. Your standards stay in code and can be reviewed with the rest of the project.
 

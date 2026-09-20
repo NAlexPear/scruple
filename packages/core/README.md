@@ -1,6 +1,6 @@
 # @scruple/core
 
-Provider-neutral engine, configuration helpers, and parser, provider, and rule-plugin contracts for [Scruple](https://github.com/NAlexPear/scruple).
+Provider-neutral engine, configuration helpers, and parser, provider, and rule-plugin contracts for [Scruple](https://github.com/NAlexPear/scruple). Rules can collect candidates synchronously from parser facts or asynchronously classify bounded possible targets through an engine-managed provider context.
 
 ```sh
 pnpm add --save-dev @scruple/core

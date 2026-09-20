@@ -29,7 +29,7 @@ title: Code checks for problems linters miss
 <section class="landing-principles" aria-label="Scruple principles">
   <article>
     <span>01</span>
-    <div><h2>Find the right code</h2><p>The parser selects likely problems before calling a model.</p></div>
+    <div><h2>Find the right code</h2><p>Rules inspect bounded parser targets and can ask the provider to resolve ambiguous candidates.</p></div>
   </article>
   <article>
     <span>02</span>
@@ -93,8 +93,8 @@ title: Code checks for problems linters miss
     <p class="landing-kicker"><span></span>AI decision models</p>
     <h2 id="landing-providers-title">Use AI for one narrow<br>decision at a time.</h2>
     <p>
-      Scruple does not ask a chatbot to review your repository. Each rule sends the relevant code
-      and one fixed question to Jev or any provider that implements Scruple's small interface.
+      Scruple does not ask a chatbot to review your repository. A rule can ask whether a bounded
+      target is relevant, then sends each selected candidate with one fixed decision question.
     </p>
   </div>
   <ProviderOptions />

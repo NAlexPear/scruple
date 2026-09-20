@@ -55,7 +55,10 @@ export const fixture = buildFixture();
 
 Separate multiple rule IDs with commas. Omit rule IDs to affect every active rule. A rule-specific `scruple-enable` can re-enable that rule inside an all-rule disabled region. Text after `--` is a justification, not part of the rule list.
 
-Scruple removes suppressed candidates before sending requests to the provider, so they do not consume provider tokens or appear in `--explain` output. The [`comments/require-justified-suppressions`](../plugins/comments.md#commentsrequire-justified-suppressions) rule can review suppression scope and rationale.
+Scruple checks suppression before collection classification and again before final evaluation. A
+suppressed target therefore consumes no provider tokens and produces no `--explain` decision. The
+[`comments/require-justified-suppressions`](../plugins/comments.md#commentsrequire-justified-suppressions)
+rule can review suppression scope and rationale.
 
 ## File selection
 

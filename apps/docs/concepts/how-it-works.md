@@ -1,6 +1,8 @@
 # How Scruple works
 
-Scruple uses a parser to find relevant code, rules to define questions and reporting thresholds, and a provider to answer those questions.
+Scruple uses a parser to find bounded code targets, rules to select candidates and define reporting
+policy, and a provider to answer narrow questions. A rule may use the provider once to decide whether
+an ambiguous target is relevant and again to decide whether a selected candidate violates the rule.
 
 ## One resource bug, end to end
 
@@ -71,11 +73,21 @@ The OXC parser supports JavaScript and TypeScript extensions and can recognize c
 
 ## Collect bounded candidates
 
-A semantic rule's `collect` function examines one parsed document. Each candidate contains a target, JSON state, a typed question, and optional rule-owned data.
+A semantic rule's `collect` function examines one parsed document. Straightforward rules select
+candidates from normalized syntax and facts. When that would require a brittle list of spellings or
+names, an asynchronous collector can send each bounded possible target to the configured provider for
+classification. For example, the TODO rule can recognize `to-do:` as a maintenance marker without
+mistaking “return the to-do list” for one.
+
+The provider does not search the file. The rule chooses every possible target and the exact
+classification labels. Each final candidate contains a target, JSON state, a typed decision question,
+and optional rule-owned data.
 
 ## Batch decisions
 
-Scruple combines independent questions that share the same evidence state into one provider request. Requests run up to the provider's concurrency limit.
+Scruple combines independent final questions that share the same evidence state into one provider
+request. Collection and final requests share the provider's concurrency limit and token accounting.
+Suppressed targets are discarded before either request is sent.
 
 ## Apply rule-owned policy
 

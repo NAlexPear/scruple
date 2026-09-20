@@ -8,7 +8,10 @@ await test("CLI documents auditable decision output", () => {
     encoding: "utf8",
   });
 
-  assert.match(output, /--explain\s+Include every provider decision/u);
+  assert.match(
+    output,
+    /--explain\s+Include final candidate decisions, not collection classifications/u,
+  );
   assert.match(output, /--format <format> stylish or json/u);
 });
 

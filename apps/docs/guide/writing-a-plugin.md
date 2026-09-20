@@ -3,8 +3,9 @@
 A plugin is a group of related rules. Each rule:
 
 - chooses which parsed code might need checking
-- sends only the code needed to answer its question
-- asks one fixed question with named answers
+- can classify ambiguous possible candidates
+- sends only the code needed for each question
+- asks one fixed final question with named answers
 - decides how strong an answer must be before reporting
 - writes the warning shown to the user
 
@@ -110,9 +111,10 @@ export const todoPolicy = () =>
 `collect(document, context)` selects candidates from parsed facts. Keep source order, limit the amount
 of code sent, and include only what the question needs. Use syntax and normalized parser facts when they
 answer the classification exactly. When selecting a candidate requires a semantic judgment, collection
-may use `context.provider.evaluate(target, request)` to classify a bounded list of possible targets before returning
-the final candidates. The context exposes only the provider ID and evaluation method; Scruple still
-enforces suppression and provider concurrency, and includes these requests and tokens in run statistics.
+may use `context.provider.evaluate(target, request)` to classify a bounded list of possible targets
+before returning the final candidates. The context exposes only the provider ID and evaluation method;
+Scruple still enforces suppression and provider concurrency, and includes these requests and tokens in
+run statistics. A suppressed target returns `null` without making a provider request.
 
 Collection may therefore return either `RuleCandidate[]` or `Promise<RuleCandidate[]>`. The built-in
 TODO rule, for example, asks the provider whether each non-directive comment marks future work rather
@@ -217,11 +219,21 @@ Cover four parts:
 
 ## Add evaluation fixtures
 
-An evaluation fixture records what should happen without consulting the provider. For an asynchronous
-collector, `collection_choices` replays the provider's collection answers in request order so corpus
-validation exercises the same candidate path deterministically. These answers select candidates; they
-are separate from `expected_choice`, which describes the final rule decision. Include a reason and tags
-so a failure explains more than a changed number:
+An evaluation fixture records what should happen without making live provider requests. For an
+asynchronous collector, `collection_choices` replays the provider's collection answers in request order
+so corpus validation exercises the same candidate path deterministically. These answers select
+candidates; they are separate from `expected_choice`, which describes the final rule decision:
+
+```json
+{
+  "collection_choices": ["todo"],
+  "expected_choice": "vague"
+}
+```
+
+This means the recorded collection answer keeps the possible target, then the recorded final answer
+expects the selected TODO to be vague. Omit `collection_choices` for a synchronous collector. In a full
+fixture, include a reason and tags so a failure explains more than a changed number:
 
 ```json
 [

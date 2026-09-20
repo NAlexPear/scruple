@@ -1,6 +1,16 @@
 # Evidence and decisions
 
-Scruple does not ask a model to review an entire repository or produce free-form findings. Plugins define the evidence and answer shape before a request is made.
+Scruple does not ask a model to review an entire repository or produce free-form findings. Plugins
+choose bounded targets and define the evidence and answer shape before every request is made.
+
+## Collection and decision questions
+
+Most rules use parser facts to choose candidates directly. A rule may instead ask the provider to
+classify a bounded possible target when relevance depends on meaning rather than exact syntax. That
+collection answer only decides whether the target becomes a candidate. It is not a finding.
+
+Every selected candidate then receives the rule's decision question. Only this final answer can be
+turned into a diagnostic, and the rule—not the provider—owns the message and reporting thresholds.
 
 ## A complete decision request
 
@@ -55,7 +65,8 @@ The provider returns a named answer with no diagnostic prose:
 
 ## Bounded evidence
 
-Candidate state must be JSON. A plugin should include only the excerpts and facts required to answer its question. This keeps requests inspectable, repeatable, and within provider context limits.
+Collection and candidate state must be JSON. A plugin should include only the excerpts and facts
+required to answer each question. This keeps requests inspectable and within provider context limits.
 
 ## Question types
 
