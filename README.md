@@ -12,22 +12,15 @@ rule packages you want:
 ```sh
 pnpm add --save-dev \
   @scruple/api-contracts \
-  @scruple/architecture \
   @scruple/cli \
   @scruple/core \
   @scruple/parser-oxc \
   @scruple/provider-jev \
   @scruple/async \
-  @scruple/caches \
   @scruple/comments \
-  @scruple/compatibility \
   @scruple/errors \
   @scruple/observability \
   @scruple/security \
-  @scruple/http-clients \
-  @scruple/queues \
-  @scruple/dependencies \
-  @scruple/configuration \
   @scruple/tests \
   @scruple/relational-databases \
   @scruple/resources
@@ -38,18 +31,12 @@ Create `scruple.config.ts`:
 ```ts
 import { apiContracts } from "@scruple/api-contracts";
 import { asyncRules } from "@scruple/async";
-import { caches } from "@scruple/caches";
-import { architecture } from "@scruple/architecture";
 import { comments } from "@scruple/comments";
-import { configuration } from "@scruple/configuration";
 import { defineConfig } from "@scruple/core";
 import { errors } from "@scruple/errors";
 import { observability } from "@scruple/observability";
-import { httpClients } from "@scruple/http-clients";
-import { dependencies } from "@scruple/dependencies";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
-import { queues } from "@scruple/queues";
 import { relationalDatabases } from "@scruple/relational-databases";
 import { resources } from "@scruple/resources";
 import { security } from "@scruple/security";
@@ -66,16 +53,10 @@ export default defineConfig({
   plugins: {
     "api-contracts": apiContracts(),
     async: asyncRules(),
-    caches: caches(),
-    architecture: architecture(),
     comments: comments(),
     errors: errors(),
     observability: observability(),
     security: security(),
-    "http-clients": httpClients(),
-    queues: queues(),
-    dependencies: dependencies(),
-    configuration: configuration(),
     tests: tests(),
     "relational-databases": relationalDatabases(),
     resources: resources(),
@@ -87,18 +68,6 @@ export default defineConfig({
     "async/no-unbounded-concurrency": "warn",
     "async/no-serial-independent-work": "warn",
     "async/require-cancellation-propagation": "warn",
-    "caches/no-unsafe-cache-key": "warn",
-    "caches/require-cache-invalidation": "warn",
-    "caches/no-sensitive-cache-data": "error",
-    "architecture/no-layer-violations": [
-      "error",
-      {
-        layers: [
-          { name: "domain", files: ["src/domain/**"] },
-          { name: "application", files: ["src/application/**"], allow: ["domain"] },
-        ],
-      },
-    ],
     "comments/no-useless-comments": "warn",
     "comments/no-misleading-comments": "warn",
     "comments/no-commented-out-code": "warn",
@@ -111,15 +80,6 @@ export default defineConfig({
     "observability/require-operation-context": "warn",
     "security/no-user-controlled-authorization": "warn",
     "security/no-sensitive-data-exposure": "warn",
-    "http-clients/require-timeout": "error",
-    "http-clients/require-response-validation": "warn",
-    "http-clients/no-unbounded-retries": "error",
-    "queues/require-idempotent-handler": "warn",
-    "queues/no-acknowledge-before-processing": "error",
-    "queues/require-dead-letter-policy": "warn",
-    "dependencies/no-reimplemented-dependency-feature": "off",
-    "configuration/no-insecure-production-defaults": "error",
-    "configuration/require-environment-validation": "warn",
     "tests/no-vacuous-tests": "error",
     "relational-databases/prefer-database-join": "warn",
     "resources/no-leaked-resources": "error",
@@ -195,14 +155,6 @@ publishable rule packs, not rules built into the engine:
   start together.
 - `async/require-cancellation-propagation` checks explicit `AbortSignal` contracts when downstream
   cancellation support is visible.
-- `caches/no-unsafe-cache-key` identifies visible tenant or user isolation boundaries omitted from
-  cache keys.
-- `caches/require-cache-invalidation` identifies non-expiring writes without a visible TTL,
-  version, invalidation, or external handoff.
-- `caches/no-sensitive-cache-data` identifies sensitive values visibly passed to caches without
-  encryption or redaction.
-- `architecture/no-layer-violations` deterministically checks relative static imports and
-  re-exports against explicit layer file globs and allowlists.
 - `comments/no-useless-comments` identifies comments that add no useful rationale, constraint, or
   context.
 - `comments/no-misleading-comments` identifies comments that contradict the visible code.
@@ -223,24 +175,6 @@ publishable rule packs, not rules built into the engine:
   overlapping visible failure channels.
 - `api-contracts/require-input-validation` identifies directly exported, visibly untrusted
   boundaries that use input without visible runtime validation.
-- `http-clients/require-timeout` requires a visible finite deadline for recognized HTTP requests.
-- `http-clients/require-response-validation` identifies structured response data used without
-  visible runtime validation.
-- `http-clients/no-unbounded-retries` identifies recognized requests whose visible retry behavior
-  has no finite bound.
-- `queues/require-idempotent-handler` identifies visible queue handlers that can repeat side effects
-  when a message is redelivered.
-- `queues/no-acknowledge-before-processing` identifies explicit delivery acknowledgements that can
-  run before processing or transaction commit succeeds.
-- `queues/require-dead-letter-policy` checks recognized, visible queue declarations for both a
-  dead-letter destination and bounded delivery attempts. It does not infer deployment-managed
-  policy from consumer code.
-- `dependencies/no-reimplemented-dependency-feature` identifies local functions that duplicate an
-  installed dependency capability when supplied with complete, bounded evidence.
-- `configuration/no-insecure-production-defaults` identifies insecure fallback values that can be
-  used on production paths.
-- `configuration/require-environment-validation` identifies environment configuration used without
-  an established schema, framework, or direct validation boundary.
 - `tests/no-vacuous-tests` identifies tests that do not meaningfully verify behavior.
 - `relational-databases/prefer-database-join` identifies function-level in-memory joins that can
   reasonably be performed by the available database layer.
@@ -255,19 +189,13 @@ publishable rule packs, not rules built into the engine:
   sinks without visible protection.
 
 A plugin registers named rules. Semantic rules collect normalized source targets and create typed
-decision questions, then deterministically turn provider answers into diagnostics or abstain.
-Repository rules inspect the complete normalized document set and can produce deterministic static
-diagnostics without model calls. Rules provide stable diagnostic text and never ask a model to
-generate messages or fixes.
+decision questions, then deterministically turn provider answers into diagnostics or abstain. Rules
+provide stable diagnostic text and never ask a model to generate messages or fixes.
 
 Security rules are advisory and deliberately abstain when per-file evidence cannot establish trust
 provenance, middleware, helper behavior, data sensitivity, or access boundaries. Security linting is
 not a security guarantee; use it alongside threat modeling, review, testing, scanning, and runtime
 controls.
-
-`@scruple/compatibility` is a deterministic comparison policy set rather than a current-source
-plugin. Its `no-breaking-api-changes` and `require-migration-path` rules require explicit, complete
-before/after exported-API evidence and report insufficient context when that evidence is unavailable.
 
 OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
 calls, and facts rather than serialized syntax trees. Both parsers and decision providers are

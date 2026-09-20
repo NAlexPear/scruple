@@ -112,42 +112,24 @@ importers:
       '@scruple/api-contracts':
         specifier: workspace:*
         version: link:packages/api-contracts
-      '@scruple/architecture':
-        specifier: workspace:*
-        version: link:packages/architecture
       '@scruple/async':
         specifier: workspace:*
         version: link:packages/async
-      '@scruple/caches':
-        specifier: workspace:*
-        version: link:packages/caches
       '@scruple/cli':
         specifier: workspace:*
         version: link:packages/cli
       '@scruple/comments':
         specifier: workspace:*
         version: link:packages/comments
-      '@scruple/compatibility':
-        specifier: workspace:*
-        version: link:packages/compatibility
-      '@scruple/configuration':
-        specifier: workspace:*
-        version: link:packages/configuration
       '@scruple/core':
         specifier: workspace:*
         version: link:packages/core
-      '@scruple/dependencies':
-        specifier: workspace:*
-        version: link:packages/dependencies
       '@scruple/errors':
         specifier: workspace:*
         version: link:packages/errors
       '@scruple/eval':
         specifier: workspace:*
         version: link:packages/eval
-      '@scruple/http-clients':
-        specifier: workspace:*
-        version: link:packages/http-clients
       '@scruple/observability':
         specifier: workspace:*
         version: link:packages/observability
@@ -160,9 +142,6 @@ importers:
       '@scruple/provider-laya':
         specifier: workspace:*
         version: link:packages/provider-laya
-      '@scruple/queues':
-        specifier: workspace:*
-        version: link:packages/queues
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:packages/relational-databases
@@ -209,26 +188,7 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/architecture:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-      picomatch:
-        specifier: ^4.0.3
-        version: 4.0.7
-    devDependencies:
-      '@types/picomatch':
-        specifier: ^4.0.3
-        version: 4.0.3
-
   packages/async:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/caches:
     dependencies:
       '@scruple/core':
         specifier: workspace:*
@@ -252,21 +212,7 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/compatibility: {}
-
-  packages/configuration:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/core: {}
-
-  packages/dependencies:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
 
   packages/errors:
     dependencies:
@@ -282,9 +228,6 @@ importers:
       '@scruple/async':
         specifier: workspace:*
         version: link:../async
-      '@scruple/caches':
-        specifier: workspace:*
-        version: link:../caches
       '@scruple/comments':
         specifier: workspace:*
         version: link:../comments
@@ -294,9 +237,6 @@ importers:
       '@scruple/errors':
         specifier: workspace:*
         version: link:../errors
-      '@scruple/http-clients':
-        specifier: workspace:*
-        version: link:../http-clients
       '@scruple/observability':
         specifier: workspace:*
         version: link:../observability
@@ -309,9 +249,6 @@ importers:
       '@scruple/provider-laya':
         specifier: workspace:*
         version: link:../provider-laya
-      '@scruple/queues':
-        specifier: workspace:*
-        version: link:../queues
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:../relational-databases
@@ -324,12 +261,6 @@ importers:
       '@scruple/tests':
         specifier: workspace:*
         version: link:../tests
-
-  packages/http-clients:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
 
   packages/observability:
     dependencies:
@@ -356,12 +287,6 @@ importers:
         version: 0.6.0
 
   packages/provider-laya:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/queues:
     dependencies:
       '@scruple/core':
         specifier: workspace:*

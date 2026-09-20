@@ -4,7 +4,6 @@ import type {
   ErrorHandlerExitCapture,
   ErrorHandlerTarget,
   FunctionTarget,
-  ModuleReference,
   ParsedDocument,
   ParseIssue,
   SourceLocation,
@@ -68,7 +67,6 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
       const language = languageFor(filename);
       const locate = createLocator(source);
       const imports = collectImports(program, source);
-      const moduleReferences = collectModuleReferences(program, source, locate);
       const functions = collectFunctions(
         program,
         source,
@@ -94,7 +92,6 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
         language,
         source,
         imports,
-        moduleReferences,
         comments,
         functions,
         errorHandlers,
@@ -205,38 +202,6 @@ const collectImports = (program: AstNode, source: string): string[] => {
     .filter((value) => isNode(value))
     .filter((node) => node.type === "ImportDeclaration")
     .map((node) => source.slice(node.start, node.end));
-};
-
-const collectModuleReferences = (
-  program: AstNode,
-  source: string,
-  locate: (range: SourceRange) => SourceLocation,
-): ModuleReference[] => {
-  const body = Array.isArray(program.body) ? program.body : [];
-  return body.flatMap((value) => {
-    if (!isNode(value)) {
-      return [];
-    }
-    const kind =
-      value.type === "ImportDeclaration"
-        ? "import"
-        : value.type === "ExportNamedDeclaration" || value.type === "ExportAllDeclaration"
-          ? "export"
-          : undefined;
-    if (kind === undefined || !isNode(value.source) || typeof value.source.value !== "string") {
-      return [];
-    }
-    const range = rangeOf(value.source);
-    return [
-      {
-        kind,
-        specifier: value.source.value,
-        source: source.slice(value.start, value.end),
-        range,
-        location: locate(range),
-      },
-    ];
-  });
 };
 
 const collectFunctions = (

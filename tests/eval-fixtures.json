@@ -153,105 +153,6 @@
     "tags": ["negative", "bounded-data", "application-semantics"]
   },
   {
-    "id": "cache-encrypted-access-token",
-    "filename": "session.ts",
-    "source": "export async function cacheSession(sessionId: string, accessToken: string) {\n  const encryptedToken = await envelopeEncryption.encrypt(accessToken);\n  await sessionCache.set(`session:${sessionId}`, { encryptedToken }, { ttl: 300 });\n}\n",
-    "rule_id": "caches/no-sensitive-cache-data",
-    "expected_finding": false,
-    "rationale": "The sensitive value is visibly encrypted before it enters the cache.",
-    "tags": ["negative", "token", "encryption"]
-  },
-  {
-    "id": "cache-key-hashed-and-namespaced",
-    "filename": "profile.ts",
-    "source": "import { createHash } from \"node:crypto\";\nexport async function profile(tenantId: string, userId: string) {\n  const scope = createHash(\"sha256\").update(`${tenantId}:${userId}`).digest(\"hex\");\n  return userCache.get(`profile:v2:${scope}`) ?? userStore.load(tenantId, userId);\n}\n",
-    "rule_id": "caches/no-unsafe-cache-key",
-    "expected_finding": false,
-    "rationale": "The namespaced key hashes both visible isolation identities and therefore remains scope-specific.",
-    "tags": ["negative", "hashing", "namespace", "tenant-isolation", "user-isolation"]
-  },
-  {
-    "id": "cache-key-omits-tenant",
-    "filename": "profile.ts",
-    "source": "export async function profile(tenantId: string, userId: string) {\n  const key = `profile:${userId}`;\n  return userCache.get(key) ?? userStore.load(tenantId, userId);\n}\n",
-    "rule_id": "caches/no-unsafe-cache-key",
-    "expected_finding": true,
-    "rationale": "The profile lookup is tenant-specific, but tenants containing the same user ID address the same cache entry.",
-    "tags": ["positive", "tenant-isolation", "omitted-scope"]
-  },
-  {
-    "id": "cache-key-omits-user",
-    "filename": "profile.ts",
-    "source": "export async function profile(userId: string) {\n  return userCache.get(\"profile:current\") ?? userStore.load(userId);\n}\n",
-    "rule_id": "caches/no-unsafe-cache-key",
-    "expected_finding": true,
-    "rationale": "Every user addresses the same constant profile key even though the fallback lookup is explicitly user-specific.",
-    "tags": ["positive", "user-isolation", "omitted-scope"]
-  },
-  {
-    "id": "cache-plaintext-access-token",
-    "filename": "session.ts",
-    "source": "export async function cacheSession(sessionId: string, accessToken: string) {\n  await sessionCache.set(`session:${sessionId}`, { accessToken }, { ttl: 300 });\n}\n",
-    "rule_id": "caches/no-sensitive-cache-data",
-    "expected_finding": true,
-    "rationale": "The direct write visibly stores an authentication token in plaintext.",
-    "tags": ["positive", "token", "plaintext"]
-  },
-  {
-    "id": "cache-sensitive-wrapper-is-ambiguous",
-    "filename": "session.ts",
-    "source": "export function session(sessionId: string) {\n  return sessionCache.wrap(sessionId, () => sessionStore.load(sessionId));\n}\n",
-    "rule_id": "caches/no-sensitive-cache-data",
-    "expected_finding": false,
-    "rationale": "Neither the wrapper's serialization policy nor the loaded object's fields are visible, so the rule must abstain.",
-    "tags": ["negative", "wrapper", "insufficient-context"]
-  },
-  {
-    "id": "cache-wrapper-policy-is-ambiguous",
-    "filename": "profile.ts",
-    "source": "export function profile(tenantId: string, userId: string) {\n  return profileCache.wrap({ tenantId, userId }, () => userStore.load(tenantId, userId));\n}\n",
-    "rule_id": "caches/require-cache-invalidation",
-    "expected_finding": false,
-    "rationale": "The wrapper may supply a TTL or invalidation policy that is not visible at this call site, so the rule must abstain.",
-    "tags": ["negative", "wrapper", "insufficient-context"]
-  },
-  {
-    "id": "cache-write-with-data-version",
-    "filename": "catalog.ts",
-    "source": "export async function cacheCatalog(catalogVersion: string) {\n  const catalog = await catalogStore.load(catalogVersion);\n  await catalogCache.set(`catalog:${catalogVersion}`, catalog);\n  return catalog;\n}\n",
-    "rule_id": "caches/require-cache-invalidation",
-    "expected_finding": false,
-    "rationale": "The key is tied to the data version, so updates populate a distinct entry even without a TTL.",
-    "tags": ["negative", "versioned-key", "bounded-freshness"]
-  },
-  {
-    "id": "cache-write-with-external-invalidation-handoff",
-    "filename": "profile.ts",
-    "source": "export async function cacheProfile(tenantId: string, userId: string) {\n  const profile = await userStore.load(tenantId, userId);\n  await userCache.set(`profile:${tenantId}:${userId}`, profile);\n  await invalidationEvents.subscribe({ topic: \"profile.changed\", key: `profile:${tenantId}:${userId}` });\n  return profile;\n}\n",
-    "rule_id": "caches/require-cache-invalidation",
-    "expected_finding": false,
-    "rationale": "The function visibly registers the exact key with an external invalidation channel.",
-    "tags": ["negative", "external-invalidation", "event-handoff"]
-  },
-  {
-    "id": "cache-write-with-finite-ttl",
-    "filename": "profile.ts",
-    "source": "export async function cacheProfile(tenantId: string, userId: string) {\n  const profile = await userStore.load(tenantId, userId);\n  await userCache.set(`profile:${tenantId}:${userId}`, profile, { ttl: 300 });\n  return profile;\n}\n",
-    "rule_id": "caches/require-cache-invalidation",
-    "expected_finding": false,
-    "rationale": "The explicit five-minute TTL bounds how long stale profile data can remain cached.",
-    "tags": ["negative", "ttl", "bounded-freshness"]
-  },
-  {
-    "id": "cache-write-without-freshness-bound",
-    "filename": "profile.ts",
-    "source": "export async function cacheProfile(tenantId: string, userId: string) {\n  const profile = await userStore.load(tenantId, userId);\n  await userCache.set(`profile:${tenantId}:${userId}`, profile);\n  return profile;\n}\n",
-    "rule_id": "caches/require-cache-invalidation",
-    "expected_finding": true,
-    "rationale": "A direct write stores mutable profile data without a TTL, version, invalidation, or handoff visible in the function.",
-    "tags": ["positive", "non-expiring", "mutable-data"]
-  },
-  {
     "id": "cleanup-close-only-after-success",
     "filename": "report.ts",
     "source": "import { open } from \"node:fs/promises\";\nexport async function parseReport() {\n  const file = await open(\"report.txt\");\n  const report = parse(await file.readFile(\"utf8\"));\n  await file.close();\n  return report;\n}\n",
@@ -558,96 +459,6 @@
     "tags": ["negative", "insufficient-context", "abstention"]
   },
   {
-    "id": "http-axios-visible-wrapper-timeout",
-    "filename": "users.ts",
-    "source": "import axios from \"axios\";\nconst api = axios.create({ baseURL: \"https://api.example.com\", timeout: 2_000 });\nexport async function loadUser(id: string) {\n  return api.get(`/users/${id}`);\n}\n",
-    "rule_id": "http-clients/require-timeout",
-    "expected_finding": false,
-    "rationale": "The recognized Axios instance has a visible finite default timeout.",
-    "tags": ["negative", "axios", "wrapper-default", "timeout"]
-  },
-  {
-    "id": "http-bounded-axios-retry-middleware",
-    "filename": "users.ts",
-    "source": "import axios from \"axios\";\nimport axiosRetry from \"axios-retry\";\nconst api = axios.create({ timeout: 2_000 });\naxiosRetry(api, { retries: 3 });\nexport async function loadUser(id: string) {\n  return api.get(`/users/${id}`);\n}\n",
-    "rule_id": "http-clients/no-unbounded-retries",
-    "expected_finding": false,
-    "rationale": "The visible retry middleware imposes a finite three-retry budget.",
-    "tags": ["negative", "axios", "retry-middleware", "bounded-retries"]
-  },
-  {
-    "id": "http-bounded-retry-loop",
-    "filename": "users.ts",
-    "source": "export async function loadUserWithRetry(id: string) {\n  for (let attempt = 0; attempt < 3; attempt += 1) {\n    try {\n      return await fetch(`https://api.example.com/users/${id}`);\n    } catch (error) {\n      if (attempt === 2) throw error;\n    }\n  }\n}\n",
-    "rule_id": "http-clients/no-unbounded-retries",
-    "expected_finding": false,
-    "rationale": "The loop performs at most three attempts and rethrows the final failure.",
-    "tags": ["negative", "fetch", "retry", "bounded-loop"]
-  },
-  {
-    "id": "http-caller-abort-signal-unknown-deadline",
-    "filename": "users.ts",
-    "source": "export async function loadUser(id: string, signal: AbortSignal) {\n  return fetch(`https://api.example.com/users/${id}`, { signal });\n}\n",
-    "rule_id": "http-clients/require-timeout",
-    "expected_finding": false,
-    "rationale": "The caller controls this signal, so the bounded evidence cannot establish whether it includes a deadline.",
-    "tags": ["negative", "abstention", "caller-signal"]
-  },
-  {
-    "id": "http-declared-trust-boundary-unverifiable",
-    "filename": "health.ts",
-    "source": "export async function internalHealth() {\n  // The platform treats this generated internal endpoint as a trusted contract.\n  const response = await fetch(\"https://health.service.internal/status\");\n  return response.json();\n}\n",
-    "rule_id": "http-clients/require-response-validation",
-    "expected_finding": false,
-    "rationale": "Whether the declared internal trust boundary is valid requires policy and generated-client context outside this function, so the bounded rule must abstain.",
-    "tags": ["negative", "abstention", "trusted-api", "trust-boundary"]
-  },
-  {
-    "id": "http-fetch-with-abort-deadline",
-    "filename": "users.ts",
-    "source": "export async function loadUser(id: string) {\n  return fetch(`https://api.example.com/users/${id}`, {\n    signal: AbortSignal.timeout(2_000),\n  });\n}\n",
-    "rule_id": "http-clients/require-timeout",
-    "expected_finding": false,
-    "rationale": "AbortSignal.timeout gives the request a visible two-second deadline.",
-    "tags": ["negative", "fetch", "abort-signal", "timeout"]
-  },
-  {
-    "id": "http-fetch-without-timeout",
-    "filename": "users.ts",
-    "source": "export async function loadUser(id: string) {\n  return fetch(`https://api.example.com/users/${id}`);\n}\n",
-    "rule_id": "http-clients/require-timeout",
-    "expected_finding": true,
-    "rationale": "A direct fetch has no timeout, deadline, signal, or wrapper that could provide one.",
-    "tags": ["positive", "fetch", "timeout"]
-  },
-  {
-    "id": "http-json-validated-with-schema",
-    "filename": "users.ts",
-    "source": "import { UserSchema } from \"./schema.js\";\nexport async function loadUser(id: string) {\n  const response = await fetch(`https://api.example.com/users/${id}`);\n  return UserSchema.parse(await response.json());\n}\n",
-    "rule_id": "http-clients/require-response-validation",
-    "expected_finding": false,
-    "rationale": "The schema parses and validates the deserialized value before it is returned.",
-    "tags": ["negative", "fetch", "response-validation", "schema"]
-  },
-  {
-    "id": "http-json-without-runtime-validation",
-    "filename": "users.ts",
-    "source": "export async function loadUser(id: string) {\n  const response = await fetch(`https://api.example.com/users/${id}`);\n  return (await response.json()) as User;\n}\n",
-    "rule_id": "http-clients/require-response-validation",
-    "expected_finding": true,
-    "rationale": "A TypeScript cast does not validate the deserialized response at runtime.",
-    "tags": ["positive", "fetch", "response-validation", "type-cast"]
-  },
-  {
-    "id": "http-unbounded-retry-loop",
-    "filename": "users.ts",
-    "source": "export async function loadUserWithRetry(id: string) {\n  while (true) {\n    try {\n      return await fetch(`https://api.example.com/users/${id}`);\n    } catch {}\n  }\n}\n",
-    "rule_id": "http-clients/no-unbounded-retries",
-    "expected_finding": true,
-    "rationale": "The loop retries the request forever after failures and has no elapsed-time or attempt bound.",
-    "tags": ["positive", "fetch", "retry", "unbounded-loop"]
-  },
-  {
     "id": "independent-post-query-transformations",
     "filename": "report.ts",
     "source": "import { db } from \"./db.js\";\nexport async function report() {\n  const users = await db.user.findMany();\n  const teams = await db.team.findMany();\n  return { users: users.map(toApiUser), teams: teams.map(toApiTeam) };\n}\n",
@@ -837,51 +648,6 @@
     "tags": ["negative", "operation-present", "structured"]
   },
   {
-    "id": "queue-ack-after-transaction-commit",
-    "filename": "worker.ts",
-    "source": "import amqp from \"amqplib\";\nexport async function start(channel: Channel) {\n  await channel.consume(\"orders\", async (message) => {\n    const transaction = await database.begin();\n    await transaction.insert(orderFrom(message));\n    await transaction.commit();\n    channel.ack(message);\n  });\n}\n",
-    "rule_id": "queues/no-acknowledge-before-processing",
-    "expected_finding": false,
-    "rationale": "The explicit acknowledgement follows both processing and successful transaction commit.",
-    "tags": ["negative", "rabbitmq", "acknowledgement", "transaction"]
-  },
-  {
-    "id": "queue-ack-before-processing",
-    "filename": "worker.ts",
-    "source": "import amqp from \"amqplib\";\nexport async function start(channel: Channel) {\n  await channel.consume(\"payments\", async (message) => {\n    channel.ack(message);\n    await payments.capture(message.content);\n  });\n}\n",
-    "rule_id": "queues/no-acknowledge-before-processing",
-    "expected_finding": true,
-    "rationale": "The delivery is acknowledged before the payment side effect succeeds.",
-    "tags": ["positive", "rabbitmq", "acknowledgement"]
-  },
-  {
-    "id": "queue-declaration-missing-dead-letter-policy",
-    "filename": "queues.ts",
-    "source": "import amqp from \"amqplib\";\nexport async function provision(channel: Channel) {\n  await channel.assertQueue(\"jobs\", { durable: true });\n}\n",
-    "rule_id": "queues/require-dead-letter-policy",
-    "expected_finding": true,
-    "rationale": "The authoritative queue declaration visibly omits a dead-letter destination and bounded delivery attempts.",
-    "tags": ["positive", "rabbitmq", "dead-letter"]
-  },
-  {
-    "id": "queue-handler-deduplicates-in-transaction",
-    "filename": "worker.ts",
-    "source": "import { Kafka } from \"kafkajs\";\nexport async function start(consumer: Consumer) {\n  await consumer.run({ eachMessage: async ({ message }) => {\n    await database.transaction(async (transaction) => {\n      const inserted = await transaction.insertProcessedEventIfAbsent(message.headers.eventId);\n      if (inserted) await transaction.upsertAccount(message.value);\n    });\n  } });\n}\n",
-    "rule_id": "queues/require-idempotent-handler",
-    "expected_finding": false,
-    "rationale": "The durable processed-event insertion and side effect share a transaction, suppressing duplicate deliveries.",
-    "tags": ["negative", "kafka", "deduplication", "transaction"]
-  },
-  {
-    "id": "queue-handler-repeats-email-side-effect",
-    "filename": "worker.ts",
-    "source": "import { Consumer } from \"sqs-consumer\";\nexport function start() {\n  const consumer = Consumer.create({\n    queueUrl,\n    handleMessage: async (message) => {\n      await email.send(JSON.parse(message.Body));\n    }\n  });\n  consumer.start();\n}\n",
-    "rule_id": "queues/require-idempotent-handler",
-    "expected_finding": true,
-    "rationale": "Redelivery repeats the email side effect without a durable deduplication guard or idempotency key.",
-    "tags": ["positive", "sqs", "idempotency"]
-  },
-  {
     "id": "resource-await-using-disposes-handle",
     "filename": "report.ts",
     "source": "import { open } from \"node:fs/promises\";\nexport async function readReport() {\n  await using file = await open(\"report.txt\");\n  return file.readFile(\"utf8\");\n}\n",
@@ -1060,15 +826,6 @@
     "expected_finding": false,
     "rationale": "The bounded results come from separate database systems that cannot perform a shared join.",
     "tags": ["negative", "bounded-data", "separate-databases"]
-  },
-  {
-    "id": "subscription-declaration-has-dead-letter-policy",
-    "filename": "queues.ts",
-    "source": "import { PubSub } from \"@google-cloud/pubsub\";\nexport async function provision(pubsub: PubSub) {\n  await pubsub.topic(\"jobs\").createSubscription(\"workers\", {\n    deadLetterPolicy: {\n      deadLetterTopic: pubsub.topic(\"jobs-dead\").name,\n      maxDeliveryAttempts: 8\n    }\n  });\n}\n",
-    "rule_id": "queues/require-dead-letter-policy",
-    "expected_finding": false,
-    "rationale": "The subscription declaration includes both a dead-letter topic and a maximum delivery-attempt count.",
-    "tags": ["negative", "pubsub", "dead-letter"]
   },
   {
     "id": "swallowed-after-cleanup",
