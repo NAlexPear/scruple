@@ -1,5 +1,6 @@
 {
   "name": "scruple-workspace",
+  "version": "0.0.1",
   "private": true,
   "description": "Semantic code rules powered by Jev or local Laya models.",
   "homepage": "https://github.com/NAlexPear/scruple#readme",
@@ -19,6 +20,7 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint --deny-warnings .",
+    "release:version": "node scripts/set-release-version.ts",
     "test": "pnpm build && node --test",
     "typecheck": "tsc --noEmit"
   },

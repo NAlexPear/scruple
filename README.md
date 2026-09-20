@@ -4,9 +4,6 @@ Scruple is a pluggable semantic code checker that turns focused source evidence 
 
 ## Use Scruple
 
-The packages are configured for npm but have not been published yet; the commands below describe
-the first release.
-
 Scruple requires Node.js 22.18 or newer. Install the CLI, core, OXC parser, a provider, and the example
 rule packages you want:
 
@@ -149,6 +146,29 @@ pnpm eval --provider jev --provider laya \
 The eval runner reports per-case failures, requested and resolved models, token and model-call
 counts, repetitions, and p50/p95/total latency as JSON. It exits 1 when decisions miss fixture
 expectations and 2 for operational or configuration errors.
+
+### Release
+
+Scruple uses one version for every public package. Prepare and verify a release on `main`:
+
+```sh
+pnpm release:version 0.1.0
+pnpm check
+git add package.json packages/*/package.json
+git commit -m "🔖 Release v0.1.0"
+git tag -a v0.1.0 -m "🔖 Release v0.1.0"
+git push origin main
+git push origin v0.1.0
+```
+
+The tag workflow checks the fixed version, rebuilds and tests the repository, installs every packed
+tarball in a clean npm consumer, then publishes those exact tarballs with provenance and creates a
+GitHub release. Rerun it manually with an existing tag after a partial failure; already-published
+package versions are skipped.
+
+The `publish` job uses the GitHub `npm` environment and authenticates through short-lived OIDC. Each
+package's trusted GitHub publisher points to `NAlexPear/scruple`, `release.yml`, environment `npm`,
+with direct publishing enabled.
 
 ## License
 

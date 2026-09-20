@@ -1,0 +1,220 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish
+        required: true
+        type: string
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.0.0
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Validate fixed release version
+        run: |
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$(git rev-parse HEAD)"
+          node <<'NODE'
+          const { existsSync, readdirSync, readFileSync } = require("node:fs");
+          const { join } = require("node:path");
+
+          const root = JSON.parse(readFileSync("package.json", "utf8"));
+          if (process.env.RELEASE_TAG !== `v${root.version}`) {
+            throw new Error(
+              `Release tag ${process.env.RELEASE_TAG} does not match root version ${root.version}.`,
+            );
+          }
+
+          const publicPackages = readdirSync("packages", { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => join("packages", entry.name, "package.json"))
+            .filter((path) => existsSync(path))
+            .map((path) => ({ path, manifest: JSON.parse(readFileSync(path, "utf8")) }))
+            .filter(({ manifest }) => manifest.private !== true);
+
+          for (const { path, manifest } of publicPackages) {
+            if (manifest.version !== root.version) {
+              throw new Error(`${path} is ${manifest.version}; expected ${root.version}.`);
+            }
+          }
+          console.log(`Validated ${publicPackages.length} packages at ${root.version}.`);
+          NODE
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check project
+        run: pnpm check
+
+  package:
+    needs: check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.0.0
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build packages
+        run: pnpm build
+      - name: Pack public packages
+        run: |
+          set -euo pipefail
+          mkdir release
+          node <<'NODE' > release/packages.json
+          const { existsSync, readdirSync, readFileSync } = require("node:fs");
+          const { join } = require("node:path");
+          const packages = readdirSync("packages", { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .map((entry) => join("packages", entry.name))
+            .filter((directory) => existsSync(join(directory, "package.json")))
+            .map((directory) => ({
+              directory,
+              manifest: JSON.parse(readFileSync(join(directory, "package.json"), "utf8")),
+            }))
+            .filter(({ manifest }) => manifest.private !== true)
+            .map(({ directory, manifest }) => ({ directory, name: manifest.name }));
+          console.log(JSON.stringify(packages, null, 2));
+          NODE
+          while IFS= read -r directory; do
+            pnpm --dir "$directory" pack --pack-destination "$GITHUB_WORKSPACE/release"
+          done < <(node -e '
+            const packages = require("./release/packages.json");
+            for (const entry of packages) console.log(entry.directory);
+          ')
+          expected="$(node -p 'require("./release/packages.json").length')"
+          test "$(find release -name '*.tgz' -type f | wc -l)" -eq "$expected"
+      - name: Smoke-test packed packages
+        run: |
+          set -euo pipefail
+          test_directory="$(mktemp -d)"
+          printf '{"private":true,"type":"module"}\n' > "$test_directory/package.json"
+          npm install --prefix "$test_directory" "$GITHUB_WORKSPACE"/release/*.tgz
+          (
+            cd "$test_directory"
+            RELEASE_MANIFEST="$GITHUB_WORKSPACE/release/packages.json" node --input-type=module <<'NODE'
+          import { readFile } from "node:fs/promises";
+
+          const packages = JSON.parse(await readFile(process.env.RELEASE_MANIFEST, "utf8"));
+          const names = packages.map(({ name }) => name);
+          await Promise.all(names.map((name) => import(name)));
+          NODE
+            ./node_modules/.bin/scruple --help | grep -q '^Scruple — semantic rules for code'
+          )
+      - name: Upload package tarballs
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: npm-packages
+          path: release
+
+  publish:
+    needs: package
+    runs-on: ubuntu-24.04
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Check out release tag and history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.0.0
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Download tested packages
+        uses: actions/download-artifact@v5
+        with:
+          name: npm-packages
+          path: release
+      - name: Publish packages to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          for archive in release/*.tgz; do
+            manifest="$(tar -xOf "$archive" package/package.json)"
+            name="$(node -e 'const value=JSON.parse(process.argv[1]); process.stdout.write(value.name)' "$manifest")"
+            version="$(node -e 'const value=JSON.parse(process.argv[1]); process.stdout.write(value.version)' "$manifest")"
+            if pnpm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version is already published; skipping."
+            else
+              pnpm publish "$archive" --access public --provenance --no-git-checks
+            fi
+          done
+      - name: Generate release notes
+        run: |
+          previous_tag="$(git describe --tags --abbrev=0 "${RELEASE_TAG}^" 2>/dev/null || true)"
+          range="$RELEASE_TAG"
+          if [[ -n "$previous_tag" ]]; then
+            range="$previous_tag..$RELEASE_TAG"
+          fi
+          {
+            printf '## Changes\n\n'
+            git log --reverse --pretty='- %s' \
+              --invert-grep --grep='^🔖 Release ' "$range"
+            if [[ -n "$previous_tag" ]]; then
+              printf '\n**Full Changelog**: %s/%s/compare/%s...%s\n' \
+                "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" \
+                "$previous_tag" "$RELEASE_TAG"
+            fi
+          } > release-notes.md
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --notes-file release-notes.md --title "$RELEASE_TAG"
+            gh release upload "$RELEASE_TAG" release/*.tgz --clobber \
+              --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" release/*.tgz --notes-file release-notes.md \
+              --repo "$GITHUB_REPOSITORY" --title "$RELEASE_TAG" --verify-tag
+          fi
