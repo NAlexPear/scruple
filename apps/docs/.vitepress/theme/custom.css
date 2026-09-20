@@ -110,6 +110,7 @@
 .landing-example {
   position: relative;
   z-index: 32;
+  min-width: 0;
 }
 
 .landing-kicker {
@@ -287,7 +288,7 @@
   margin: 0;
   overflow-wrap: anywhere;
   color: inherit;
-  font: 400 9px/1.8 var(--vp-font-family-mono);
+  font: 400 10px/1.8 var(--vp-font-family-mono);
 }
 
 .landing-diagnostic .landing-output-command {
@@ -393,6 +394,213 @@
   line-height: 1.65;
 }
 
+.landing-fit {
+  padding: clamp(90px, 10vw, 150px) clamp(24px, 7vw, 110px);
+}
+
+.landing-section-heading {
+  display: grid;
+  grid-template-columns: minmax(420px, 1.15fr) minmax(300px, 0.85fr);
+  gap: 30px clamp(60px, 10vw, 160px);
+  align-items: end;
+  max-width: 1280px;
+  margin: 0 auto 72px;
+}
+
+.landing-section-heading .landing-kicker {
+  grid-column: 1 / -1;
+}
+
+.landing-section-heading h2,
+.landing-taste h2,
+.landing-closing h2 {
+  margin: 0;
+  border: 0;
+  color: var(--vp-c-text-1);
+  font-size: clamp(42px, 5vw, 72px);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+}
+
+.landing-section-heading h2 em {
+  color: var(--vp-c-brand-1);
+  font-family: "Newsreader", Georgia, serif;
+  font-weight: 400;
+}
+
+.landing-section-heading > p:last-child,
+.landing-taste-copy > p:not(.landing-kicker) {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.landing-fit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 1280px;
+  margin: 0 auto;
+  border-top: 1px solid var(--vp-c-divider);
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.landing-fit-grid article {
+  min-height: 235px;
+  padding: 34px;
+  border-right: 1px solid var(--vp-c-divider);
+}
+
+.landing-fit-grid article:first-child {
+  padding-left: 0;
+}
+
+.landing-fit-grid article:last-child {
+  border-right: 0;
+}
+
+.landing-fit-grid article > span {
+  color: var(--vp-c-text-3);
+  font: 400 10px/1 var(--vp-font-family-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landing-fit-grid h3 {
+  margin: 70px 0 12px;
+  color: var(--vp-c-text-1);
+  font-size: 20px;
+  letter-spacing: -0.035em;
+}
+
+.landing-fit-grid p {
+  max-width: 270px;
+  margin: 0;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.landing-fit-grid .landing-fit-scruple {
+  position: relative;
+  background: var(--vp-c-brand-soft);
+}
+
+.landing-fit-scruple::before {
+  position: absolute;
+  top: 34px;
+  right: 34px;
+  width: 9px;
+  height: 9px;
+  background: var(--vp-c-brand-1);
+  content: "";
+  transform: rotate(45deg);
+}
+
+.landing-fit-note {
+  max-width: 780px;
+  margin: 28px auto 0;
+  color: var(--vp-c-text-2);
+  font: 400 12px/1.7 var(--vp-font-family-mono);
+  text-align: center;
+}
+
+.landing-taste {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(480px, 1.1fr);
+  gap: clamp(70px, 10vw, 160px);
+  padding: clamp(90px, 10vw, 150px) clamp(24px, 7vw, 110px);
+  border-top: 1px solid var(--vp-c-divider);
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-alt);
+}
+
+.landing-taste-copy {
+  align-self: center;
+}
+
+.landing-taste h2 {
+  margin: 28px 0 30px;
+}
+
+.landing-taste-copy > a {
+  display: inline-flex;
+  gap: 24px;
+  align-items: center;
+  margin-top: 34px;
+  padding: 13px 17px;
+  border-radius: 4px;
+  background: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+
+.landing-taste-copy > a:hover {
+  transform: translateY(-2px);
+}
+
+.landing-taste-copy svg {
+  width: 26px;
+  height: 16px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.5;
+}
+
+.landing-review-notes {
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.landing-review-notes > p {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 24px;
+  margin: 0;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-1);
+  font: 500 15px/1.5 var(--vp-font-family-base);
+}
+
+.landing-review-notes > p span {
+  padding-top: 4px;
+  color: var(--vp-c-brand-1);
+  font: 400 10px/1 var(--vp-font-family-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landing-review-notes blockquote {
+  margin: 58px 0 0;
+  padding: 0;
+  border: 0;
+  color: var(--vp-c-text-1);
+  font:
+    italic 400 clamp(27px, 3vw, 42px) / 1.15 "Newsreader",
+    Georgia,
+    serif;
+}
+
+.landing-closing {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: clamp(100px, 12vw, 180px) 24px;
+  text-align: center;
+}
+
+.landing-closing h2 {
+  margin-top: 30px;
+}
+
+.landing-closing .landing-actions {
+  margin-top: 45px;
+}
+
 .vp-doc h1 {
   letter-spacing: -0.045em;
 }
@@ -473,6 +681,45 @@
   .landing-principles article:last-child {
     border-bottom: 0;
   }
+
+  .landing-section-heading,
+  .landing-taste {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-section-heading {
+    gap: 30px;
+  }
+
+  .landing-fit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-fit-grid article,
+  .landing-fit-grid article:first-child {
+    min-height: auto;
+    padding: 28px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--vp-c-divider);
+  }
+
+  .landing-fit-grid article:last-child {
+    border-bottom: 0;
+  }
+
+  .landing-fit-grid h3 {
+    margin-top: 30px;
+  }
+
+  .landing-fit-grid .landing-fit-scruple {
+    margin: 0 -24px;
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .landing-taste {
+    gap: 70px;
+  }
 }
 
 @media (max-width: 540px) {
@@ -491,7 +738,7 @@
   }
 
   .landing-copy h1 {
-    font-size: clamp(48px, 15vw, 68px);
+    font-size: clamp(46px, 13vw, 68px);
   }
 
   .landing-actions {
@@ -517,10 +764,49 @@
   }
 
   .landing-diagnostic p {
-    font-size: 8px;
+    font-size: 9px;
   }
 
   .landing-tag {
     display: none;
+  }
+
+  .landing-fit,
+  .landing-taste {
+    padding-top: 80px;
+    padding-bottom: 80px;
+  }
+
+  .landing-section-heading {
+    margin-bottom: 52px;
+  }
+
+  .landing-section-heading h2,
+  .landing-taste h2,
+  .landing-closing h2 {
+    font-size: clamp(38px, 11vw, 54px);
+  }
+
+  .landing-fit-note {
+    text-align: left;
+  }
+
+  .landing-taste {
+    gap: 60px;
+  }
+
+  .landing-review-notes > p {
+    grid-template-columns: 72px 1fr;
+    gap: 14px;
+    font-size: 13px;
+  }
+
+  .landing-review-notes blockquote {
+    margin-top: 44px;
+  }
+
+  .landing-closing {
+    align-items: stretch;
+    text-align: left;
   }
 }
