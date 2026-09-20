@@ -122,6 +122,8 @@
     "source": "export async function accessReport(req: Request) {\n  const permission = await resolvePermission(req);\n  return permission.allows(\"report:read\");\n}\n",
     "rule_id": "security/no-user-controlled-authorization",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The file does not establish whether resolvePermission uses trusted identity or attacker-controlled input, so the rule must abstain.",
     "tags": ["negative", "authorization", "ambiguous", "insufficient-context"]
   },
@@ -275,6 +277,8 @@
     "source": "export function reportFailure(event: LogEvent, error: Error) {\n  logger.error(event, error);\n}\n",
     "rule_id": "observability/no-unactionable-errors",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The exception is visible but the dynamic event may or may not carry operation context, so the rule should abstain.",
     "tags": ["negative", "ambiguity", "insufficient-context"]
   },
@@ -455,6 +459,8 @@
     "source": "export function migrate(input: Payload) {\n  // Previously this used normalizeInput; see the migration plan for compatibility implications.\n  return migratePayload(input);\n}\n",
     "rule_id": "comments/no-change-history-comments",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The visible code does not establish whether the referenced compatibility implications remain relevant, so the rule should abstain.",
     "tags": ["negative", "insufficient-context", "abstention"]
   },
@@ -554,6 +560,8 @@
     "source": "import { test } from \"node:test\";\nimport { verifyCreatedUser } from \"./test-helpers.js\";\n\ntest(\"creates a user\", async () => {\n  const user = await createUser({ name: \"Ada\" });\n  verifyCreatedUser(user, \"Ada\");\n});\n",
     "rule_id": "tests/no-vacuous-tests",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The imported verification helper may assert, but its implementation is unavailable, so the rule should abstain rather than report a false positive.",
     "tags": ["negative", "helper-assertion", "insufficient-context"]
   },
@@ -590,6 +598,8 @@
     "source": "export async function save(record: Record) {\n  // The storage client encrypts every field before transmission.\n  return storage.save(record);\n}\n",
     "rule_id": "comments/no-misleading-comments",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The visible code cannot establish or contradict behavior inside the storage client.",
     "tags": ["negative", "insufficient-context", "external-call"]
   },
@@ -626,6 +636,8 @@
     "source": "export function record(event: OperationalEvent) {\n  logger.info(event);\n}\n",
     "rule_id": "observability/require-operation-context",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The dynamic event may contain an operation field, but its shape is outside the bounded evidence.",
     "tags": ["negative", "ambiguity", "insufficient-context"]
   },
@@ -716,6 +728,8 @@
     "source": "export async function account(req: Request, res: Response) {\n  const user = await users.findById(req.params.id);\n  res.json(serializeAccount(user));\n}\n",
     "rule_id": "security/no-sensitive-data-exposure",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The file establishes neither sensitive fields nor serializeAccount's behavior, so the rule must abstain.",
     "tags": ["negative", "response", "ambiguous", "insufficient-context"]
   },
@@ -815,6 +829,8 @@
     "source": "export function recordProfile(profile: Profile) {\n  logger.info({ operation: \"profile.update\", profile: sanitizeForLogs(profile) });\n}\n",
     "rule_id": "observability/no-sensitive-logs",
     "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
     "rationale": "The bounded evidence does not reveal what the logging sanitizer retains, so the rule should abstain.",
     "tags": ["negative", "ambiguity", "insufficient-context", "helper"]
   },
