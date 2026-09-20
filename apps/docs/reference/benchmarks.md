@@ -16,19 +16,25 @@ All results below were recorded on September 20, 2026.
 | CodeQL CLI                | 2 native; 1 narrow custom query; 7 unsupported | Native: 1/2 correct; custom: 1/1 correct      | 8.932 s database setup, then 20.145 s official or 5.372 s custom analysis |
 | SonarQube Community Build | 1 native; 9 unsupported                        | Native: 0/1 correct                           | 52.380 s server setup, then 21.197 s for the one applicable file          |
 
-The direct GPT-4.1 run answered every pinned case correctly, but it processed about 118 times fewer cases per second than Scruple with Jev at concurrency 64. The three static tools had much narrower coverage. Their custom rules match exact code shapes and should not be read as equivalents to Scruple's semantic checks.
+The direct GPT-4.1 run answered every pinned case correctly, but Scruple with Jev handled about 118 times as many cases per second at concurrency 64. The three static tools had much narrower coverage. Their custom rules match exact code shapes and should not be read as equivalents to Scruple's semantic checks.
 
 ## Cost estimates
 
 Costs separate API or license charges from the computer that runs the benchmark. Runner costs depend on where and how long you run each tool, so they are not assigned a made-up dollar value.
 
-| Tool                      | API or software cost for the measured run                                                                                                              | Other cost                                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Scruple with Jev          | Scruple is MIT licensed. Jev used 2,013,880 input and 174,999 output tokens at concurrency 64. No public Jev rate was available to calculate the bill. | A small client runner, plus the Jev charge under the account's terms                              |
-| Direct GPT-4.1 prompt     | About **$0.0327** for 20 measured cases, or **$0.00163 per case**                                                                                      | A small client runner                                                                             |
-| Semgrep Community Edition | **$0 software charge**                                                                                                                                 | Local or CI compute for about 1.8 to 3.1 seconds per measured scan                                |
-| CodeQL CLI                | **$0 license charge for public repositories**. Private organizational repositories require an eligible GitHub plan and GitHub Code Security license.   | Local or CI compute for database creation and analysis                                            |
-| SonarQube Community Build | **$0 software charge**                                                                                                                                 | A Docker host for about 52.4 seconds of setup and 21.2 seconds per measured scan in this workflow |
+| Tool                      | API or software cost for the measured run                                                                                                            | Other cost                                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Scruple with Jev          | Scruple is MIT licensed. Jev cost about **$0.0846** for 2,560 measured cases, or **$0.0000330 per case**                                             | A small client runner                                                                             |
+| Direct GPT-4.1 prompt     | About **$0.0327** for 20 measured cases, or **$0.00163 per case**                                                                                    | A small client runner                                                                             |
+| Semgrep Community Edition | **$0 software charge**                                                                                                                               | Local or CI compute for about 1.8 to 3.1 seconds per measured scan                                |
+| CodeQL CLI                | **$0 license charge for public repositories**. Private organizational repositories require an eligible GitHub plan and GitHub Code Security license. | Local or CI compute for database creation and analysis                                            |
+| SonarQube Community Build | **$0 software charge**                                                                                                                               | A Docker host for about 52.4 seconds of setup and 21.2 seconds per measured scan in this workflow |
+
+The Jev estimate uses TypeSafe's published price of $0.042 per million input tokens, with output tokens free. The concurrency-64 run used 2,013,880 input tokens:
+
+```text
+2,013,880 × $0.042 / 1,000,000 = $0.08458296
+```
 
 The GPT-4.1 estimate uses OpenAI's published price of $2.00 per million input tokens and $8.00 per million output tokens. The measured calls used 10,362 input and 1,493 output tokens:
 
@@ -36,7 +42,7 @@ The GPT-4.1 estimate uses OpenAI's published price of $2.00 per million input to
 (10,362 × $2 / 1,000,000) + (1,493 × $8 / 1,000,000) = $0.032668
 ```
 
-The estimate excludes the unmeasured warmup, taxes, and any account discounts. Prices can change. Check the current [GPT-4.1 pricing](https://developers.openai.com/api/docs/models/gpt-4.1), [Semgrep Community Edition](https://semgrep.dev/products/community-edition), [CodeQL license terms](https://docs.github.com/en/code-security/codeql-cli/about-the-codeql-cli), and [SonarQube plans](https://www.sonarsource.com/plans-and-pricing/) before making a purchasing decision.
+These estimates exclude the unmeasured warmups, taxes, and any account discounts. At the published rates, the measured Jev API cost per case was about 49 times lower than the direct GPT-4.1 cost per case. Prices can change. Check the current [Jev pricing](https://docs.typesafe.ai/models), [GPT-4.1 pricing](https://developers.openai.com/api/docs/models/gpt-4.1), [Semgrep Community Edition](https://semgrep.dev/products/community-edition), [CodeQL license terms](https://docs.github.com/en/code-security/codeql-cli/about-the-codeql-cli), and [SonarQube plans](https://www.sonarsource.com/plans-and-pricing/) before making a purchasing decision.
 
 ## Jev under sustained load
 

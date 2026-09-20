@@ -10,7 +10,7 @@ The default workload selects ten cases from `tests/eval-fixtures.json`. Its IDs 
 TYPESAFE_API_KEY=your-key pnpm benchmark > jev-benchmark.json
 ```
 
-Jev is a hosted service. The report records input and output token counts but does not estimate a bill because provider pricing can change.
+Jev is a hosted service. [Current model pricing](https://docs.typesafe.ai/models) is $0.042 per million input tokens for Jev 1.13, with output tokens free. The report records input and output token counts so costs can be recalculated if pricing changes.
 
 To compare Jev models on the same workload, repeat `--model`:
 
