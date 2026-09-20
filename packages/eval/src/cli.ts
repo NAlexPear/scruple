@@ -1,12 +1,12 @@
 import { readFile } from "node:fs/promises";
 
-import { noUselessCommentsPlugin } from "@scruple/comments";
-import type { DecisionProvider, SemanticPlugin } from "@scruple/core";
+import { comments } from "@scruple/comments";
+import type { DecisionProvider, PluginMap } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
 import { layaProvider, type LayaModel } from "@scruple/provider-laya";
-import { preferDatabaseJoinPlugin } from "@scruple/relational-databases";
-import { noVacuousTestsPlugin } from "@scruple/tests";
+import { relationalDatabases } from "@scruple/relational-databases";
+import { tests } from "@scruple/tests";
 
 import {
   hasEvalFailures,
@@ -17,11 +17,11 @@ import {
 } from "./index.js";
 import { EVAL_HELP, parseEvalOptions, type EvalProviderSpec } from "./options.js";
 
-const plugins: SemanticPlugin[] = [
-  noUselessCommentsPlugin(),
-  noVacuousTestsPlugin(),
-  preferDatabaseJoinPlugin(),
-];
+const plugins: PluginMap = {
+  comments: comments(),
+  tests: tests(),
+  "relational-databases": relationalDatabases(),
+};
 
 try {
   const options = parseEvalOptions(process.argv.slice(2));

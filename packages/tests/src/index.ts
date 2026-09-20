@@ -1,34 +1,31 @@
 import type {
-  DiagnosticSeverity,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
-  SemanticPlugin,
+  RuleFactory,
+  ScruplePlugin,
+  SemanticRule,
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
 
 export interface NoVacuousTestsOptions {
-  severity?: DiagnosticSeverity;
   threshold?: number;
   minConfidence?: number;
 }
 
-export interface TestsOptions {
-  noVacuousTests?: NoVacuousTestsOptions | false;
+export type TestsPlugin = ScruplePlugin<{
+  "no-vacuous-tests": RuleFactory<NoVacuousTestsOptions>;
+}>;
+
+export function tests(): TestsPlugin {
+  return definePlugin({ rules: { "no-vacuous-tests": noVacuousTests } });
 }
 
-export function tests(options: TestsOptions = {}): SemanticPlugin[] {
-  const noVacuousTests = options.noVacuousTests ?? {};
-  return noVacuousTests === false ? [] : [noVacuousTestsPlugin(noVacuousTests)];
-}
-
-export function noVacuousTestsPlugin(options: NoVacuousTestsOptions = {}): SemanticPlugin {
+function noVacuousTests(options: NoVacuousTestsOptions = {}): SemanticRule {
   const threshold = options.threshold ?? 0.85;
   const minConfidence = options.minConfidence ?? 0.5;
-  const severity = options.severity ?? "error";
 
-  return definePlugin({
-    id: "tests/no-vacuous-tests",
+  return {
     description: "Tests should verify meaningful behavior.",
     collect(document) {
       return document.functions
@@ -64,7 +61,6 @@ export function noVacuousTestsPlugin(options: NoVacuousTestsOptions = {}): Seman
         return null;
       }
       return {
-        severity,
         message: "This test appears not to verify meaningful behavior.",
         filename: candidate.target.filename,
         location: candidate.target.location,
@@ -72,7 +68,7 @@ export function noVacuousTestsPlugin(options: NoVacuousTestsOptions = {}): Seman
         confidence: answer.confidence,
       };
     },
-  });
+  };
 }
 
 function functionState(fn: FunctionTarget, document: ParsedDocument): JsonValue {

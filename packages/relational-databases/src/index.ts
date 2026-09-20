@@ -1,23 +1,23 @@
 import type {
-  DiagnosticSeverity,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
-  SemanticPlugin,
+  RuleFactory,
+  ScruplePlugin,
+  SemanticRule,
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
 
 export interface PreferDatabaseJoinOptions {
-  severity?: DiagnosticSeverity;
   threshold?: number;
   minConfidence?: number;
   databaseCallPatterns?: RegExp[];
   collectionOperationPatterns?: RegExp[];
 }
 
-export interface RelationalDatabasesOptions {
-  preferDatabaseJoin?: PreferDatabaseJoinOptions | false;
-}
+export type RelationalDatabasesPlugin = ScruplePlugin<{
+  "prefer-database-join": RuleFactory<PreferDatabaseJoinOptions>;
+}>;
 
 const defaultDatabaseCallPatterns = [
   /(?:^|\.)(?:findMany|findAll|select|query|aggregate|execute|getMany|all)$/iu,
@@ -27,21 +27,18 @@ const defaultCollectionOperationPatterns = [
   /(?:^|\.)(?:map|filter|find|reduce|forEach|some|every)$/u,
 ];
 
-export function relationalDatabases(options: RelationalDatabasesOptions = {}): SemanticPlugin[] {
-  const preferDatabaseJoin = options.preferDatabaseJoin ?? {};
-  return preferDatabaseJoin === false ? [] : [preferDatabaseJoinPlugin(preferDatabaseJoin)];
+export function relationalDatabases(): RelationalDatabasesPlugin {
+  return definePlugin({ rules: { "prefer-database-join": preferDatabaseJoin } });
 }
 
-export function preferDatabaseJoinPlugin(options: PreferDatabaseJoinOptions = {}): SemanticPlugin {
+function preferDatabaseJoin(options: PreferDatabaseJoinOptions = {}): SemanticRule {
   const threshold = options.threshold ?? 0.8;
   const minConfidence = options.minConfidence ?? 0.5;
-  const severity = options.severity ?? "warning";
   const databasePatterns = options.databaseCallPatterns ?? defaultDatabaseCallPatterns;
   const collectionPatterns =
     options.collectionOperationPatterns ?? defaultCollectionOperationPatterns;
 
-  return definePlugin({
-    id: "relational-databases/prefer-database-join",
+  return {
     description: "Prefer combining database-backed collections in the database.",
     collect(document) {
       return document.functions.filter(isImplementationFunction).flatMap((fn) => {
@@ -91,7 +88,6 @@ export function preferDatabaseJoinPlugin(options: PreferDatabaseJoinOptions = {}
         return null;
       }
       return {
-        severity,
         message:
           "This function appears to perform an in-memory join that should be pushed into the database.",
         filename: candidate.target.filename,
@@ -100,7 +96,7 @@ export function preferDatabaseJoinPlugin(options: PreferDatabaseJoinOptions = {}
         confidence: answer.confidence,
       };
     },
-  });
+  };
 }
 
 function functionState(fn: FunctionTarget, document: ParsedDocument): JsonValue {

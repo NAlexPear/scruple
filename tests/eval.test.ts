@@ -2,18 +2,20 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { noUselessCommentsPlugin } from "@scruple/comments";
+import { comments } from "@scruple/comments";
 import type {
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
-  SemanticPlugin,
+  PluginMap,
+  ScruplePlugin,
 } from "@scruple/core";
+import { definePlugin } from "@scruple/core";
 import { hasEvalFailures, parseEvalFixtures, runEvaluation, type EvalFixture } from "@scruple/eval";
 import { parseEvalOptions } from "@scruple/eval/options";
 import { oxcParser } from "@scruple/parser-oxc";
-import { preferDatabaseJoinPlugin } from "@scruple/relational-databases";
-import { noVacuousTestsPlugin } from "@scruple/tests";
+import { relationalDatabases } from "@scruple/relational-databases";
+import { tests } from "@scruple/tests";
 
 await test("evaluation options pair providers and models by position", () => {
   assert.deepEqual(
@@ -49,20 +51,28 @@ await test("evaluation corpus has unique, reachable positive and negative cases"
     await readFile(new URL("./eval-fixtures.json", import.meta.url), "utf8"),
   );
   const fixtures = parseEvalFixtures(raw);
-  const plugins = [noUselessCommentsPlugin(), noVacuousTestsPlugin(), preferDatabaseJoinPlugin()];
+  const plugins: PluginMap = {
+    comments: comments(),
+    tests: tests(),
+    "relational-databases": relationalDatabases(),
+  };
   const parser = oxcParser();
 
-  for (const plugin of plugins) {
-    const pluginFixtures = fixtures.filter((fixture) => fixture.pluginId === plugin.id);
+  for (const fixture of fixtures) {
+    const separator = fixture.ruleId.indexOf("/");
+    assert.notEqual(separator, -1, `${fixture.ruleId} must have a plugin namespace`);
+    const namespace = fixture.ruleId.slice(0, separator);
+    const ruleName = fixture.ruleId.slice(separator + 1);
+    const factory = plugins[namespace]?.rules[ruleName];
+    assert.ok(factory, `${fixture.ruleId} must be registered`);
+    const ruleFixtures = fixtures.filter((candidate) => candidate.ruleId === fixture.ruleId);
     assert.deepEqual(
-      new Set(pluginFixtures.map((fixture) => fixture.expectedFinding)),
+      new Set(ruleFixtures.map((candidate) => candidate.expectedFinding)),
       new Set([true, false]),
-      `${plugin.id} must have both positive and negative cases`,
+      `${fixture.ruleId} must have both positive and negative cases`,
     );
-    for (const fixture of pluginFixtures) {
-      const candidates = plugin.collect(parser.parse(fixture.filename, fixture.source));
-      assert.ok(candidates.length > 0, `${fixture.id} must reach ${plugin.id}`);
-    }
+    const candidates = factory().collect(parser.parse(fixture.filename, fixture.source));
+    assert.ok(candidates.length > 0, `${fixture.id} must reach ${fixture.ruleId}`);
   }
 });
 
@@ -72,21 +82,25 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
       id: "bad",
       filename: "bad.ts",
       source: "function bad() { return 1; }",
-      pluginId: "test-plugin",
+      ruleId: "test/bad-rule",
       expectedFinding: true,
+      rationale: "The fixture provider identifies the bad function.",
+      tags: ["positive"],
     },
     {
       id: "good",
       filename: "good.ts",
       source: "function good() { return 1; }",
-      pluginId: "test-plugin",
+      ruleId: "test/bad-rule",
       expectedFinding: false,
+      rationale: "The fixture provider does not identify the good function.",
+      tags: ["negative"],
     },
   ];
   const report = await runEvaluation({
     fixtures,
     parser: oxcParser(),
-    plugins: [makeTestPlugin()],
+    plugins: { test: makeTestPlugin() },
     provider: makeScoringProvider(),
     providerName: "fixture",
     requestedModel: "requested",
@@ -100,33 +114,35 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
   assert.equal(hasEvalFailures([report]), false);
 });
 
-function makeTestPlugin(): SemanticPlugin {
-  return {
-    id: "test-plugin",
-    description: "Fixture plugin",
-    collect(document) {
-      const target = document.functions[0];
-      return target === undefined
-        ? []
-        : [
-            {
-              target,
-              state: { source: target.source },
-              question: { type: "noul", instructions: "Is this bad?" },
-            },
-          ];
+function makeTestPlugin(): ScruplePlugin {
+  return definePlugin({
+    rules: {
+      "bad-rule": () => ({
+        description: "Fixture rule",
+        collect(document) {
+          const target = document.functions[0];
+          return target === undefined
+            ? []
+            : [
+                {
+                  target,
+                  state: { source: target.source },
+                  question: { type: "noul", instructions: "Is this bad?" },
+                },
+              ];
+        },
+        diagnose(answer, candidate) {
+          return answer.type === "noul" && answer.noul > 0.5
+            ? {
+                message: "Bad fixture",
+                filename: candidate.target.filename,
+                location: candidate.target.location,
+              }
+            : null;
+        },
+      }),
     },
-    diagnose(answer, candidate) {
-      return answer.type === "noul" && answer.noul > 0.5
-        ? {
-            severity: "error",
-            message: "Bad fixture",
-            filename: candidate.target.filename,
-            location: candidate.target.location,
-          }
-        : null;
-    },
-  };
+  });
 }
 
 function makeScoringProvider(): DecisionProvider {

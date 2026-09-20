@@ -36,7 +36,21 @@ if (apiKey === undefined) {
 export default defineConfig({
   parser: oxcParser(),
   provider: jevProvider({ apiKey }),
-  plugins: [...comments(), ...tests(), ...relationalDatabases()],
+  plugins: {
+    comments: comments(),
+    tests: tests(),
+    "relational-databases": relationalDatabases(),
+  },
+  rules: {
+    "comments/no-useless-comments": "warn",
+    "comments/no-misleading-comments": "warn",
+    "comments/no-commented-out-code": "warn",
+    "comments/no-change-history-comments": "warn",
+    "comments/prefer-concise-comments": ["warn", { threshold: 0.9 }],
+    "comments/require-actionable-todos": "off",
+    "tests/no-vacuous-tests": "error",
+    "relational-databases/prefer-database-join": "warn",
+  },
 });
 ```
 
@@ -54,24 +68,22 @@ alias. A run exits 0 when it has no error-severity findings, 1 when it finds at 
 
 ### Configure rules
 
-Category factories enable their rules by default. Pass options to configure a rule or `false` to
-disable it:
+Plugins register rules without enabling them. Configure each rule separately with `"off"`, `"warn"`,
+or `"error"`; use a `[severity, options]` tuple for rule-specific options:
 
 ```ts
-plugins: [
-  ...comments({
-    noUselessComments: { severity: "warning", threshold: 0.95 },
-  }),
-  ...tests({
-    noVacuousTests: false,
-  }),
-  ...relationalDatabases({
-    preferDatabaseJoin: { severity: "warning", threshold: 0.8 },
-  }),
-],
+plugins: {
+  comments: comments(),
+},
+rules: {
+  "comments/no-useless-comments": ["warn", { threshold: 0.95 }],
+  "comments/no-misleading-comments": "error",
+  "comments/prefer-concise-comments": "off",
+},
 ```
 
-Each package also exports its individual plugin factories for granular composition.
+The key in `plugins` supplies the namespace used by its rule IDs. Unknown rules and rules whose
+plugin is not registered are configuration errors.
 
 ### Use local Laya
 
@@ -105,22 +117,27 @@ publishable rule packs, not rules built into the engine:
 
 - `comments/no-useless-comments` identifies comments that add no useful rationale, constraint, or
   context.
+- `comments/no-misleading-comments` identifies comments that contradict the visible code.
+- `comments/no-commented-out-code` identifies disabled implementation code preserved in comments.
+- `comments/no-change-history-comments` keeps completed change narration in version control.
+- `comments/prefer-concise-comments` identifies useful comments padded with unnecessary prose.
+- `comments/require-actionable-todos` requires TODO, FIXME, and HACK comments to explain meaningful
+  follow-up work.
 - `tests/no-vacuous-tests` identifies tests that do not meaningfully verify behavior.
 - `relational-databases/prefer-database-join` identifies function-level in-memory joins that can
   reasonably be performed by the available database layer.
 
-A plugin's `collect` operation selects normalized source targets and creates typed decision
-questions. Its `diagnose` operation deterministically turns an answer into a diagnostic or abstains.
-Plugins provide their own stable diagnostic text and never ask a model to generate messages or
-fixes.
+A plugin registers named semantic rules. Enabled rules collect normalized source targets and create
+typed decision questions, then deterministically turn provider answers into diagnostics or abstain.
+Rules provide stable diagnostic text and never ask a model to generate messages or fixes.
 
 OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
 calls, and facts rather than serialized syntax trees. Both parsers and decision providers are
 swappable through the `SourceParser` and `DecisionProvider` interfaces.
 
 ```text
-source → parser → normalized targets → plugins → decision provider → diagnostics
-           OXC                               Jev or local Laya
+source → parser → normalized targets → enabled plugin rules → decision provider → diagnostics
+           OXC                                            Jev or local Laya
 ```
 
 ## Develop Scruple

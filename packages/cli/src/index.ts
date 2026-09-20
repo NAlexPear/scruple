@@ -112,7 +112,7 @@ async function loadConfig(path: string): Promise<ScrupleConfig> {
   const jiti = createJiti(import.meta.url, { interopDefault: true });
   const config: unknown = await jiti.import(path, { default: true });
   if (!isScrupleConfig(config)) {
-    throw new Error("Config must define parser, provider, and plugins");
+    throw new Error("Config must define parser, provider, plugins, and rules");
   }
   return config;
 }
@@ -123,13 +123,16 @@ function isScrupleConfig(value: unknown): value is ScrupleConfig {
   }
   const parser = value["parser"];
   const provider = value["provider"];
+  const plugins = value["plugins"];
   return (
     isRecord(parser) &&
     typeof parser["parse"] === "function" &&
     typeof parser["supports"] === "function" &&
     isRecord(provider) &&
     typeof provider["evaluate"] === "function" &&
-    Array.isArray(value["plugins"])
+    isRecord(plugins) &&
+    Object.values(plugins).every((plugin) => isRecord(plugin) && isRecord(plugin["rules"])) &&
+    isRecord(value["rules"])
   );
 }
 
@@ -151,7 +154,7 @@ function printStylish(diagnostics: Diagnostic[]): void {
     const probability =
       diagnostic.probability === undefined ? "" : ` (${Math.round(diagnostic.probability * 100)}%)`;
     process.stdout.write(
-      `  ${position} ${severity} ${diagnostic.message}${probability}  ${diagnostic.pluginId}\n`,
+      `  ${position} ${severity} ${diagnostic.message}${probability}  ${diagnostic.ruleId}\n`,
     );
   }
 }

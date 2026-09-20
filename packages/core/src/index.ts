@@ -130,7 +130,7 @@ export interface DecisionProvider {
   close?(): Promise<void> | void;
 }
 
-export interface PluginCandidate {
+export interface RuleCandidate {
   target: CodeTarget;
   state: JsonValue;
   question: DecisionQuestion;
@@ -138,9 +138,11 @@ export interface PluginCandidate {
 }
 
 export type DiagnosticSeverity = "warning" | "error";
+export type RuleSeverity = "off" | "warn" | "error";
+export type RuleConfiguration = RuleSeverity | readonly [RuleSeverity, unknown];
 
 export interface Diagnostic {
-  pluginId: string;
+  ruleId: string;
   severity: DiagnosticSeverity;
   message: string;
   filename: string;
@@ -150,30 +152,72 @@ export interface Diagnostic {
   confidence?: number;
 }
 
-export interface SemanticPlugin {
-  readonly id: string;
+export interface SemanticRule {
   readonly description: string;
-  collect(document: ParsedDocument): PluginCandidate[];
+  collect(document: ParsedDocument): RuleCandidate[];
   diagnose(
     answer: DecisionAnswer,
-    candidate: PluginCandidate,
-  ): Omit<Diagnostic, "pluginId" | "model"> | null;
+    candidate: RuleCandidate,
+  ): Omit<Diagnostic, "ruleId" | "severity" | "model"> | null;
 }
+
+export type RuleFactory<Options = never> = (options?: Options) => SemanticRule;
+export type RuleFactories = Record<string, RuleFactory>;
+
+export interface ScruplePlugin<Rules extends RuleFactories = RuleFactories> {
+  readonly rules: Rules;
+}
+
+export type PluginMap = Record<string, ScruplePlugin>;
 
 export interface ScrupleConfig {
   parser: SourceParser;
   provider: DecisionProvider;
-  plugins: SemanticPlugin[];
+  plugins: PluginMap;
+  rules: Record<string, RuleConfiguration>;
   concurrency?: number;
   include?: string[];
   ignore?: string[];
 }
 
-export function defineConfig(config: ScrupleConfig): ScrupleConfig {
+type RuleOptions<Factory> = Factory extends RuleFactory<infer Options> ? Options : never;
+
+type PluginRuleConfigurations<Namespace extends string, Plugin> =
+  Plugin extends ScruplePlugin<infer Rules>
+    ? {
+        [RuleName in keyof Rules & string as `${Namespace}/${RuleName}`]?:
+          | RuleSeverity
+          | readonly [RuleSeverity, RuleOptions<Rules[RuleName]>];
+      }
+    : never;
+
+type UnionToIntersection<Union> = (Union extends unknown ? (value: Union) => void : never) extends (
+  value: infer Intersection,
+) => void
+  ? Intersection
+  : never;
+
+export type RulesForPlugins<Plugins extends PluginMap> = UnionToIntersection<
+  {
+    [Namespace in keyof Plugins & string]: PluginRuleConfigurations<Namespace, Plugins[Namespace]>;
+  }[keyof Plugins & string]
+>;
+
+export type DefinedScrupleConfig<Plugins extends PluginMap> = Omit<
+  ScrupleConfig,
+  "plugins" | "rules"
+> & {
+  plugins: Plugins;
+  rules: RulesForPlugins<Plugins>;
+};
+
+export function defineConfig<const Plugins extends PluginMap>(
+  config: DefinedScrupleConfig<Plugins>,
+): DefinedScrupleConfig<Plugins> {
   return config;
 }
 
-export function definePlugin<const Plugin extends SemanticPlugin>(plugin: Plugin): Plugin {
+export function definePlugin<const Plugin extends ScruplePlugin>(plugin: Plugin): Plugin {
   return plugin;
 }
 
@@ -202,9 +246,15 @@ export interface RunResult {
   stats: RunStats;
 }
 
+interface ActiveRule {
+  id: string;
+  severity: DiagnosticSeverity;
+  rule: SemanticRule;
+}
+
 interface PendingCandidate {
-  plugin: SemanticPlugin;
-  candidate: PluginCandidate;
+  activeRule: ActiveRule;
+  candidate: RuleCandidate;
 }
 
 interface EvaluationBatch {
@@ -219,20 +269,8 @@ export async function runScruple(
 ): Promise<RunResult> {
   const errors: OperationalError[] = [];
   const allPending: PendingCandidate[] = [];
-  const plugins: SemanticPlugin[] = [];
-  const pluginIds = new Set<string>();
+  const activeRules = resolveRules(config, errors);
   let parsedFiles = 0;
-
-  for (const plugin of config.plugins) {
-    if (plugin.id.length === 0) {
-      errors.push({ message: "Plugin IDs must not be empty" });
-    } else if (pluginIds.has(plugin.id)) {
-      errors.push({ message: `Plugin ID is configured more than once: ${plugin.id}` });
-    } else {
-      pluginIds.add(plugin.id);
-      plugins.push(plugin);
-    }
-  }
 
   for (const file of files) {
     if (!config.parser.supports(file.filename)) {
@@ -254,15 +292,15 @@ export async function runScruple(
       }
     }
 
-    for (const plugin of plugins) {
+    for (const activeRule of activeRules) {
       try {
-        for (const candidate of plugin.collect(document)) {
-          allPending.push({ plugin, candidate });
+        for (const candidate of activeRule.rule.collect(document)) {
+          allPending.push({ activeRule, candidate });
         }
       } catch (cause) {
         errors.push({
           filename: file.filename,
-          message: `Plugin ${plugin.id} failed while collecting candidates: ${errorMessage(cause)}`,
+          message: `Rule ${activeRule.id} failed while collecting candidates: ${errorMessage(cause)}`,
           cause,
         });
       }
@@ -280,8 +318,8 @@ export async function runScruple(
     }
 
     const questions = Object.fromEntries(
-      batch.pending.map(({ plugin, candidate }, index) => [
-        `${sanitizeId(plugin.id)}_${index}`,
+      batch.pending.map(({ activeRule, candidate }, index) => [
+        `${sanitizeId(activeRule.id)}_${index}`,
         candidate.question,
       ]),
     );
@@ -291,19 +329,24 @@ export async function runScruple(
       inputTokens += response.usage?.inputTokens ?? 0;
       outputTokens += response.usage?.outputTokens ?? 0;
 
-      batch.pending.forEach(({ plugin, candidate }, index) => {
-        const answer = response.answers[`${sanitizeId(plugin.id)}_${index}`];
+      batch.pending.forEach(({ activeRule, candidate }, index) => {
+        const answer = response.answers[`${sanitizeId(activeRule.id)}_${index}`];
         if (!answer) {
           errors.push({
             filename: candidate.target.filename,
-            message: `Provider ${config.provider.id} omitted an answer for plugin ${plugin.id}`,
+            message: `Provider ${config.provider.id} omitted an answer for rule ${activeRule.id}`,
           });
           return;
         }
 
-        const diagnostic = plugin.diagnose(answer, candidate);
+        const diagnostic = activeRule.rule.diagnose(answer, candidate);
         if (diagnostic) {
-          diagnostics.push({ ...diagnostic, pluginId: plugin.id, model: response.model });
+          diagnostics.push({
+            ...diagnostic,
+            ruleId: activeRule.id,
+            severity: activeRule.severity,
+            model: response.model,
+          });
         }
       });
     } catch (cause) {
@@ -325,6 +368,87 @@ export async function runScruple(
       outputTokens,
     },
   };
+}
+
+function resolveRules(config: ScrupleConfig, errors: OperationalError[]): ActiveRule[] {
+  const activeRules: ActiveRule[] = [];
+
+  for (const [namespace, plugin] of Object.entries(config.plugins)) {
+    if (namespace.length === 0 || namespace.includes("/")) {
+      errors.push({ message: `Invalid plugin namespace: ${namespace || "(empty)"}` });
+    }
+    if (!isRecord(plugin.rules)) {
+      errors.push({ message: `Plugin ${namespace || "(empty)"} must define rules` });
+    }
+  }
+
+  for (const [ruleId, configured] of Object.entries(config.rules)) {
+    const separator = ruleId.indexOf("/");
+    if (separator <= 0 || separator === ruleId.length - 1) {
+      errors.push({ message: `Rule IDs must use plugin/rule-name syntax: ${ruleId}` });
+      continue;
+    }
+
+    const namespace = ruleId.slice(0, separator);
+    const ruleName = ruleId.slice(separator + 1);
+    const plugin = config.plugins[namespace];
+    if (!plugin) {
+      errors.push({ message: `Rule ${ruleId} requires plugin ${namespace}` });
+      continue;
+    }
+    const factory = plugin.rules[ruleName];
+    if (!factory) {
+      errors.push({ message: `Plugin ${namespace} does not provide rule ${ruleName}` });
+      continue;
+    }
+
+    const parsed = parseRuleConfiguration(ruleId, configured, errors);
+    if (!parsed || parsed.severity === "off") {
+      continue;
+    }
+
+    try {
+      activeRules.push({
+        id: ruleId,
+        severity: parsed.severity === "warn" ? "warning" : "error",
+        // The public config type checks options against this factory before runtime erases the type.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+        rule: factory(parsed.options as never),
+      });
+    } catch (cause) {
+      errors.push({
+        message: `Rule ${ruleId} has invalid options: ${errorMessage(cause)}`,
+        cause,
+      });
+    }
+  }
+
+  return activeRules;
+}
+
+function parseRuleConfiguration(
+  ruleId: string,
+  configured: RuleConfiguration,
+  errors: OperationalError[],
+): { severity: RuleSeverity; options: unknown } | undefined {
+  if (typeof configured === "string") {
+    if (isRuleSeverity(configured)) {
+      return { severity: configured, options: undefined };
+    }
+  } else if (
+    Array.isArray(configured) &&
+    configured.length === 2 &&
+    isRuleSeverity(configured[0])
+  ) {
+    return { severity: configured[0], options: configured[1] };
+  }
+
+  errors.push({ message: `Invalid configuration for rule ${ruleId}` });
+  return undefined;
+}
+
+function isRuleSeverity(value: unknown): value is RuleSeverity {
+  return value === "off" || value === "warn" || value === "error";
 }
 
 function groupByState(pending: PendingCandidate[]): EvaluationBatch[] {
@@ -381,10 +505,14 @@ function compareDiagnostics(left: Diagnostic, right: Diagnostic): number {
     left.filename.localeCompare(right.filename) ||
     left.location.start.line - right.location.start.line ||
     left.location.start.column - right.location.start.column ||
-    left.pluginId.localeCompare(right.pluginId)
+    left.ruleId.localeCompare(right.ruleId)
   );
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

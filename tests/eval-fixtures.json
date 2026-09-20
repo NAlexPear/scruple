@@ -1,44 +1,200 @@
 [
   {
-    "id": "unhelpful-comment-restates-code",
+    "id": "useless-restates-assignment",
     "filename": "comments.ts",
     "source": "export function activate(user: User) {\n  // Set active to true\n  user.active = true;\n}\n",
-    "plugin_id": "comments/no-useless-comments",
-    "expected_finding": true
+    "rule_id": "comments/no-useless-comments",
+    "expected_finding": true,
+    "rationale": "The comment repeats the assignment without adding intent or constraints.",
+    "tags": ["positive", "restatement", "line-comment"]
   },
   {
-    "id": "helpful-comment-explains-constraint",
+    "id": "useful-explains-timeout-constraint",
     "filename": "comments.ts",
     "source": "export function retryDelay(attempt: number) {\n  // Keep this below the load balancer's 30-second idle timeout.\n  return Math.min(25_000, 2 ** attempt * 100);\n}\n",
-    "plugin_id": "comments/no-useless-comments",
-    "expected_finding": false
+    "rule_id": "comments/no-useless-comments",
+    "expected_finding": false,
+    "rationale": "The comment records an external constraint not visible in the expression.",
+    "tags": ["negative", "rationale", "external-constraint"]
+  },
+  {
+    "id": "useful-warns-about-security-ordering",
+    "filename": "comments.ts",
+    "source": "export async function rotateToken(user: User) {\n  // Revoke before issuing the replacement so two valid tokens never overlap.\n  await revokeToken(user);\n  return issueToken(user);\n}\n",
+    "rule_id": "comments/no-useless-comments",
+    "expected_finding": false,
+    "rationale": "The comment explains a security invariant behind otherwise ordinary ordering.",
+    "tags": ["negative", "security", "invariant"]
+  },
+  {
+    "id": "misleading-wrong-return-unit",
+    "filename": "comments.ts",
+    "source": "export function timeoutSeconds() {\n  // Return the timeout in milliseconds.\n  return 30;\n}\n",
+    "rule_id": "comments/no-misleading-comments",
+    "expected_finding": true,
+    "rationale": "The function and value are expressed in seconds, contrary to the comment.",
+    "tags": ["positive", "units", "contradiction"]
+  },
+  {
+    "id": "accurate-return-unit",
+    "filename": "comments.ts",
+    "source": "export function timeoutMilliseconds() {\n  // Return the timeout in milliseconds.\n  return 30_000;\n}\n",
+    "rule_id": "comments/no-misleading-comments",
+    "expected_finding": false,
+    "rationale": "The comment agrees with the function name and returned value.",
+    "tags": ["negative", "units", "accurate"]
+  },
+  {
+    "id": "misleading-insufficient-external-context",
+    "filename": "comments.ts",
+    "source": "export async function save(record: Record) {\n  // The storage client encrypts every field before transmission.\n  return storage.save(record);\n}\n",
+    "rule_id": "comments/no-misleading-comments",
+    "expected_finding": false,
+    "rationale": "The visible code cannot establish or contradict behavior inside the storage client.",
+    "tags": ["negative", "insufficient-context", "external-call"]
+  },
+  {
+    "id": "commented-out-executable-code",
+    "filename": "comments.ts",
+    "source": "export function loadUsers() {\n  // const legacyUsers = loadLegacyUsers();\n  return database.users();\n}\n",
+    "rule_id": "comments/no-commented-out-code",
+    "expected_finding": true,
+    "rationale": "The comment is a disabled variable declaration that could be executed.",
+    "tags": ["positive", "disabled-code", "declaration"]
+  },
+  {
+    "id": "documentation-code-example",
+    "filename": "comments.ts",
+    "source": "/** Example: client.connect({ timeout: 1000 }) */\nexport function connect(options: Options) {\n  return new Client(options);\n}\n",
+    "rule_id": "comments/no-commented-out-code",
+    "expected_finding": false,
+    "rationale": "The code-like text is explicitly an API usage example, not disabled implementation.",
+    "tags": ["negative", "documentation", "example"]
+  },
+  {
+    "id": "commented-pattern-not-code",
+    "filename": "comments.ts",
+    "source": "export function parseVersion(value: string) {\n  // Format: major.minor.patch[-prerelease]\n  return VERSION_PATTERN.exec(value);\n}\n",
+    "rule_id": "comments/no-commented-out-code",
+    "expected_finding": false,
+    "rationale": "The comment documents a data grammar rather than preserving executable code.",
+    "tags": ["negative", "grammar", "format"]
+  },
+  {
+    "id": "history-narrates-replaced-client",
+    "filename": "comments.ts",
+    "source": "export function fetchUsers() {\n  // Previously this used the legacy REST client.\n  return graphql.users();\n}\n",
+    "rule_id": "comments/no-change-history-comments",
+    "expected_finding": true,
+    "rationale": "The comment records a completed replacement without explaining a current constraint.",
+    "tags": ["positive", "change-history", "replacement"]
+  },
+  {
+    "id": "history-explains-current-retry-cap",
+    "filename": "comments.ts",
+    "source": "export function retries(attempts: number) {\n  // Previously retries were unlimited; keep this cap because the payment API is not idempotent.\n  return Math.min(attempts, 3);\n}\n",
+    "rule_id": "comments/no-change-history-comments",
+    "expected_finding": false,
+    "rationale": "The historical detail supports a current safety constraint and warns against regression.",
+    "tags": ["negative", "current-rationale", "safety"]
+  },
+  {
+    "id": "history-documents-active-compatibility",
+    "filename": "comments.ts",
+    "source": "export function readName(input: Payload) {\n  // Older clients used display_name; accept it until v2 clients are retired.\n  return input.name ?? input.display_name;\n}\n",
+    "rule_id": "comments/no-change-history-comments",
+    "expected_finding": false,
+    "rationale": "The comment explains compatibility behavior that remains active in the code.",
+    "tags": ["negative", "compatibility", "migration"]
+  },
+  {
+    "id": "verbose-repeats-retry-cap",
+    "filename": "comments.ts",
+    "source": "export function retries(attempts: number) {\n  // It is important to note that retries are capped at three. In other words, the retry count cannot exceed three, which is an important detail to keep in mind when considering how many retries can occur.\n  return Math.min(attempts, 3);\n}\n",
+    "rule_id": "comments/prefer-concise-comments",
+    "expected_finding": true,
+    "rationale": "The useful retry cap is repeated with filler and can be stated in one short sentence.",
+    "tags": ["positive", "wordslop", "repetition"]
+  },
+  {
+    "id": "long-security-invariant-justified",
+    "filename": "comments.ts",
+    "source": "export async function replaceToken(user: User) {\n  // Revoke the existing token before issuing its replacement. The provider permits both tokens during an overlap window, so reversing these calls allows a stolen old token to remain valid after rotation completes.\n  await revokeToken(user);\n  return issueToken(user);\n}\n",
+    "rule_id": "comments/prefer-concise-comments",
+    "expected_finding": false,
+    "rationale": "The longer explanation establishes a non-obvious security mechanism and consequence.",
+    "tags": ["negative", "security", "complexity-justified"]
+  },
+  {
+    "id": "long-procedure-justified",
+    "filename": "comments.ts",
+    "source": "export async function migrate() {\n  // Migration order is intentional: create the nullable column first, deploy readers that tolerate both schemas, backfill existing rows, and only then add the non-null constraint. Skipping a stage breaks rolling deployments.\n  await runMigrationStages();\n}\n",
+    "rule_id": "comments/prefer-concise-comments",
+    "expected_finding": false,
+    "rationale": "Every stage and the ordering consequence are necessary operational instructions.",
+    "tags": ["negative", "procedure", "migration"]
+  },
+  {
+    "id": "todo-vague-fix-later",
+    "filename": "comments.ts",
+    "source": "export function convert(value: string) {\n  // TODO: fix this later\n  return legacyConvert(value);\n}\n",
+    "rule_id": "comments/require-actionable-todos",
+    "expected_finding": true,
+    "rationale": "The marker identifies neither the defect nor the required future work.",
+    "tags": ["positive", "todo", "vague"]
+  },
+  {
+    "id": "todo-concrete-removal-condition",
+    "filename": "comments.ts",
+    "source": "export function readName(input: Payload) {\n  // TODO: remove display_name fallback after v2 clients are retired.\n  return input.name ?? input.display_name;\n}\n",
+    "rule_id": "comments/require-actionable-todos",
+    "expected_finding": false,
+    "rationale": "The TODO states both the work and a concrete condition for performing it.",
+    "tags": ["negative", "todo", "removal-condition"]
+  },
+  {
+    "id": "fixme-concrete-defect",
+    "filename": "comments.ts",
+    "source": "export function day(timestamp: number) {\n  // FIXME: preserve the caller's timezone instead of formatting every date as UTC.\n  return new Date(timestamp).toISOString();\n}\n",
+    "rule_id": "comments/require-actionable-todos",
+    "expected_finding": false,
+    "rationale": "The FIXME identifies the current defect and the intended behavior.",
+    "tags": ["negative", "fixme", "concrete-action"]
   },
   {
     "id": "vacuous-test-tautology",
     "filename": "service.test.ts",
     "source": "test(\"creates a user\", async () => {\n  await createUser({ name: \"Ada\" });\n  assert.equal(true, true);\n});\n",
-    "plugin_id": "tests/no-vacuous-tests",
-    "expected_finding": true
+    "rule_id": "tests/no-vacuous-tests",
+    "expected_finding": true,
+    "rationale": "The tautological assertion cannot fail when user creation is broken.",
+    "tags": ["positive", "tautology"]
   },
   {
     "id": "meaningful-test-checks-result",
     "filename": "service.test.ts",
     "source": "test(\"creates a user\", async () => {\n  const user = await createUser({ name: \"Ada\" });\n  assert.equal(user.name, \"Ada\");\n});\n",
-    "plugin_id": "tests/no-vacuous-tests",
-    "expected_finding": false
+    "rule_id": "tests/no-vacuous-tests",
+    "expected_finding": false,
+    "rationale": "The assertion checks an observable result of the behavior under test.",
+    "tags": ["negative", "assertion"]
   },
   {
     "id": "database-join-done-in-memory",
     "filename": "report.ts",
     "source": "import { db } from \"./db.js\";\nexport async function report() {\n  const users = await db.user.findMany();\n  const teams = await db.team.findMany();\n  return users.map((user) => ({ ...user, team: teams.find((team) => team.id === user.teamId) }));\n}\n",
-    "plugin_id": "relational-databases/prefer-database-join",
-    "expected_finding": true
+    "rule_id": "relational-databases/prefer-database-join",
+    "expected_finding": true,
+    "rationale": "Two database collections are fetched and joined in application memory.",
+    "tags": ["positive", "in-memory-join"]
   },
   {
     "id": "bounded-data-intentionally-in-memory",
     "filename": "report.ts",
     "source": "import { db } from \"./db.js\";\nexport async function labelSelectedUsers(selectedIds: string[]) {\n  const users = await db.user.findMany({ where: { id: { in: selectedIds } } });\n  const labels = await db.label.findMany({ where: { userId: { in: selectedIds } } });\n  // selectedIds is capped at 10 by the API schema; this preserves locale-aware application sorting.\n  return users.map((user) => ({ ...user, labels: labels.filter((label) => label.userId === user.id) }));\n}\n",
-    "plugin_id": "relational-databases/prefer-database-join",
-    "expected_finding": false
+    "rule_id": "relational-databases/prefer-database-join",
+    "expected_finding": false,
+    "rationale": "The bounded input and locale-aware sorting justify application-level combination.",
+    "tags": ["negative", "bounded-data", "application-semantics"]
   }
 ]

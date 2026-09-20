@@ -1,7 +1,8 @@
 import type {
   DecisionProvider,
   DecisionResponse,
-  SemanticPlugin,
+  PluginMap,
+  RuleConfiguration,
   SourceParser,
 } from "@scruple/core";
 import { runScruple } from "@scruple/core";
@@ -10,13 +11,15 @@ export interface EvalFixture {
   id: string;
   filename: string;
   source: string;
-  pluginId: string;
+  ruleId: string;
   expectedFinding: boolean;
+  rationale: string;
+  tags: string[];
 }
 
 export interface EvalCaseResult {
   id: string;
-  pluginId: string;
+  ruleId: string;
   expectedFinding: boolean;
   actualFinding: boolean;
   accepted: boolean;
@@ -57,7 +60,8 @@ export interface EvalRunReport {
 export interface RunEvaluationOptions {
   fixtures: readonly EvalFixture[];
   parser: SourceParser;
-  plugins: readonly SemanticPlugin[];
+  plugins: PluginMap;
+  rules?: Record<string, RuleConfiguration>;
   provider: DecisionProvider;
   providerName: string;
   requestedModel: string;
@@ -77,8 +81,10 @@ export function parseEvalFixtures(value: unknown): EvalFixture[] {
       id: requiredString(entry, "id", index),
       filename: requiredString(entry, "filename", index),
       source: requiredString(entry, "source", index),
-      pluginId: requiredString(entry, "plugin_id", index),
+      ruleId: requiredString(entry, "rule_id", index),
       expectedFinding: requiredBoolean(entry, "expected_finding", index),
+      rationale: requiredString(entry, "rationale", index),
+      tags: requiredStrings(entry, "tags", index),
     };
     if (ids.has(fixture.id)) {
       throw new Error(`Duplicate evaluation fixture ID: ${fixture.id}`);
@@ -91,7 +97,8 @@ export function parseEvalFixtures(value: unknown): EvalFixture[] {
 export async function runEvalCase(
   fixture: EvalFixture,
   parser: SourceParser,
-  plugin: SemanticPlugin,
+  plugins: PluginMap,
+  ruleConfiguration: RuleConfiguration,
   provider: DecisionProvider,
 ): Promise<EvalCaseResult> {
   let model = provider.id;
@@ -106,16 +113,22 @@ export async function runEvalCase(
     },
   };
   const started = performance.now();
-  const result = await runScruple({ parser, provider: trackingProvider, plugins: [plugin] }, [
-    { filename: fixture.filename, source: fixture.source },
-  ]);
+  const result = await runScruple(
+    {
+      parser,
+      provider: trackingProvider,
+      plugins,
+      rules: { [fixture.ruleId]: ruleConfiguration },
+    },
+    [{ filename: fixture.filename, source: fixture.source }],
+  );
   const actualFinding = result.diagnostics.some(
-    (diagnostic) => diagnostic.pluginId === fixture.pluginId,
+    (diagnostic) => diagnostic.ruleId === fixture.ruleId,
   );
   const errors = result.errors.map((error) => error.message);
   return {
     id: fixture.id,
-    pluginId: fixture.pluginId,
+    ruleId: fixture.ruleId,
     expectedFinding: fixture.expectedFinding,
     actualFinding,
     accepted: errors.length === 0 && actualFinding === fixture.expectedFinding,
@@ -132,14 +145,18 @@ export async function runEvalCase(
 }
 
 export async function runEvaluation(options: RunEvaluationOptions): Promise<EvalRunReport> {
-  const plugins = new Map(options.plugins.map((plugin) => [plugin.id, plugin]));
   const cases = await Promise.all(
     options.fixtures.map((fixture) => {
-      const plugin = plugins.get(fixture.pluginId);
-      if (plugin === undefined) {
-        throw new Error(`No plugin configured for evaluation fixture: ${fixture.pluginId}`);
+      if (!hasRule(options.plugins, fixture.ruleId)) {
+        throw new Error(`No rule configured for evaluation fixture: ${fixture.ruleId}`);
       }
-      return runEvalCase(fixture, options.parser, plugin, options.provider);
+      return runEvalCase(
+        fixture,
+        options.parser,
+        options.plugins,
+        options.rules?.[fixture.ruleId] ?? "warn",
+        options.provider,
+      );
     }),
   );
   const failures = cases.filter((result) => !result.accepted);
@@ -199,6 +216,27 @@ function requiredBoolean(value: Record<string, unknown>, key: string, index: num
     throw new TypeError(`Evaluation fixture ${index} requires a boolean ${key}`);
   }
   return entry;
+}
+
+function requiredStrings(value: Record<string, unknown>, key: string, index: number): string[] {
+  const entry = value[key];
+  if (!Array.isArray(entry)) {
+    throw new TypeError(`Evaluation fixture ${index} requires a string array ${key}`);
+  }
+  const strings = entry.filter((item): item is string => typeof item === "string");
+  if (strings.length !== entry.length || strings.some((item) => item.length === 0)) {
+    throw new TypeError(`Evaluation fixture ${index} requires a string array ${key}`);
+  }
+  return strings;
+}
+
+function hasRule(plugins: PluginMap, ruleId: string): boolean {
+  const separator = ruleId.indexOf("/");
+  if (separator <= 0) {
+    return false;
+  }
+  const plugin = plugins[ruleId.slice(0, separator)];
+  return plugin?.rules[ruleId.slice(separator + 1)] !== undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
