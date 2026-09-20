@@ -11,10 +11,13 @@
 
       <div class="provider-card-code">
         <h4>Configuration</h4>
-        <pre><code><span class="code-keyword">import</span> { <span class="code-function">jevProvider</span> } <span class="code-keyword">from</span> <span class="code-string">"@scruple/provider-jev"</span>;
+        <pre><code><span class="code-keyword">import</span> {
+  <span class="code-function">jevProvider</span>,
+} <span class="code-keyword">from</span> <span class="code-string">"@scruple/provider-jev"</span>;
 
 <span class="code-keyword">const</span> provider = <span class="code-function">jevProvider</span>({
-  <span class="code-property">apiKey</span>: process.env[<span class="code-string">"TYPESAFE_API_KEY"</span>]!,
+  <span class="code-property">apiKey</span>:
+    process.env[<span class="code-string">"TYPESAFE_API_KEY"</span>]!,
 });</code></pre>
       </div>
 
@@ -97,14 +100,14 @@
 .provider-card-code {
   flex: 1;
   border: 1px solid var(--vp-c-divider);
-  background: #171a17;
+  background: var(--scruple-code-bg);
 }
 
 .provider-card-code h4 {
   margin: 0;
   padding: 11px 14px;
-  border-bottom: 1px solid #353a34;
-  color: #90988d;
+  border-bottom: 1px solid var(--scruple-code-divider);
+  color: var(--scruple-code-muted);
   font: 500 8px/1 var(--vp-font-family-mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -116,28 +119,28 @@
   padding: 16px 14px;
   overflow: auto;
   background: transparent;
-  color: #edf0e9;
-  font: 400 8px/1.75 var(--vp-font-family-mono);
+  color: var(--scruple-code-text);
+  font: 400 10px/1.7 var(--vp-font-family-mono);
 }
 
 .code-keyword {
-  color: #c792ea;
+  color: var(--scruple-code-keyword);
 }
 
 .code-function {
-  color: #82aaff;
+  color: var(--scruple-code-function);
 }
 
 .code-property {
-  color: #f7a072;
+  color: var(--scruple-code-text);
 }
 
 .code-string {
-  color: #c3e88d;
+  color: var(--scruple-code-literal);
 }
 
 .code-type {
-  color: #89ddff;
+  color: var(--scruple-code-function);
 }
 
 .provider-card > a {
@@ -167,7 +170,7 @@
 
   .provider-card-code pre {
     min-height: auto;
-    font-size: 8px;
+    font-size: 10px;
   }
 }
 </style>
