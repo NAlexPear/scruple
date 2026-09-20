@@ -1,5 +1,7 @@
 import type {
+  AsyncSemanticRule,
   ChoiceAnswer,
+  CollectionContext,
   CommentTarget,
   DecisionAnswer,
   DecisionRuleOptions,
@@ -26,7 +28,7 @@ export type CommentsPlugin = ScruplePlugin<{
   "no-commented-out-code": RuleFactory<ProbabilityRuleOptions>;
   "no-change-history-comments": RuleFactory<ProbabilityRuleOptions>;
   "prefer-concise-comments": RuleFactory<PreferConciseCommentsOptions>;
-  "require-actionable-todos": RuleFactory<ProbabilityRuleOptions>;
+  "require-actionable-todos": RuleFactory<ProbabilityRuleOptions, AsyncSemanticRule>;
   "require-justified-suppressions": RuleFactory<ProbabilityRuleOptions>;
   "require-actionable-deprecations": RuleFactory<ProbabilityRuleOptions>;
 }>;
@@ -177,11 +179,11 @@ const preferConciseComments = (options: PreferConciseCommentsOptions = {}): Sema
   });
 };
 
-const requireActionableTodos = (options: ProbabilityRuleOptions = {}): SemanticRule => {
+const requireActionableTodos = (options: ProbabilityRuleOptions = {}): AsyncSemanticRule => {
   const { threshold, minConfidence } = probabilityOptions(options, 0.8, 0.7);
-  return choiceRule({
+  return asyncChoiceRule({
     description: "TODO comments should give a maintainer enough context to act.",
-    select: (document) => document.comments.filter(isTodoCandidate),
+    select: classifyTodoComments,
     question: {
       instructions:
         "Does this TODO, FIXME, or HACK give a future maintainer enough context to act? Useful context can state what remains, why it is deferred, the condition for removal, or a relevant issue. Do not require an owner, date, or ticket when the action is otherwise clear.",
@@ -266,6 +268,10 @@ interface ChoiceRuleDefinition {
   message: string;
 }
 
+interface AsyncChoiceRuleDefinition extends Omit<ChoiceRuleDefinition, "select"> {
+  select(document: ParsedDocument, context?: CollectionContext): Promise<CommentTarget[]>;
+}
+
 const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
   return {
     description: definition.description,
@@ -290,6 +296,85 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
       });
     },
   };
+};
+
+const asyncChoiceRule = (definition: AsyncChoiceRuleDefinition): AsyncSemanticRule => {
+  return {
+    description: definition.description,
+    async collect(document, context) {
+      const selectedComments = await definition.select(document, context);
+      return selectedComments.map((comment) => commentCandidate(comment, document, definition));
+    },
+    diagnose(answer, candidate) {
+      if (!isFinding(answer, definition.finding, definition.threshold, definition.minConfidence)) {
+        return null;
+      }
+      return diagnostic(candidate, definition.message, {
+        probability: answer.probabilities[definition.finding] ?? 0,
+        confidence: answer.confidence,
+      });
+    },
+  };
+};
+
+const commentCandidate = (
+  comment: CommentTarget,
+  document: ParsedDocument,
+  definition: ChoiceRuleDefinition | AsyncChoiceRuleDefinition,
+): RuleCandidate => ({
+  target: comment,
+  state: commentState(comment, document),
+  question: {
+    type: "choice",
+    instructions: definition.question.instructions,
+    criteria: definition.question.criteria,
+  },
+});
+
+const classifyTodoComments = async (
+  document: ParsedDocument,
+  context?: CollectionContext,
+): Promise<CommentTarget[]> => {
+  if (context === undefined) {
+    return document.comments.filter(isTodoCandidate);
+  }
+  const possible = document.comments.filter(
+    (comment) => comment.value.trim().length > 0 && !isIgnoredComment(comment),
+  );
+  const classifications = await Promise.all(
+    possible.map(async (comment) => {
+      const response = await context.provider.evaluate(
+        comment,
+        {
+          state: {
+            language: document.language,
+            comment: boundedEvidence(comment.source, MAX_COMMENT_CHARACTERS).value,
+          },
+          questions: {
+            candidate_kind: {
+              type: "choice",
+              instructions:
+                "Is this comment an explicit TODO, FIXME, HACK, or equivalent action marker for future work? Classify the comment itself, not whether the future work is well explained.",
+              criteria: {
+                todo: "The comment explicitly marks future work or a condition to revisit.",
+                other: "The comment documents current code without marking future work.",
+              },
+            },
+          },
+        },
+        context.signal,
+      );
+      if (response === null) {
+        return null;
+      }
+      const answer = response.answers["candidate_kind"];
+      if (answer === undefined) {
+        throw new Error(`Provider ${context.provider.id} omitted the TODO classification answer`);
+      }
+      return answer.type === "choice" && answer.choice === "todo" ? comment : null;
+    }),
+  );
+  return classifications.filter((comment): comment is CommentTarget => comment !== null);
 };
 
 const commentState = (comment: CommentTarget, document: ParsedDocument): JsonValue => {

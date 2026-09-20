@@ -115,6 +115,13 @@ const findingProvider = (finding: string | undefined): DecisionProvider => {
       for (const [id, question] of Object.entries(request.questions)) {
         if (question.type === "noul") {
           answers[id] = { type: "noul", noul: 0.99 };
+        } else if ("todo" in question.criteria) {
+          answers[id] = {
+            type: "choice",
+            choice: "todo",
+            confidence: 0.99,
+            probabilities: { todo: 0.99, other: 0.01 },
+          };
         } else {
           if (finding === undefined) {
             throw new Error("Choice fixtures require a finding");
@@ -131,6 +138,40 @@ const findingProvider = (finding: string | undefined): DecisionProvider => {
     },
   };
 };
+
+const collectionProvider = (): DecisionProvider => ({
+  id: "collection-fixture",
+  concurrency: 2,
+  evaluate(request): Promise<DecisionResponse> {
+    const classification = Object.values(request.questions).some(
+      (question) => question.type === "choice" && "todo" in question.criteria,
+    );
+    const selected = classification && JSON.stringify(request.state).includes("Follow up");
+    const answers = Object.fromEntries(
+      Object.keys(request.questions).map((id) => [
+        id,
+        classification
+          ? {
+              type: "choice" as const,
+              choice: selected ? "todo" : "other",
+              confidence: 1,
+              probabilities: selected ? { todo: 1, other: 0 } : { todo: 0, other: 1 },
+            }
+          : {
+              type: "choice" as const,
+              choice: "unactionable",
+              confidence: 1,
+              probabilities: { unactionable: 1 },
+            },
+      ]),
+    );
+    return Promise.resolve({
+      model: "collection-model",
+      answers,
+      usage: { inputTokens: 2, outputTokens: 1 },
+    });
+  },
+});
 
 const vacuousAnswer = (probability: number, confidence: number): DecisionAnswer => {
   return {
@@ -490,7 +531,7 @@ await test("observability rules diagnose only confident configured findings", ()
   }
 });
 
-await test("comments rules preserve calibrated default decision margins", () => {
+await test("comments rules preserve calibrated default decision margins", async () => {
   const plugin = comments();
   const parser = oxcParser();
   const document = parser.parse(
@@ -498,7 +539,7 @@ await test("comments rules preserve calibrated default decision margins", () => 
     "// Set active to true\nuser.active = true;\n// TODO: fix this later\n",
   );
   const ordinaryCandidate = plugin.rules["no-useless-comments"]().collect(document)[0];
-  const todoCandidate = plugin.rules["require-actionable-todos"]().collect(document)[0];
+  const todoCandidate = (await plugin.rules["require-actionable-todos"]().collect(document))[0];
   assert.ok(ordinaryCandidate);
   assert.ok(todoCandidate);
 
@@ -537,6 +578,35 @@ await test("comments rules preserve calibrated default decision margins", () => 
   );
 });
 
+await test("collection can use the managed provider to classify possible candidates", async () => {
+  const result = await runScruple(
+    {
+      parser: oxcParser(),
+      provider: collectionProvider(),
+      plugins: { comments: comments() },
+      rules: { "comments/require-actionable-todos": "warn" },
+    },
+    [
+      {
+        filename: "comments.ts",
+        source:
+          "// Follow up on the migration.\nconst first = 1;\n// TODO: ignored by classifier\nconst second = 2;\n// scruple-disable-next-line comments/require-actionable-todos -- covered elsewhere\n// Follow up on the suppressed migration.\n",
+      },
+    ],
+  );
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.diagnostics.length, 1);
+  assert.equal(result.diagnostics[0]?.location.start.line, 1);
+  assert.deepEqual(result.stats, {
+    files: 1,
+    candidates: 1,
+    requests: 3,
+    inputTokens: 6,
+    outputTokens: 3,
+  });
+});
+
 await test("test rule preserves conservative default decision margins", () => {
   const rule = testRules().rules["no-vacuous-tests"]();
   const candidate = rule.collect(
@@ -573,14 +643,14 @@ await test("commented-out code rule collects short executable comments", () => {
   assert.equal(plugin.rules["no-useless-comments"]().collect(document).length, 0);
 });
 
-await test("comments rules recognize block TODOs, ignore directives, and retain prose", () => {
+await test("comments rules recognize block TODOs, ignore directives, and retain prose", async () => {
   const plugin = comments();
   const document = oxcParser().parse(
     "comments.ts",
     '/**\n * TODO: fix this later\n */\nexport const value = legacyValue;\n/* #__PURE__ */ factory();\n// scruple-disable-next-line comments/no-useless-comments -- Generated fixture.\ngenerated();\n// Scruple reports semantic policy findings.\n/// <reference path="./types.d.ts" />\n',
   );
 
-  assert.equal(plugin.rules["require-actionable-todos"]().collect(document).length, 1);
+  assert.equal((await plugin.rules["require-actionable-todos"]().collect(document)).length, 1);
   for (const ruleName of ["no-useless-comments", "no-commented-out-code"] as const) {
     assert.deepEqual(
       plugin.rules[ruleName]()

@@ -153,7 +153,7 @@ await test("comment evidence independently bounds million-character line and blo
   }
 });
 
-await test("actionable TODO selection recognizes standard JSDoc @todo markers", () => {
+await test("actionable TODO selection recognizes standard JSDoc @todo markers", async () => {
   const document = oxcParser().parse(
     "todos.ts",
     `/** @todo Replace the compatibility transport after v1 support ends. */
@@ -163,7 +163,7 @@ export function receive() {}
 `,
   );
 
-  const candidates = comments().rules["require-actionable-todos"]().collect(document);
+  const candidates = await comments().rules["require-actionable-todos"]().collect(document);
   assert.deepEqual(
     candidates.map((candidate) => candidate.target.source),
     ["/** @todo Replace the compatibility transport after v1 support ends. */"],

@@ -485,6 +485,7 @@
       "filename": "comments.ts",
       "source": "export function day(timestamp: number) {\n  // FIXME: preserve the caller's timezone instead of formatting every date as UTC.\n  return new Date(timestamp).toISOString();\n}\n",
       "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
       "expected_finding": false,
       "rationale": "The FIXME identifies the current defect and the intended behavior.",
       "tags": ["negative", "fixme", "concrete-action"]
@@ -494,6 +495,7 @@
       "filename": "comments.ts",
       "source": "export function parse(input: string) {\n  // FIXME: handle edge cases\n  return parser.parse(input);\n}\n",
       "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
       "expected_finding": true,
       "rationale": "The marker does not identify which inputs fail or what behavior is required.",
       "tags": ["positive", "fixme", "vague"]
@@ -539,6 +541,7 @@
       "filename": "comments.ts",
       "source": "export function stream(client: Client) {\n  // HACK: remove this buffering branch when upstream supports streaming responses.\n  return client.supportsStreaming ? client.stream() : buffer(client.response());\n}\n",
       "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
       "expected_finding": false,
       "rationale": "The marker identifies the temporary behavior and a concrete removal condition.",
       "tags": ["negative", "hack", "removal-condition"]
@@ -1067,6 +1070,7 @@
       "filename": "comments.ts",
       "source": "export function readName(input: Payload) {\n  // TODO: remove display_name fallback after v2 clients are retired.\n  return input.name ?? input.display_name;\n}\n",
       "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
       "expected_finding": false,
       "rationale": "The TODO states both the work and a concrete condition for performing it.",
       "tags": ["negative", "todo", "removal-condition"]
@@ -1076,9 +1080,51 @@
       "filename": "comments.ts",
       "source": "export function convert(value: string) {\n  /**\n   * TODO: fix this later\n   */\n  return legacyConvert(value);\n}\n",
       "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
       "expected_finding": true,
       "rationale": "The marker identifies neither the defect nor the required future work.",
       "tags": ["positive", "todo", "vague", "block-comment"]
+    },
+    {
+      "id": "todo-lowercase-vague",
+      "filename": "comments.ts",
+      "source": "export function convert(value: string) {\n  // todo: fix later\n  return legacyConvert(value);\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
+      "expected_finding": true,
+      "rationale": "A lowercase TODO marker still identifies future work, but the requested work is vague.",
+      "tags": ["positive", "todo", "lowercase", "vague"]
+    },
+    {
+      "id": "to-do-vague-variant",
+      "filename": "comments.ts",
+      "source": "export function convert(value: string) {\n  // to-do: handle this better\n  return legacyConvert(value);\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
+      "expected_finding": true,
+      "rationale": "The hyphenated marker denotes future work but gives no concrete defect or required behavior.",
+      "tags": ["positive", "to-do", "variant", "vague"]
+    },
+    {
+      "id": "to-do-concrete-removal-condition",
+      "filename": "comments.ts",
+      "source": "export function readName(input: Payload) {\n  // to-do: remove display_name fallback after v2 clients are retired.\n  return input.name ?? input.display_name;\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["todo"],
+      "expected_finding": false,
+      "rationale": "The hyphenated marker identifies concrete work and the condition for performing it.",
+      "tags": ["negative", "to-do", "variant", "removal-condition"]
+    },
+    {
+      "id": "to-do-ordinary-domain-prose",
+      "filename": "comments.ts",
+      "source": "export function orderedTasks(tasks: Task[]) {\n  // Return the to-do list in priority order.\n  return tasks.toSorted(byPriority);\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "collection_choices": ["other"],
+      "expected_candidates": 0,
+      "expected_finding": false,
+      "rationale": "To-do is a domain noun describing the returned list, not a marker for future maintenance work.",
+      "tags": ["negative", "to-do", "domain-prose", "selector"]
     },
     {
       "id": "typeorm-repository-join-done-in-memory",

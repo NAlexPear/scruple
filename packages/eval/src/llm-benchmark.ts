@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { JsonValue, PluginMap, SourceParser } from "@scruple/core";
-import type { EvalFixture } from "@scruple/eval";
+import { collectEvalCandidates, type EvalFixture } from "@scruple/eval";
 
 export const OPENAI_MODEL = "gpt-4.1-2025-04-14";
 export const LLM_PROMPT_VERSION = "scruple-direct-choice-v1";
@@ -77,46 +77,49 @@ export interface LlmBenchmarkReport {
   };
 }
 
-export const buildLlmBenchmarkTasks = (
+export const buildLlmBenchmarkTasks = async (
   fixtures: readonly EvalFixture[],
   parser: SourceParser,
   plugins: PluginMap,
-): LlmBenchmarkTask[] => {
-  return fixtures.flatMap((fixture) => {
-    const separator = fixture.ruleId.indexOf("/");
-    const plugin = plugins[fixture.ruleId.slice(0, separator)];
-    const factory = plugin?.rules[fixture.ruleId.slice(separator + 1)];
-    if (factory === undefined) {
-      throw new Error(`No rule configured for benchmark fixture: ${fixture.ruleId}`);
-    }
-    const candidates = factory().collect(parser.parse(fixture.filename, fixture.source));
-    if (candidates.length !== fixture.expectedCandidates) {
-      throw new Error(
-        `${fixture.id} expected ${fixture.expectedCandidates} candidates, received ${candidates.length}`,
-      );
-    }
-    return candidates.map((candidate, index) => {
-      if (candidate.question.type !== "choice") {
-        throw new Error(`${fixture.id} candidate ${index} is not a choice question`);
+): Promise<LlmBenchmarkTask[]> => {
+  const tasks = await Promise.all(
+    fixtures.map(async (fixture) => {
+      const separator = fixture.ruleId.indexOf("/");
+      const plugin = plugins[fixture.ruleId.slice(0, separator)];
+      const factory = plugin?.rules[fixture.ruleId.slice(separator + 1)];
+      if (factory === undefined) {
+        throw new Error(`No rule configured for benchmark fixture: ${fixture.ruleId}`);
       }
-      const expectedChoice = fixture.expectedChoices[index];
-      if (expectedChoice === undefined) {
-        throw new Error(`${fixture.id} has no expected choice for candidate ${index}`);
+      const candidates = await collectEvalCandidates(fixture, factory(), parser);
+      if (candidates.length !== fixture.expectedCandidates) {
+        throw new Error(
+          `${fixture.id} expected ${fixture.expectedCandidates} candidates, received ${candidates.length}`,
+        );
       }
-      const content = {
-        id: fixture.id,
-        ruleId: fixture.ruleId,
-        expectedChoice,
-        expectedFinding: fixture.expectedFinding,
-        evidence: candidate.state,
-        question: {
-          instructions: candidate.question.instructions,
-          criteria: candidate.question.criteria,
-        },
-      };
-      return Object.assign(content, { hash: sha256(stableJson(content)) });
-    });
-  });
+      return candidates.map((candidate, index) => {
+        if (candidate.question.type !== "choice") {
+          throw new Error(`${fixture.id} candidate ${index} is not a choice question`);
+        }
+        const expectedChoice = fixture.expectedChoices[index];
+        if (expectedChoice === undefined) {
+          throw new Error(`${fixture.id} has no expected choice for candidate ${index}`);
+        }
+        const content = {
+          id: fixture.id,
+          ruleId: fixture.ruleId,
+          expectedChoice,
+          expectedFinding: fixture.expectedFinding,
+          evidence: candidate.state,
+          question: {
+            instructions: candidate.question.instructions,
+            criteria: candidate.question.criteria,
+          },
+        };
+        return Object.assign(content, { hash: sha256(stableJson(content)) });
+      });
+    }),
+  );
+  return tasks.flat();
 };
 
 export const verifyTaskManifest = (tasks: readonly LlmBenchmarkTask[], manifest: unknown): void => {

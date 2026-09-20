@@ -25,7 +25,7 @@ try {
       await readFile(new URL("../../../tests/eval-fixtures.json", import.meta.url), "utf8"),
     );
     const fixtures = parseEvalFixtures(rawFixtures);
-    validateEvalCorpus(fixtures, oxcParser(), plugins);
+    await validateEvalCorpus(fixtures, oxcParser(), plugins);
     const runs = (
       await Promise.all(
         options.models.map((model) => runModel(model, options.repetitions, fixtures)),

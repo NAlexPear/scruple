@@ -11,6 +11,7 @@ import type {
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
 import {
+  collectEvalCandidates,
   hasEvalFailures,
   parseEvalFixtures,
   runEvaluation,
@@ -42,9 +43,7 @@ await test("evaluation corpus covers every registered rule with exact candidates
   const plugins = evaluationPlugins();
   const parser = oxcParser();
 
-  assert.doesNotThrow(() => {
-    validateEvalCorpus(fixtures, parser, plugins);
-  });
+  await assert.doesNotReject(validateEvalCorpus(fixtures, parser, plugins));
   for (const ruleId of [
     "api-contracts/no-ignored-significant-results",
     "async/no-unobserved-async-work",
@@ -59,6 +58,24 @@ await test("evaluation corpus covers every registered rule with exact candidates
   }
 });
 
+await test("recorded collection choices cover TODO variants beyond the lexical fallback", async () => {
+  const raw: unknown = JSON.parse(
+    await readFile(new URL("./eval-fixtures.json", import.meta.url), "utf8"),
+  );
+  const fixtures = parseEvalFixtures(raw);
+  const parser = oxcParser();
+  const factory = evaluationPlugins()["comments"]?.rules["require-actionable-todos"];
+  assert.ok(factory);
+  const variant = fixtures.find((fixture) => fixture.id === "to-do-vague-variant");
+  const prose = fixtures.find((fixture) => fixture.id === "to-do-ordinary-domain-prose");
+  assert.ok(variant);
+  assert.ok(prose);
+
+  assert.equal((await factory().collect(parser.parse(variant.filename, variant.source))).length, 0);
+  assert.equal((await collectEvalCandidates(variant, factory(), parser)).length, 1);
+  assert.equal((await collectEvalCandidates(prose, factory(), parser)).length, 0);
+});
+
 await test("evaluation fixtures require candidate, exact-choice, and abstention expectations", () => {
   const [fixture] = parseEvalFixtures([
     {
@@ -68,6 +85,7 @@ await test("evaluation fixtures require candidate, exact-choice, and abstention 
       rule_id: "test/choice-rule",
       expected_finding: false,
       expected_candidates: 1,
+      collection_choices: ["candidate"],
       expected_choice: "insufficient_context",
       expected_abstention: true,
       rationale: "The evidence is intentionally incomplete.",
@@ -76,6 +94,7 @@ await test("evaluation fixtures require candidate, exact-choice, and abstention 
   ]);
 
   assert.deepEqual(fixture?.expectedChoices, ["insufficient_context"]);
+  assert.deepEqual(fixture?.collectionChoices, ["candidate"]);
   assert.equal(fixture?.expectedAbstention, true);
   assert.equal(fixture?.expectedCandidates, 1);
   assert.throws(
@@ -402,7 +421,7 @@ await test("evaluation rejects a below-threshold finding choice for a safe fixtu
   assert.equal(report.summary.failed, 1);
 });
 
-await test("corpus validation rejects duplicate candidates", () => {
+await test("corpus validation rejects duplicate candidates", async () => {
   const choiceFactory = makeChoicePlugin().rules["choice-rule"];
   assert.ok(choiceFactory);
   const baseRule = choiceFactory();
@@ -410,8 +429,8 @@ await test("corpus validation rejects duplicate candidates", () => {
     rules: {
       duplicate: () => ({
         ...baseRule,
-        collect(document: Parameters<typeof baseRule.collect>[0]) {
-          const [candidate] = baseRule.collect(document);
+        async collect(document: Parameters<typeof baseRule.collect>[0]) {
+          const [candidate] = await baseRule.collect(document);
           assert.ok(candidate);
           return [candidate, candidate];
         },
@@ -442,12 +461,13 @@ await test("corpus validation rejects duplicate candidates", () => {
       tags: ["negative"],
     },
   ];
-  assert.throws(() => {
-    validateEvalCorpus(duplicateFixtures, oxcParser(), { test: duplicatePlugin });
-  }, /duplicate candidate/u);
+  await assert.rejects(
+    validateEvalCorpus(duplicateFixtures, oxcParser(), { test: duplicatePlugin }),
+    /duplicate candidate/u,
+  );
 });
 
-await test("corpus validation rejects uncovered registered rules", () => {
+await test("corpus validation rejects uncovered registered rules", async () => {
   const choiceFactory = makeChoicePlugin().rules["choice-rule"];
   assert.ok(choiceFactory);
   const uncoveredPlugin = definePlugin({
@@ -480,9 +500,10 @@ await test("corpus validation rejects uncovered registered rules", () => {
       tags: ["negative"],
     },
   ];
-  assert.throws(() => {
-    validateEvalCorpus(coveredFixtures, oxcParser(), { test: uncoveredPlugin });
-  }, /no evaluation fixtures: test\/uncovered/u);
+  await assert.rejects(
+    validateEvalCorpus(coveredFixtures, oxcParser(), { test: uncoveredPlugin }),
+    /no evaluation fixtures: test\/uncovered/u,
+  );
 });
 
 await test("evaluation keeps missing and unexpected provider answer IDs visible", async () => {

@@ -1,11 +1,12 @@
 import type {
+  AnySemanticRule,
+  CollectionContext,
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
   PluginMap,
   RuleCandidate,
   RuleConfiguration,
-  SemanticRule,
   SourceParser,
 } from "@scruple/core";
 import { runScruple } from "@scruple/core";
@@ -20,6 +21,8 @@ export interface EvalFixture {
   expectedFinding: boolean;
   expectedCandidates: number;
   expectedChoices: string[];
+  /** Recorded collection-time choices used for deterministic corpus validation and task building. */
+  collectionChoices?: string[];
   expectedAbstention?: boolean;
   rationale: string;
   tags: string[];
@@ -112,6 +115,7 @@ export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
         expectedCandidates,
         index,
       ),
+      ...optionalCollectionChoices(entry, index),
       ...optionalExpectedAbstention(entry, index),
       rationale: requiredString(entry, "rationale", index),
       tags: requiredStrings(entry, "tags", index),
@@ -125,18 +129,18 @@ export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
   return fixtures;
 };
 
-export const validateEvalCorpus = (
+export const validateEvalCorpus = async (
   fixtures: readonly EvalFixture[],
   parser: SourceParser,
   plugins: PluginMap,
-): void => {
+): Promise<void> => {
   const fixturesByRule = new Map<string, EvalFixture[]>();
   for (const fixture of fixtures) {
     const ruleFixtures = fixturesByRule.get(fixture.ruleId) ?? [];
     ruleFixtures.push(fixture);
     fixturesByRule.set(fixture.ruleId, ruleFixtures);
   }
-  const registeredRules = new Map<string, SemanticRule>();
+  const registeredRules = new Map<string, AnySemanticRule>();
   for (const [namespace, plugin] of Object.entries(plugins)) {
     for (const [ruleName, factory] of Object.entries(plugin.rules)) {
       registeredRules.set(`${namespace}/${ruleName}`, factory());
@@ -148,41 +152,93 @@ export const validateEvalCorpus = (
       throw new Error(`Evaluation fixture rule is not registered: ${ruleId}`);
     }
   }
-  for (const [ruleId, rule] of registeredRules) {
-    const ruleFixtures = fixturesByRule.get(ruleId) ?? [];
-    if (ruleFixtures.length === 0) {
-      throw new Error(`Registered semantic rule has no evaluation fixtures: ${ruleId}`);
-    }
-    const outcomes = new Set(ruleFixtures.map((fixture) => fixture.expectedFinding));
-    if (!outcomes.has(true) || !outcomes.has(false)) {
-      throw new Error(`Evaluation rule requires positive and safe fixtures: ${ruleId}`);
-    }
-    for (const fixture of ruleFixtures) {
-      const candidates = rule.collect(parser.parse(fixture.filename, fixture.source));
-      if (candidates.length !== fixture.expectedCandidates) {
-        throw new Error(
-          `${fixture.id} expected ${fixture.expectedCandidates} candidates for ${ruleId}, received ${candidates.length}`,
-        );
+  await Promise.all(
+    [...registeredRules].map(async ([ruleId, rule]) => {
+      const ruleFixtures = fixturesByRule.get(ruleId) ?? [];
+      if (ruleFixtures.length === 0) {
+        throw new Error(`Registered semantic rule has no evaluation fixtures: ${ruleId}`);
       }
-      assertUniqueCandidates(fixture, candidates);
-      if (fixture.expectedChoices.length !== candidates.length) {
-        throw new Error(
-          `${fixture.id} expected_choices must contain one choice per candidate (${candidates.length})`,
-        );
+      const outcomes = new Set(ruleFixtures.map((fixture) => fixture.expectedFinding));
+      if (!outcomes.has(true) || !outcomes.has(false)) {
+        throw new Error(`Evaluation rule requires positive and safe fixtures: ${ruleId}`);
       }
-      candidates.forEach((candidate, index) => {
-        if (candidate.question.type !== "choice") {
-          throw new Error(`${fixture.id} candidate ${index} does not use a choice question`);
-        }
-        const expectedChoice = fixture.expectedChoices[index];
-        if (expectedChoice === undefined || !(expectedChoice in candidate.question.criteria)) {
+      const collectedFixtures = await Promise.all(
+        ruleFixtures.map(async (fixture) => ({
+          fixture,
+          candidates: await collectEvalCandidates(fixture, rule, parser),
+        })),
+      );
+      for (const { fixture, candidates } of collectedFixtures) {
+        if (candidates.length !== fixture.expectedCandidates) {
           throw new Error(
-            `${fixture.id} expected choice ${String(expectedChoice)} is not a criterion for candidate ${index}`,
+            `${fixture.id} expected ${fixture.expectedCandidates} candidates for ${ruleId}, received ${candidates.length}`,
           );
         }
-      });
-    }
+        assertUniqueCandidates(fixture, candidates);
+        if (fixture.expectedChoices.length !== candidates.length) {
+          throw new Error(
+            `${fixture.id} expected_choices must contain one choice per candidate (${candidates.length})`,
+          );
+        }
+        candidates.forEach((candidate, index) => {
+          if (candidate.question.type !== "choice") {
+            throw new Error(`${fixture.id} candidate ${index} does not use a choice question`);
+          }
+          const expectedChoice = fixture.expectedChoices[index];
+          if (expectedChoice === undefined || !(expectedChoice in candidate.question.criteria)) {
+            throw new Error(
+              `${fixture.id} expected choice ${String(expectedChoice)} is not a criterion for candidate ${index}`,
+            );
+          }
+        });
+      }
+    }),
+  );
+};
+
+export const collectEvalCandidates = async (
+  fixture: EvalFixture,
+  rule: AnySemanticRule,
+  parser: SourceParser,
+): Promise<RuleCandidate[]> => {
+  const document = parser.parse(fixture.filename, fixture.source);
+  if (fixture.collectionChoices === undefined) {
+    return rule.collect(document);
   }
+  let nextChoice = 0;
+  const context: CollectionContext = {
+    provider: {
+      id: "eval-fixture",
+      evaluate(_target, request): Promise<DecisionResponse> {
+        const answers: Record<string, DecisionAnswer> = {};
+        for (const [id, question] of Object.entries(request.questions)) {
+          if (question.type !== "choice") {
+            throw new Error(`${fixture.id} collection_choices can only answer choice questions`);
+          }
+          const choice = fixture.collectionChoices?.[nextChoice];
+          if (choice === undefined) {
+            throw new Error(`${fixture.id} has fewer collection_choices than collection questions`);
+          }
+          if (!(choice in question.criteria)) {
+            throw new Error(`${fixture.id} collection choice ${choice} is not a criterion`);
+          }
+          nextChoice += 1;
+          answers[id] = {
+            type: "choice",
+            choice,
+            confidence: 1,
+            probabilities: { [choice]: 1 },
+          };
+        }
+        return Promise.resolve({ model: "eval-fixture", answers });
+      },
+    },
+  };
+  const candidates = await rule.collect(document, context);
+  if (nextChoice !== fixture.collectionChoices.length) {
+    throw new Error(`${fixture.id} has unused collection_choices`);
+  }
+  return candidates;
 };
 
 export const runEvalCase = async (
@@ -197,7 +253,6 @@ export const runEvalCase = async (
   }
   let model = provider.id;
   let modelCalls = 0;
-  const answers: DecisionAnswer[] = [];
   const trackingProvider: DecisionProvider = {
     id: provider.id,
     ...(provider.concurrency === undefined ? {} : { concurrency: provider.concurrency }),
@@ -216,7 +271,6 @@ export const runEvalCase = async (
         ];
         throw new Error(`Provider answer IDs do not match request (${details.join("; ")})`);
       }
-      answers.push(...expectedIds.map((id) => response.answers[id]!));
       return response;
     },
   };
@@ -229,14 +283,16 @@ export const runEvalCase = async (
       rules: { [fixture.ruleId]: ruleConfiguration },
     },
     [{ filename: fixture.filename, source: fixture.source }],
+    undefined,
+    { includeDecisions: true },
   );
   const actualFinding = result.diagnostics.some(
     (diagnostic) => diagnostic.ruleId === fixture.ruleId,
   );
   const actualCandidates = result.stats.candidates;
   const errors = result.errors.map((error) => error.message);
-  const actualChoices = answers.flatMap((answer) =>
-    answer.type === "choice" ? [answer.choice] : [],
+  const actualChoices = (result.decisions ?? []).flatMap((decision) =>
+    decision.answer.type === "choice" ? [decision.answer.choice] : [],
   );
   const actualAbstention =
     actualChoices.length > 0 && actualChoices.every((choice) => choice === "insufficient_context");
@@ -448,6 +504,16 @@ const optionalExpectedAbstention = (
     throw new TypeError(`Evaluation fixture ${index} requires a boolean expected_abstention`);
   }
   return { expectedAbstention: entry };
+};
+
+const optionalCollectionChoices = (
+  value: Record<string, unknown>,
+  index: number,
+): { collectionChoices?: string[] } => {
+  if (value["collection_choices"] === undefined) {
+    return {};
+  }
+  return { collectionChoices: requiredStrings(value, "collection_choices", index) };
 };
 
 const requiredStrings = (value: Record<string, unknown>, key: string, index: number): string[] => {

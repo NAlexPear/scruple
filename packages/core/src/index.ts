@@ -305,6 +305,22 @@ export interface DecisionProvider {
   close?(): Promise<void> | void;
 }
 
+export interface CollectionProvider {
+  readonly id: string;
+  /** Returns null without evaluating when the target is suppressed for the active rule. */
+  evaluate(
+    target: CodeTarget,
+    request: DecisionRequest,
+    signal?: AbortSignal,
+  ): Promise<DecisionResponse | null>;
+}
+
+export interface CollectionContext {
+  /** Engine-managed provider access for classifying possible candidates before evaluation. */
+  readonly provider: CollectionProvider;
+  readonly signal?: AbortSignal;
+}
+
 export interface RuleCandidate {
   target: CodeTarget;
   state: JsonValue;
@@ -327,19 +343,24 @@ export interface Diagnostic {
   confidence?: number;
 }
 
-export interface SemanticRule {
+export type CollectionResult = RuleCandidate[] | Promise<RuleCandidate[]>;
+
+export interface SemanticRule<Result extends CollectionResult = RuleCandidate[]> {
   readonly description: string;
-  collect(document: ParsedDocument): RuleCandidate[];
+  collect(document: ParsedDocument, context?: CollectionContext): Result;
   diagnose(
     answer: DecisionAnswer,
     candidate: RuleCandidate,
   ): Omit<Diagnostic, "ruleId" | "severity" | "model"> | null;
 }
 
-export type RuleFactory<Options = never, Result extends SemanticRule = SemanticRule> = (
+export type AnySemanticRule = SemanticRule<CollectionResult>;
+export type AsyncSemanticRule = SemanticRule<Promise<RuleCandidate[]>>;
+
+export type RuleFactory<Options = never, Result extends AnySemanticRule = SemanticRule> = (
   options?: Options,
 ) => Result;
-export type RuleFactories = Record<string, RuleFactory>;
+export type RuleFactories = Record<string, RuleFactory<never, AnySemanticRule>>;
 
 export interface DecisionRuleOptions {
   threshold?: number;
@@ -468,7 +489,7 @@ export interface RunResult {
 interface ActiveRule {
   id: string;
   severity: DiagnosticSeverity;
-  rule: SemanticRule;
+  rule: AnySemanticRule;
 }
 
 interface PendingCandidate {
@@ -491,6 +512,19 @@ export const runScruple = async (
   const allPending: PendingCandidate[] = [];
   const activeRules = resolveRules(config, errors);
   let parsedFiles = 0;
+  let requests = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  const provider = managedProvider(
+    config.provider,
+    () => {
+      requests += 1;
+    },
+    (response) => {
+      inputTokens += response.usage?.inputTokens ?? 0;
+      outputTokens += response.usage?.outputTokens ?? 0;
+    },
+  );
 
   for (const file of files) {
     if (!config.parser.supports(file.filename)) {
@@ -513,21 +547,46 @@ export const runScruple = async (
     }
 
     const isSuppressed = createSuppressionFilter(document.filename, document.comments);
-    for (const activeRule of activeRules) {
-      const rule = activeRule.rule;
-      try {
-        const candidates = rule
-          .collect(document)
-          .filter((candidate) => !isSuppressed(activeRule.id, candidate.target));
-        for (const candidate of candidates) {
-          allPending.push({ activeRule, candidate });
+    // Collect files sequentially to bound parsed documents and possible candidates held in memory.
+    // eslint-disable-next-line no-await-in-loop
+    const collections = await Promise.all(
+      activeRules.map(async (activeRule) => {
+        const rule = activeRule.rule;
+        try {
+          const collectionProvider: CollectionProvider = {
+            id: provider.id,
+            evaluate(target, request, collectionSignal) {
+              if (isSuppressed(activeRule.id, target)) {
+                return Promise.resolve(null);
+              }
+              return provider.evaluate(request, collectionSignal);
+            },
+          };
+          const context: CollectionContext = {
+            provider: collectionProvider,
+            ...(signal === undefined ? {} : { signal }),
+          };
+          const collected = await rule.collect(document, context);
+          const candidates = collected.filter(
+            (candidate) => !isSuppressed(activeRule.id, candidate.target),
+          );
+          return { activeRule, candidates };
+        } catch (cause) {
+          return { activeRule, cause };
         }
-      } catch (cause) {
+      }),
+    );
+    for (const collection of collections) {
+      if ("cause" in collection) {
         errors.push({
           filename: file.filename,
-          message: `Rule ${activeRule.id} failed while collecting candidates: ${errorMessage(cause)}`,
-          cause,
+          message: `Rule ${collection.activeRule.id} failed while collecting candidates: ${errorMessage(collection.cause)}`,
+          cause: collection.cause,
         });
+        continue;
+      }
+      for (const candidate of collection.candidates) {
+        allPending.push({ activeRule: collection.activeRule, candidate });
       }
     }
   }
@@ -535,8 +594,6 @@ export const runScruple = async (
   const diagnostics: Diagnostic[] = [];
   const decisions: DecisionRecord[] = [];
   const batches = groupByState(allPending);
-  let inputTokens = 0;
-  let outputTokens = 0;
 
   await runConcurrent(batches, config.provider.concurrency ?? 1, async (batch) => {
     if (signal?.aborted === true) {
@@ -551,9 +608,7 @@ export const runScruple = async (
     );
 
     try {
-      const response = await config.provider.evaluate({ state: batch.state, questions }, signal);
-      inputTokens += response.usage?.inputTokens ?? 0;
-      outputTokens += response.usage?.outputTokens ?? 0;
+      const response = await provider.evaluate({ state: batch.state, questions }, signal);
 
       batch.pending.forEach(({ activeRule, candidate }, index) => {
         const answer = response.answers[`${sanitizeId(activeRule.id)}_${index}`];
@@ -600,7 +655,7 @@ export const runScruple = async (
     stats: {
       files: parsedFiles,
       candidates: allPending.length,
-      requests: batches.length,
+      requests,
       inputTokens,
       outputTokens,
     },
@@ -735,6 +790,49 @@ const runConcurrent = async <T>(
   };
   const workers = Array.from({ length: Math.min(safeConcurrency, values.length) }, runWorker);
   await Promise.all(workers);
+};
+
+const managedProvider = (
+  provider: DecisionProvider,
+  willEvaluate: () => void,
+  didEvaluate: (response: DecisionResponse) => void,
+): Pick<DecisionProvider, "id" | "evaluate"> => {
+  const concurrency = Math.max(1, Math.floor(provider.concurrency ?? 1));
+  let active = 0;
+  const waiting: (() => void)[] = [];
+
+  const acquire = async (): Promise<void> => {
+    if (active < concurrency) {
+      active += 1;
+      return;
+    }
+    await new Promise<void>((resolve) => {
+      waiting.push(resolve);
+    });
+  };
+  const release = (): void => {
+    const next = waiting.shift();
+    if (next === undefined) {
+      active -= 1;
+    } else {
+      next();
+    }
+  };
+
+  return {
+    id: provider.id,
+    async evaluate(request, signal) {
+      await acquire();
+      try {
+        willEvaluate();
+        const response = await provider.evaluate(request, signal);
+        didEvaluate(response);
+        return response;
+      } finally {
+        release();
+      }
+    },
+  };
 };
 
 const sanitizeId = (id: string): string => {

@@ -83,7 +83,7 @@ const main = async (): Promise<void> => {
     return;
   }
   const fixtures = await loadFixtures();
-  validateEvalCorpus(fixtures, oxcParser(), plugins);
+  await validateEvalCorpus(fixtures, oxcParser(), plugins);
   const selectedIds =
     options.fixtureIds.length === 0 ? await loadBenchmarkFixtureIds() : options.fixtureIds;
   const selectedFixtures = selectBenchmarkFixtures(fixtures, selectedIds);

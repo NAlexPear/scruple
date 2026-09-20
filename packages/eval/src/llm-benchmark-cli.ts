@@ -63,7 +63,7 @@ const main = async (): Promise<void> => {
   const ids = parseBenchmarkFixtureIds(
     await loadJson(new URL("../../../benchmarks/fixtures.json", import.meta.url)),
   );
-  const tasks = buildLlmBenchmarkTasks(
+  const tasks = await buildLlmBenchmarkTasks(
     selectBenchmarkFixtures(fixtures, ids),
     oxcParser(),
     evaluationPlugins(),

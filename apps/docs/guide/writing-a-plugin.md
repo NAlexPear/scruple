@@ -2,13 +2,14 @@
 
 A plugin is a group of related rules. Each rule:
 
-- chooses which parsed code to check
+- chooses which parsed code might need checking
 - sends only the code needed to answer its question
 - asks one fixed question with named answers
 - decides how strong an answer must be before reporting
 - writes the warning shown to the user
 
-The model answers the question. It does not choose what to inspect or write the warning.
+The model answers the question and can classify bounded possible candidates during collection. It does
+not search the source file or write the warning.
 
 ## Start with a narrow policy
 
@@ -104,9 +105,21 @@ export const todoPolicy = () =>
   });
 ```
 
-### Choose candidates without the model
+### Choose possible candidates narrowly
 
-`collect(document)` selects candidates from parsed facts. Do not ask the model which code to inspect. Keep source order, limit the amount of code sent, and include only what the question needs. A candidate contains:
+`collect(document, context)` selects candidates from parsed facts. Keep source order, limit the amount
+of code sent, and include only what the question needs. Use syntax and normalized parser facts when they
+answer the classification exactly. When selecting a candidate requires a semantic judgment, collection
+may use `context.provider.evaluate(target, request)` to classify a bounded list of possible targets before returning
+the final candidates. The context exposes only the provider ID and evaluation method; Scruple still
+enforces suppression and provider concurrency, and includes these requests and tokens in run statistics.
+
+Collection may therefore return either `RuleCandidate[]` or `Promise<RuleCandidate[]>`. The built-in
+TODO rule, for example, asks the provider whether each non-directive comment marks future work rather
+than relying on a regular expression. It then asks the separate, rule-specific question only for the
+comments classified as TODOs.
+
+A candidate contains:
 
 - `target`: the parsed location where a warning may appear.
 - `state`: JSON sent to the provider.
@@ -204,7 +217,11 @@ Cover four parts:
 
 ## Add evaluation fixtures
 
-An evaluation fixture records what should happen without consulting the provider. Include a reason and tags so a failure explains more than a changed number:
+An evaluation fixture records what should happen without consulting the provider. For an asynchronous
+collector, `collection_choices` replays the provider's collection answers in request order so corpus
+validation exercises the same candidate path deterministically. These answers select candidates; they
+are separate from `expected_choice`, which describes the final rule decision. Include a reason and tags
+so a failure explains more than a changed number:
 
 ```json
 [
