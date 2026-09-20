@@ -18,6 +18,7 @@ export interface JevProviderOptions {
   apiKey: string;
   baseURL?: string;
   model?: string;
+  concurrency?: number;
   timeoutMs?: number;
   maxRetries?: number;
   fetch?: Fetch;
@@ -44,6 +45,7 @@ export const jevProvider = (options: JevProviderOptions): DecisionProvider => {
 
   return {
     id: `jev:${model}`,
+    concurrency: options.concurrency ?? 64,
 
     async evaluate(request: DecisionRequest, signal?: AbortSignal): Promise<DecisionResponse> {
       const requestOptions: RequestOptions = {

@@ -24,12 +24,13 @@ On Windows, use `python: ".venv\\Scripts\\python.exe"`.
 
 ## Options
 
-| Option      | Default      | Purpose                                                 |
-| ----------- | ------------ | ------------------------------------------------------- |
-| `python`    | `"python3"`  | Python executable; set this to your uv environment      |
-| `model`     | `"auto"`     | `auto`, `english`, `multilingual`, or `typed-decisions` |
-| `device`    | Laya default | Device passed to the Laya router                        |
-| `preload`   | `true`       | Preload models when the bridge starts                   |
-| `timeoutMs` | `30000`      | Per-request timeout in milliseconds                     |
+| Option        | Default      | Purpose                                                 |
+| ------------- | ------------ | ------------------------------------------------------- |
+| `python`      | `"python3"`  | Python executable; set this to your uv environment      |
+| `model`       | `"auto"`     | `auto`, `english`, `multilingual`, or `typed-decisions` |
+| `device`      | Laya default | Device passed to the Laya router                        |
+| `preload`     | `true`       | Preload models when the bridge starts                   |
+| `concurrency` | `1`          | Maximum simultaneous provider requests                  |
+| `timeoutMs`   | `30000`      | Per-request timeout in milliseconds                     |
 
 `model: "auto"` lets Laya route by language. The provider shuts down its child process when the CLI run finishes.

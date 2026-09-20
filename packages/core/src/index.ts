@@ -265,6 +265,7 @@ export interface DecisionResponse {
 
 export interface DecisionProvider {
   readonly id: string;
+  readonly concurrency?: number;
   evaluate(request: DecisionRequest, signal?: AbortSignal): Promise<DecisionResponse>;
   close?(): Promise<void> | void;
 }
@@ -343,7 +344,6 @@ export interface ScrupleConfig {
   provider: DecisionProvider;
   plugins: PluginMap;
   rules: Record<string, RuleConfiguration>;
-  concurrency?: number;
   include?: string[];
   ignore?: string[];
 }
@@ -503,7 +503,7 @@ export const runScruple = async (
   let inputTokens = 0;
   let outputTokens = 0;
 
-  await runConcurrent(batches, config.concurrency ?? 4, async (batch) => {
+  await runConcurrent(batches, config.provider.concurrency ?? 1, async (batch) => {
     if (signal?.aborted === true) {
       return;
     }

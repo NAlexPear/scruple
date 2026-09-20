@@ -268,7 +268,6 @@ async function joinedUsers() {
   const config = defineConfig({
     parser: oxcParser(),
     provider: fixtureProvider(),
-    concurrency: 2,
     plugins: {
       comments: comments(),
       tests: testRules(),
@@ -832,6 +831,58 @@ await test("engine supports all-rule suppression and selective re-enabling", asy
   );
   assert.equal(result.stats.candidates, 3);
   assert.equal(result.stats.requests, 2);
+});
+
+await test("engine honors the provider concurrency limit", async () => {
+  let active = 0;
+  let maximumActive = 0;
+  const provider: DecisionProvider = {
+    id: "concurrency-fixture",
+    concurrency: 16,
+    async evaluate(request): Promise<DecisionResponse> {
+      active += 1;
+      maximumActive = Math.max(maximumActive, active);
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 5);
+      });
+      active -= 1;
+      const answers = Object.fromEntries(
+        Object.keys(request.questions).map((id) => [id, { type: "noul" as const, noul: 0 }]),
+      );
+      return { model: "fixture", answers };
+    },
+  };
+  const result = await runScruple(
+    {
+      parser: oxcParser(),
+      provider,
+      plugins: {
+        fixture: definePlugin({
+          rules: {
+            many: () => ({
+              description: "many",
+              collect(document) {
+                const target = document.functions[0];
+                assert.ok(target);
+                return Array.from({ length: 17 }, (_, index) => ({
+                  target,
+                  state: { index },
+                  question: { type: "noul" as const, instructions: "many" },
+                }));
+              },
+              diagnose: () => null,
+            }),
+          },
+        }),
+      },
+      rules: { "fixture/many": "warn" },
+    },
+    [{ filename: "one.ts", source: "function example() { return 1; }" }],
+  );
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.stats.requests, 17);
+  assert.equal(maximumActive, 16);
 });
 
 await test("engine rejects rules from missing plugins and unknown rule names", async () => {

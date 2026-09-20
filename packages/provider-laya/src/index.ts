@@ -15,6 +15,7 @@ export interface LayaProviderOptions {
   model?: LayaModel;
   device?: string;
   preload?: boolean;
+  concurrency?: number;
   timeoutMs?: number;
 }
 
@@ -47,6 +48,7 @@ export const layaProvider = (options: LayaProviderOptions = {}): DecisionProvide
   const model = options.model ?? "auto";
   return {
     id: `laya:${model}`,
+    concurrency: options.concurrency ?? 1,
     evaluate: (request, signal) => bridge.evaluate(request, signal),
     close: () => {
       bridge.close();

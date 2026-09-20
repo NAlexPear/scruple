@@ -121,6 +121,7 @@ export const runEvalCase = async (
   const answers: DecisionAnswer[] = [];
   const trackingProvider: DecisionProvider = {
     id: provider.id,
+    ...(provider.concurrency === undefined ? {} : { concurrency: provider.concurrency }),
     async evaluate(request, signal): Promise<DecisionResponse> {
       modelCalls += 1;
       const response = await provider.evaluate(request, signal);

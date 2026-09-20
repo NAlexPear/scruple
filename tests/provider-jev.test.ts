@@ -19,9 +19,11 @@ await test("Jev provider uses its explicit API key and sends provider-neutral qu
     restoreEnvironment("TYPESAFE_API_KEY", originalApiKey);
   });
   assert.throws(() => jevProvider({ apiKey: " " }), /apiKey must not be empty/u);
+  assert.equal(jevProvider({ apiKey: "test-key" }).concurrency, 64);
   const provider = jevProvider({
     apiKey: "test-key",
     model: "jev-test",
+    concurrency: 32,
     maxRetries: 0,
     fetch: (input, init) => {
       assert.equal(input, "https://api.typesafe.ai/v1/systemone");
@@ -47,6 +49,7 @@ await test("Jev provider uses its explicit API key and sends provider-neutral qu
     questions: { decision: { type: "noul", instructions: "Is this useful?" } },
   });
 
+  assert.equal(provider.concurrency, 32);
   assert.deepEqual(requestBody, {
     state: { source: "const value = 1;" },
     questions: { decision: { type: "noul", instructions: "Is this useful?" } },

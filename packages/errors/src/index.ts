@@ -209,6 +209,14 @@ const errorHandlerState = (
     documentSource.length,
     handler.range.end + maximumContextCharacters / 2,
   );
+  const surroundingContext =
+    handler.enclosingSource === undefined
+      ? {
+          surrounding_code: documentSource.slice(surroundingStart, surroundingEnd),
+          surrounding_code_truncated:
+            surroundingStart > 0 || surroundingEnd < documentSource.length,
+        }
+      : {};
   return {
     language: handler.language,
     imports: imports.slice(0, maximumImports).map((entry) => bounded(entry, 500)),
@@ -224,8 +232,7 @@ const errorHandlerState = (
         handler.enclosingSource === undefined
           ? null
           : bounded(handler.enclosingSource, maximumContextCharacters),
-      surrounding_code: documentSource.slice(surroundingStart, surroundingEnd),
-      surrounding_code_truncated: surroundingStart > 0 || surroundingEnd < documentSource.length,
+      ...surroundingContext,
     },
     control_flow: {
       calls: handler.calls.slice(0, maximumFlowEntries).map((call) => call.callee),

@@ -95,9 +95,26 @@ await test("errors plugin deterministically selects catch handlers and supplies 
   assert.equal(candidates.length, 1);
   assert.equal(candidates[0]?.target.kind, "error-handler");
   const state = JSON.stringify(candidates[0]?.state);
-  assert.ok(state.length < 18_000);
-  assert.match(state, /surrounding_code_truncated/u);
+  assert.ok(state.length < 10_000);
+  assert.match(state, /enclosing_function/u);
+  assert.doesNotMatch(state, /surrounding_code/u);
   assert.match(state, /return null/u);
+});
+
+await test("errors plugin retains surrounding evidence for top-level catch handlers", () => {
+  const padding = "void value;\n".repeat(800);
+  const document = oxcParser().parse(
+    "top-level.ts",
+    `${padding}\ntry { boot(); } catch (error) { recover(error); }\n${padding}`,
+  );
+  const candidate = errors().rules["no-swallowed-errors"]().collect(document)[0];
+
+  assert.ok(candidate);
+  const state = JSON.stringify(candidate.state);
+  assert.ok(state.length < 10_000);
+  assert.match(state, /"enclosing_function":null/u);
+  assert.match(state, /surrounding_code_truncated/u);
+  assert.match(state, /recover\(error\)/u);
 });
 
 await test("no-swallowed-errors does not treat reporting followed by false success as handled", () => {

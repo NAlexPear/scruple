@@ -4,15 +4,14 @@
 
 ## Fields
 
-| Field         | Required | Description                                              |
-| ------------- | -------- | -------------------------------------------------------- |
-| `parser`      | Yes      | `SourceParser` used for every supported file             |
-| `provider`    | Yes      | `DecisionProvider` used by semantic rules                |
-| `plugins`     | Yes      | Namespace to plugin map                                  |
-| `rules`       | Yes      | Namespaced rule configurations                           |
-| `concurrency` | No       | Positive provider-request concurrency; defaults to `4`   |
-| `include`     | No       | Default CLI globs when no positional patterns are passed |
-| `ignore`      | No       | Additional CLI ignore globs                              |
+| Field      | Required | Description                                              |
+| ---------- | -------- | -------------------------------------------------------- |
+| `parser`   | Yes      | `SourceParser` used for every supported file             |
+| `provider` | Yes      | `DecisionProvider` used by semantic rules                |
+| `plugins`  | Yes      | Namespace to plugin map                                  |
+| `rules`    | Yes      | Namespaced rule configurations                           |
+| `include`  | No       | Default CLI globs when no positional patterns are passed |
+| `ignore`   | No       | Additional CLI ignore globs                              |
 
 ## Rule configuration
 
@@ -31,4 +30,6 @@ A `SourceParser` supplies an `id`, a `supports(filename)` predicate, and `parse(
 
 ## Provider contract
 
-A `DecisionProvider` supplies an `id`, `evaluate(request, signal?)`, and an optional `close()`. Requests contain JSON state and named typed questions. Responses return named answers, a resolved model ID, and optional token usage.
+A `DecisionProvider` supplies an `id`, `evaluate(request, signal?)`, an optional `close()`, and its
+preferred request concurrency. Requests contain JSON state and named typed questions. Responses
+return named answers, a resolved model ID, and optional token usage.

@@ -59,7 +59,7 @@ A semantic rule's `collect` function examines one parsed document. Each candidat
 
 ## Batch decisions
 
-Scruple combines independent questions that share the same evidence state into one provider request. Requests run up to the configured concurrency limit.
+Scruple combines independent questions that share the same evidence state into one provider request. Requests run up to the provider's concurrency limit.
 
 ## Diagnose deterministically
 

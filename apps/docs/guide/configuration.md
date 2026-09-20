@@ -68,15 +68,4 @@ export default defineConfig({
 
 Positional CLI patterns override `include` for that run.
 
-## Concurrency
-
-`concurrency` limits simultaneous provider requests. It must be a positive integer and defaults to `4`.
-
-```ts
-export default defineConfig({
-  // parser, provider, plugins, rules
-  concurrency: 2,
-});
-```
-
 See the [Configuration API](../reference/configuration.md) for the complete field reference.
