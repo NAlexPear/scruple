@@ -3,7 +3,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
 import { runScruple, type Diagnostic, type ScrupleConfig } from "@scruple/core";
@@ -180,14 +179,4 @@ Exit codes:
   1  At least one error-severity finding
   2  Configuration, parsing, or provider failure
 `;
-}
-
-const entrypoint = process.argv[1];
-if (entrypoint !== undefined && import.meta.url === pathToFileURL(entrypoint).href) {
-  try {
-    process.exitCode = await runCli();
-  } catch (error) {
-    process.stderr.write(`scruple: ${error instanceof Error ? error.message : String(error)}\n`);
-    process.exitCode = 2;
-  }
 }

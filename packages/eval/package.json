@@ -1,0 +1,29 @@
+{
+  "name": "@scruple/eval",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./options": {
+      "types": "./dist/options.d.ts",
+      "import": "./dist/options.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scruple/comments": "workspace:*",
+    "@scruple/core": "workspace:*",
+    "@scruple/parser-oxc": "workspace:*",
+    "@scruple/provider-jev": "workspace:*",
+    "@scruple/provider-laya": "workspace:*",
+    "@scruple/relational-databases": "workspace:*",
+    "@scruple/tests": "workspace:*"
+  }
+}

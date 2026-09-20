@@ -1,7 +1,17 @@
 {
   "name": "@scruple/provider-laya",
   "version": "0.0.1",
-  "private": true,
+  "description": "Local Laya decision provider for Scruple.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/provider-laya"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -9,11 +19,17 @@
       "import": "./dist/index.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@scruple/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "unhelpful-comment-restates-code",
+    "filename": "comments.ts",
+    "source": "export function activate(user: User) {\n  // Set active to true\n  user.active = true;\n}\n",
+    "plugin_id": "comments/no-useless-comments",
+    "expected_finding": true
+  },
+  {
+    "id": "helpful-comment-explains-constraint",
+    "filename": "comments.ts",
+    "source": "export function retryDelay(attempt: number) {\n  // Keep this below the load balancer's 30-second idle timeout.\n  return Math.min(25_000, 2 ** attempt * 100);\n}\n",
+    "plugin_id": "comments/no-useless-comments",
+    "expected_finding": false
+  },
+  {
+    "id": "vacuous-test-tautology",
+    "filename": "service.test.ts",
+    "source": "test(\"creates a user\", async () => {\n  await createUser({ name: \"Ada\" });\n  assert.equal(true, true);\n});\n",
+    "plugin_id": "tests/no-vacuous-tests",
+    "expected_finding": true
+  },
+  {
+    "id": "meaningful-test-checks-result",
+    "filename": "service.test.ts",
+    "source": "test(\"creates a user\", async () => {\n  const user = await createUser({ name: \"Ada\" });\n  assert.equal(user.name, \"Ada\");\n});\n",
+    "plugin_id": "tests/no-vacuous-tests",
+    "expected_finding": false
+  },
+  {
+    "id": "database-join-done-in-memory",
+    "filename": "report.ts",
+    "source": "import { db } from \"./db.js\";\nexport async function report() {\n  const users = await db.user.findMany();\n  const teams = await db.team.findMany();\n  return users.map((user) => ({ ...user, team: teams.find((team) => team.id === user.teamId) }));\n}\n",
+    "plugin_id": "relational-databases/prefer-database-join",
+    "expected_finding": true
+  },
+  {
+    "id": "bounded-data-intentionally-in-memory",
+    "filename": "report.ts",
+    "source": "import { db } from \"./db.js\";\nexport async function labelSelectedUsers(selectedIds: string[]) {\n  const users = await db.user.findMany({ where: { id: { in: selectedIds } } });\n  const labels = await db.label.findMany({ where: { userId: { in: selectedIds } } });\n  // selectedIds is capped at 10 by the API schema; this preserves locale-aware application sorting.\n  return users.map((user) => ({ ...user, labels: labels.filter((label) => label.userId === user.id) }));\n}\n",
+    "plugin_id": "relational-databases/prefer-database-join",
+    "expected_finding": false
+  }
+]

@@ -31,6 +31,7 @@ serialized AST.
 - `@scruple/comments` — semantic rules for comments
 - `@scruple/tests` — semantic rules for tests
 - `@scruple/relational-databases` — semantic rules for relational database usage
+- `@scruple/eval` — private fixture runner for calibrating rule packages and providers
 
 ## Configuration
 
@@ -120,7 +121,7 @@ into `plugins`, without coupling the engine to any policy bundle.
 
 ## Development
 
-Requires Node.js 20.19 or newer and pnpm.
+Requires Node.js 22.18 or newer and pnpm.
 
 ```sh
 pnpm install
@@ -129,7 +130,33 @@ pnpm check
 
 `pnpm check` verifies Oxfmt formatting, runs Oxlint with type-aware rules and warnings denied,
 type-checks every package with the workspace's strict TypeScript configuration, builds all packages,
-and runs the test suite. Use `pnpm format` to apply formatting.
+and runs Node's built-in test suite. Use `pnpm format` to apply formatting.
+
+Live model evaluations are deliberately separate from deterministic checks:
+
+```sh
+# Uses Jev and requires TYPESAFE_API_KEY
+pnpm eval
+
+# Uses a local Laya installation
+pnpm eval --provider laya --model typed-decisions
+
+# Compare providers, with two runs for each provider/model pair
+pnpm eval --provider jev --provider laya \
+  --model jev-1.13.0 --model typed-decisions --repetitions 2
+```
+
+The checked-in corpus contains positive and negative fixtures for each initial rule. The runner emits
+JSON with per-case failures, requested and resolved models, repetitions, token and model-call counts,
+and p50/p95/total latency. It exits 1 when model decisions miss expectations and 2 for an operational
+or configuration error. `pnpm check` validates the corpus and runner without making network calls.
+
+## Distribution
+
+Public workspaces publish unbundled ESM, declarations, source maps, and TypeScript source. The
+`scruple` package exposes its compiled CLI through the npm `bin` field. Keeping dependencies external
+lets Node resolve parser, provider, and rule packages from the consuming project; Scruple does not
+produce a standalone executable that would sever that plugin resolution model.
 
 ## License
 

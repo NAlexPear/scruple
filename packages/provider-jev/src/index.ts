@@ -8,6 +8,7 @@ import type {
 import {
   TypeSafeClient,
   type EntryType,
+  type Fetch,
   type Questions,
   type RequestOptions,
   type TypeSafeClientConfig,
@@ -19,6 +20,7 @@ export interface JevProviderOptions {
   model?: string;
   timeoutMs?: number;
   maxRetries?: number;
+  fetch?: Fetch;
 }
 
 export function jevProvider(options: JevProviderOptions = {}): DecisionProvider {
@@ -33,6 +35,9 @@ export function jevProvider(options: JevProviderOptions = {}): DecisionProvider 
   }
   if (options.baseURL !== undefined) {
     clientConfig.baseURL = options.baseURL;
+  }
+  if (options.fetch !== undefined) {
+    clientConfig.fetch = options.fetch;
   }
   const client = new TypeSafeClient(clientConfig);
 

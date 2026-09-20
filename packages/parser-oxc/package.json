@@ -1,7 +1,17 @@
 {
   "name": "@scruple/parser-oxc",
   "version": "0.0.1",
-  "private": true,
+  "description": "OXC parser adapter for Scruple.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/parser-oxc"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -9,12 +19,18 @@
       "import": "./dist/index.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --external oxc-parser",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@scruple/core": "workspace:*",
     "oxc-parser": "^0.150.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

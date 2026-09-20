@@ -1,7 +1,17 @@
 {
   "name": "@scruple/core",
   "version": "0.0.1",
-  "private": true,
+  "description": "Provider-neutral semantic rule engine and plugin contracts for Scruple.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/core"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -9,9 +19,14 @@
       "import": "./dist/index.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

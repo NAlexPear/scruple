@@ -1,21 +1,21 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
 import { comments } from "@scruple/comments";
 import type {
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
-  ScrupleConfig,
   SemanticPlugin,
 } from "@scruple/core";
 import { runScruple } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
 import { relationalDatabases } from "@scruple/relational-databases";
 import { tests as testRules } from "@scruple/tests";
-import { describe, expect, it } from "vitest";
 
-describe("OXC parser", () => {
-  it("normalizes comments, tests, functions, imports, and calls into source targets", () => {
-    const parser = oxcParser();
-    const source = `import { db } from "./db";
+await test("OXC normalizes comments, tests, functions, imports, and calls", () => {
+  const parser = oxcParser();
+  const source = `import { db } from "./db";
 
 // Explains a non-obvious constraint.
 test("loads users", async () => {
@@ -29,35 +29,31 @@ async function joinedUsers() {
 }
 `;
 
-    const document = parser.parse("example.test.ts", source);
+  const document = parser.parse("example.test.ts", source);
 
-    expect(document.issues).toEqual([]);
-    expect(document.imports).toEqual([`import { db } from "./db";`]);
-    expect(document.comments[0]).toMatchObject({
-      value: " Explains a non-obvious constraint.",
-      location: { start: { line: 3, column: 1 } },
-    });
-    expect(document.functions.find((fn) => fn.kind === "test")).toMatchObject({
-      testName: "loads users",
-      async: true,
-      calls: [{ callee: "loadUsers" }],
-    });
-    expect(
-      document.functions.find((fn) => fn.name === "joinedUsers")?.calls.map((call) => call.callee),
-    ).toEqual(["db.user.findMany", "db.order.findMany", "users.map"]);
-  });
+  assert.deepEqual(document.issues, []);
+  assert.deepEqual(document.imports, [`import { db } from "./db";`]);
+  const comment = document.comments[0];
+  assert.ok(comment);
+  assert.equal(comment.value, " Explains a non-obvious constraint.");
+  assert.deepEqual(comment.location.start, { line: 3, column: 1 });
+
+  const testFunction = document.functions.find((fn) => fn.kind === "test");
+  assert.ok(testFunction);
+  assert.equal(testFunction.testName, "loads users");
+  assert.equal(testFunction.async, true);
+  assert.deepEqual(
+    testFunction.calls.map((call) => call.callee),
+    ["loadUsers"],
+  );
+  assert.deepEqual(
+    document.functions.find((fn) => fn.name === "joinedUsers")?.calls.map((call) => call.callee),
+    ["db.user.findMany", "db.order.findMany", "users.map"],
+  );
 });
 
-describe("semantic rule engine", () => {
-  it("finds all three initial rule classes and reports typed model decisions", async () => {
-    const provider = fixtureProvider();
-    const config: ScrupleConfig = {
-      parser: oxcParser(),
-      provider,
-      concurrency: 2,
-      plugins: [...comments(), ...testRules(), ...relationalDatabases()],
-    };
-    const source = `import { db } from "./db";
+await test("engine reports decisions from all three rule categories", async () => {
+  const source = `import { db } from "./db";
 
 // Loop through the users and attach their orders.
 test("loads users", async () => {
@@ -70,67 +66,83 @@ async function joinedUsers() {
   return users.map((user) => orders.filter((order) => order.userId === user.id));
 }
 `;
+  const result = await runScruple(
+    {
+      parser: oxcParser(),
+      provider: fixtureProvider(),
+      concurrency: 2,
+      plugins: [...comments(), ...testRules(), ...relationalDatabases()],
+    },
+    [{ filename: "example.test.ts", source }],
+  );
 
-    const result = await runScruple(config, [{ filename: "example.test.ts", source }]);
-
-    expect(result.errors).toEqual([]);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.pluginId)).toEqual([
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(
+    result.diagnostics.map((diagnostic) => diagnostic.pluginId),
+    [
       "comments/no-useless-comments",
       "tests/no-vacuous-tests",
       "relational-databases/prefer-database-join",
-    ]);
-    expect(result.diagnostics[1]).toMatchObject({ severity: "error", probability: 0.96 });
-    expect(result.stats).toMatchObject({ files: 1, candidates: 3, requests: 3 });
+    ],
+  );
+  assert.equal(result.diagnostics[1]?.severity, "error");
+  assert.equal(result.diagnostics[1]?.probability, 0.96);
+  assert.deepEqual(result.stats, {
+    files: 1,
+    candidates: 3,
+    requests: 3,
+    inputTokens: 30,
+    outputTokens: 0,
   });
+});
 
-  it("lets category packs disable individual rules", () => {
-    expect(comments({ noUselessComments: false })).toEqual([]);
-    expect(testRules({ noVacuousTests: false })).toEqual([]);
-    expect(relationalDatabases({ preferDatabaseJoin: false })).toEqual([]);
-  });
+await test("category packs can disable individual rules", () => {
+  assert.deepEqual(comments({ noUselessComments: false }), []);
+  assert.deepEqual(testRules({ noVacuousTests: false }), []);
+  assert.deepEqual(relationalDatabases({ preferDatabaseJoin: false }), []);
+});
 
-  it("batches independent questions that share identical evidence", async () => {
-    let requests = 0;
-    const provider: DecisionProvider = {
-      id: "batch-fixture",
-      evaluate(request): Promise<DecisionResponse> {
-        requests += 1;
-        const answers: Record<string, DecisionAnswer> = {};
-        for (const id of Object.keys(request.questions)) {
-          answers[id] = { type: "noul", noul: 0 };
-        }
-        return Promise.resolve({
-          model: "fixture",
-          answers,
-        });
-      },
-    };
+await test("engine batches independent questions sharing identical evidence", async () => {
+  let requests = 0;
+  const provider: DecisionProvider = {
+    id: "batch-fixture",
+    evaluate(request): Promise<DecisionResponse> {
+      requests += 1;
+      const answers: Record<string, DecisionAnswer> = {};
+      for (const id of Object.keys(request.questions)) {
+        answers[id] = { type: "noul", noul: 0 };
+      }
+      return Promise.resolve({ model: "fixture", answers });
+    },
+  };
 
-    const result = await runScruple(
-      { parser: oxcParser(), provider, plugins: [makePlugin("one"), makePlugin("two")] },
-      [{ filename: "one.ts", source: "function example() { return 1; }" }],
-    );
+  const result = await runScruple(
+    { parser: oxcParser(), provider, plugins: [makePlugin("one"), makePlugin("two")] },
+    [{ filename: "one.ts", source: "function example() { return 1; }" }],
+  );
 
-    expect(result.errors).toEqual([]);
-    expect(result.stats).toMatchObject({ candidates: 2, requests: 1 });
-    expect(requests).toBe(1);
-  });
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.stats.candidates, 2);
+  assert.equal(result.stats.requests, 1);
+  assert.equal(requests, 1);
+});
 
-  it("rejects duplicate plugin IDs so diagnostics remain unambiguous", async () => {
-    const result = await runScruple(
-      {
-        parser: oxcParser(),
-        provider: fixtureProvider(),
-        plugins: [makePlugin("duplicate"), makePlugin("duplicate")],
-      },
-      [{ filename: "one.ts", source: "function example() { return 1; }" }],
-    );
+await test("engine rejects duplicate plugin IDs", async () => {
+  const result = await runScruple(
+    {
+      parser: oxcParser(),
+      provider: fixtureProvider(),
+      plugins: [makePlugin("duplicate"), makePlugin("duplicate")],
+    },
+    [{ filename: "one.ts", source: "function example() { return 1; }" }],
+  );
 
-    expect(result.errors).toMatchObject([
-      { message: "Plugin ID is configured more than once: duplicate" },
-    ]);
-    expect(result.stats).toMatchObject({ candidates: 1, requests: 1 });
-  });
+  assert.deepEqual(
+    result.errors.map((error) => error.message),
+    ["Plugin ID is configured more than once: duplicate"],
+  );
+  assert.equal(result.stats.candidates, 1);
+  assert.equal(result.stats.requests, 1);
 });
 
 function fixtureProvider(): DecisionProvider {

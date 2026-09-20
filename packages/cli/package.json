@@ -1,10 +1,20 @@
 {
   "name": "scruple",
   "version": "0.0.1",
-  "private": true,
-  "bin": {
-    "scruple": "./dist/index.js"
+  "description": "Semantic code rules powered by pluggable parsers and decision providers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/cli"
   },
+  "bin": {
+    "scruple": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -12,13 +22,19 @@
       "import": "./dist/index.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@scruple/core": "workspace:*",
     "jiti": "^2.6.1",
     "tinyglobby": "^0.2.15"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

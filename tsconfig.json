@@ -8,6 +8,8 @@
     "paths": {
       "@scruple/comments": ["./packages/comments/src/index.ts"],
       "@scruple/core": ["./packages/core/src/index.ts"],
+      "@scruple/eval": ["./packages/eval/src/index.ts"],
+      "@scruple/eval/options": ["./packages/eval/src/options.ts"],
       "@scruple/parser-oxc": ["./packages/parser-oxc/src/index.ts"],
       "@scruple/provider-jev": ["./packages/provider-jev/src/index.ts"],
       "@scruple/provider-laya": ["./packages/provider-laya/src/index.ts"],
