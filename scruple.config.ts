@@ -6,22 +6,24 @@ import { errors } from "@scruple/errors";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
 import { resources } from "@scruple/resources";
+import { tests } from "@scruple/tests";
 
 const apiKey = process.env["TYPESAFE_API_KEY"];
 if (apiKey === undefined) {
-  throw new Error("TYPESAFE_API_KEY is required for Scruple dogfooding");
+  throw new Error("TYPESAFE_API_KEY is required to run Scruple");
 }
 
 const config: ScrupleConfig = defineConfig({
   parser: oxcParser(),
   provider: jevProvider({ apiKey }),
-  include: ["packages/*/src/**/*.ts", "scripts/**/*.ts"],
+  include: ["packages/*/src/**/*.ts", "scripts/**/*.ts", "tests/**/*.test.ts"],
   plugins: {
     "api-contracts": apiContracts(),
     async: asyncRules(),
     comments: comments(),
     errors: errors(),
     resources: resources(),
+    tests: tests(),
   },
   rules: {
     "api-contracts/no-ambiguous-failure-contracts": "warn",
@@ -43,6 +45,9 @@ const config: ScrupleConfig = defineConfig({
     "resources/require-complete-resource-cleanup": "warn",
     "resources/require-retry-backoff-with-jitter": "warn",
     "resources/require-retry-time-budget": "warn",
+    "tests/no-fixed-delay-synchronization": "warn",
+    "tests/no-vacuous-tests": "warn",
+    "tests/require-specific-error-assertions": "warn",
   },
 });
 

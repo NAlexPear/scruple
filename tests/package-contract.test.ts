@@ -57,6 +57,31 @@ const publicationOrderViolations = (packages: readonly ReleasePackage[]): string
   );
 };
 
+const resolvedPackageEntries = (
+  packages: readonly ReleasePackage[],
+  condition?: string,
+): string[] => {
+  const names = packages.map((entry) => entry.name);
+  const script = `
+    const names = ${JSON.stringify(names)};
+    await Promise.all(names.map((name) => import(name)));
+    process.stdout.write(JSON.stringify(names.map((name) => import.meta.resolve(name))));
+  `;
+  const nodeArguments = [
+    ...(condition === undefined ? [] : [`--conditions=${condition}`]),
+    "--input-type=module",
+    "--eval",
+    script,
+  ];
+  const value: unknown = JSON.parse(
+    execFileSync(process.execPath, nodeArguments, { cwd: root, encoding: "utf8" }),
+  );
+  if (!Array.isArray(value) || !value.every((entry) => typeof entry === "string")) {
+    throw new TypeError("Resolved package entries must be strings");
+  }
+  return value;
+};
+
 const conditionalExportPaths = (value: unknown): string[] => {
   if (!isRecord(value)) {
     return [];
@@ -94,4 +119,17 @@ await test("public packages satisfy their distribution contract", () => {
   assert.match(runReleaseScript("validate", `v${version}`), /Validated public packages/u);
   assert.deepEqual(missingPublishedFiles(packages), []);
   assert.deepEqual(publicationOrderViolations(packages), []);
+});
+
+await test("public packages support compiled and raw TypeScript imports", () => {
+  const packages = releaseManifest();
+
+  assert.equal(
+    resolvedPackageEntries(packages).every((url) => url.endsWith("/dist/index.js")),
+    true,
+  );
+  assert.equal(
+    resolvedPackageEntries(packages, "source").every((url) => url.endsWith("/src/index.ts")),
+    true,
+  );
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { runCli } from "./index.js";
+import { runCli } from "@scruple/cli";
 
 try {
   process.exitCode = await runCli();

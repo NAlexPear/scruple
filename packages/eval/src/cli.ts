@@ -1,19 +1,18 @@
 import { readFile } from "node:fs/promises";
 
 import type { DecisionProvider } from "@scruple/core";
-import { oxcParser } from "@scruple/parser-oxc";
-import { jevProvider } from "@scruple/provider-jev";
-import { layaProvider, type LayaModel } from "@scruple/provider-laya";
-
 import {
   hasEvalFailures,
   parseEvalFixtures,
   runEvaluation,
   type EvalFixture,
   type EvalRunReport,
-} from "./index.js";
-import { EVAL_HELP, parseEvalOptions, type EvalProviderSpec } from "./options.js";
-import { evaluationPlugins } from "./plugins.js";
+} from "@scruple/eval";
+import { EVAL_HELP, parseEvalOptions, type EvalProviderSpec } from "@scruple/eval/options";
+import { evaluationPlugins } from "@scruple/eval/plugins";
+import { oxcParser } from "@scruple/parser-oxc";
+import { jevProvider } from "@scruple/provider-jev";
+import { layaProvider, type LayaModel } from "@scruple/provider-laya";
 
 const plugins = evaluationPlugins();
 

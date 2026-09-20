@@ -34,7 +34,7 @@ title: Code checks for problems linters miss
 <span class="landing-line">3</span> });
 <span class="landing-line">4</span></pre>
     <div class="landing-diagnostic">
-      <p class="landing-output-command"><span>$</span> pnpm exec scruple check test/users.test.ts</p>
+      <p class="landing-output-command"><span>$</span> pnpm exec scruple test/users.test.ts</p>
       <p class="landing-output-file">test/users.test.ts</p>
       <p class="landing-output-line">
         <span class="landing-output-location">1:1</span>

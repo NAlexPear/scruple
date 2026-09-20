@@ -48,14 +48,23 @@ The key in `plugins` supplies the namespace used by each rule ID. Registering a 
 ## 3. Run Scruple
 
 ```sh
-TYPESAFE_API_KEY=your-key pnpm exec scruple check "src/**/*.{ts,tsx}"
+TYPESAFE_API_KEY=your-key pnpm exec scruple "src/**/*.{ts,tsx}"
 ```
 
 Use JSON output in automation:
 
 ```sh
-pnpm exec scruple check --format json
+pnpm exec scruple --format json
 ```
+
+Scruple packages use compiled JavaScript by default. To make Node.js 22.18 or newer resolve their
+package imports to the published raw TypeScript instead, opt into the `source` condition:
+
+```sh
+node --conditions=source app.ts
+```
+
+Tooling that consumes this mode must support custom export conditions and erasable TypeScript syntax.
 
 ## 4. Expand deliberately
 

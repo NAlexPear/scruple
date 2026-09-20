@@ -203,7 +203,7 @@ const usage = (): string => {
   return `Scruple — semantic rules for code
 
 Usage:
-  scruple check [patterns...] [options]
+  scruple [patterns...] [options]
 
 Options:
   -c, --config <path>   Config file (default: scruple.config.ts)

@@ -4,7 +4,7 @@ Command-line interface for [Scruple](https://github.com/NAlexPear/scruple), a pl
 
 ```sh
 pnpm add --save-dev @scruple/cli
-pnpm exec scruple check "src/**/*.{ts,tsx}"
+pnpm exec scruple "src/**/*.{ts,tsx}"
 ```
 
 Use `--explain` to audit every provider decision, including accepted and abstained candidates. Combine it with `--format json` for structured output.

@@ -23,8 +23,16 @@
     "src"
   ],
   "type": "module",
+  "imports": {
+    "#suppressions": {
+      "source": "./src/suppressions.ts",
+      "types": "./src/suppressions.ts",
+      "import": "./dist/suppressions.js"
+    }
+  },
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }

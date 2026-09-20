@@ -3,10 +3,10 @@
 ## Usage
 
 ```text
-scruple check [patterns...] [options]
+scruple [patterns...] [options]
 ```
 
-`check` is optional. Running `scruple` directly behaves like `scruple check`.
+The optional `check` alias is retained for compatibility.
 
 ## Options
 

@@ -107,6 +107,7 @@ export const validatePackageContract = (root: string): string[] => {
       isRecord(entry.manifest["exports"]) && Object.keys(entry.manifest["exports"]).length > 0,
       `${entry.name}: exports must not be empty`,
     );
+    validateExports(errors, entry.name, entry.manifest["exports"]);
     check(
       errors,
       isRecord(entry.manifest["publishConfig"]) &&
@@ -137,6 +138,35 @@ export const validatePackageContract = (root: string): string[] => {
     }
     return errors;
   });
+};
+
+const validateExports = (errors: string[], packageName: string, value: unknown): void => {
+  if (!isRecord(value)) {
+    return;
+  }
+  for (const [subpath, conditions] of Object.entries(value)) {
+    check(
+      errors,
+      isRecord(conditions) &&
+        typeof conditions["source"] === "string" &&
+        conditions["source"].endsWith(".ts"),
+      `${packageName}: export ${subpath} must define a TypeScript source condition`,
+    );
+    check(
+      errors,
+      isRecord(conditions) &&
+        typeof conditions["types"] === "string" &&
+        conditions["types"].endsWith(".d.ts"),
+      `${packageName}: export ${subpath} must define declaration types`,
+    );
+    check(
+      errors,
+      isRecord(conditions) &&
+        typeof conditions["import"] === "string" &&
+        conditions["import"].endsWith(".js"),
+      `${packageName}: export ${subpath} must define a JavaScript import`,
+    );
+  }
 };
 
 const workspaceDependencies = (manifest: Readonly<Record<string, unknown>>): string[] => {

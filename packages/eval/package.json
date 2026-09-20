@@ -5,14 +5,17 @@
   "type": "module",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./options": {
+      "source": "./src/options.ts",
       "types": "./dist/options.d.ts",
       "import": "./dist/options.js"
     },
     "./plugins": {
+      "source": "./src/plugins.ts",
       "types": "./dist/plugins.d.ts",
       "import": "./dist/plugins.js"
     }

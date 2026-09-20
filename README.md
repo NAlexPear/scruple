@@ -77,13 +77,22 @@ The configuration chooses where to obtain the API key; this example reads it fro
 Then check source files:
 
 ```sh
-pnpm exec scruple check "src/**/*.{ts,tsx}"
-pnpm exec scruple check --format json
+pnpm exec scruple "src/**/*.{ts,tsx}"
+pnpm exec scruple --format json
 ```
 
 The Jev provider defaults to the pinned `jev-1.13.0` model rather than the moving `jev-latest`
 alias. A run exits 0 when it has no error-severity findings, 1 when it finds at least one error, and
 2 when configuration, parsing, or provider operations fail.
+
+Published Scruple packages use compiled JavaScript by default and expose their raw TypeScript through
+the opt-in `source` condition. Node.js 22.18 and newer can resolve the same package imports to source:
+
+```sh
+node --conditions=source app.ts
+```
+
+Use this only when the runtime or bundler supports erasable TypeScript syntax and custom conditions.
 
 ### Configure rules
 
