@@ -42,6 +42,7 @@
     "@scruple/tests": "workspace:*",
     "@types/node": "^22.20.4",
     "@types/picomatch": "^4.0.3",
+    "fast-check": "^4.10.1",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2002",
