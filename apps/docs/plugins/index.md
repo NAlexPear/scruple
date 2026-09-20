@@ -1,3 +1,7 @@
+---
+aside: false
+---
+
 # Plugins
 
 Scruple plugins are semantic rule libraries. Register each factory under the namespace used by its rule IDs, then enable individual rules in `rules`. Scruple sends bounded source evidence to the configured decision provider and reports a finding only when the provider's probability and confidence clear the rule's thresholds.
@@ -22,3 +26,9 @@ rules: {
   "comments/no-misleading-comments": ["warn", { threshold: 0.9 }],
 },
 ```
+
+<script setup lang="ts">
+import RuleRegistry from "../.vitepress/theme/RuleRegistry.vue";
+</script>
+
+<RuleRegistry />

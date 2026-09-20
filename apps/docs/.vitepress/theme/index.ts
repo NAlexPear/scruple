@@ -2,6 +2,7 @@ import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { h } from "vue";
 
+import RuleDetail from "./RuleDetail.vue";
 import ScrupleMark from "./ScrupleMark.vue";
 
 // oxlint-disable-next-line import/no-unassigned-import -- Vite bundles theme styles from this import.
@@ -15,6 +16,7 @@ const theme: Theme = {
       "nav-bar-content-before": () => h(ScrupleMark, { class: "nav-tail", tailOnly: true }),
     }),
   enhanceApp({ app }) {
+    app.component("RuleDetail", RuleDetail);
     app.component("ScrupleMark", ScrupleMark);
   },
 };

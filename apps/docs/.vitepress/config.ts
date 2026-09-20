@@ -1,5 +1,7 @@
 import { defineConfig, type DefaultTheme } from "vitepress";
 
+import { getRule } from "./rule-catalog.js";
+
 const pluginItems: DefaultTheme.SidebarItem[] = [
   { text: "Overview", link: "/plugins/" },
   { text: "API Contracts", link: "/plugins/api-contracts" },
@@ -57,6 +59,16 @@ export default defineConfig({
   title: "Scruple",
   description: "Semantic code checks grounded in focused evidence.",
   cleanUrls: true,
+  transformPageData(pageData) {
+    const ruleId: unknown = pageData.params?.["rule"];
+    if (typeof ruleId !== "string") {
+      return {};
+    }
+    return {
+      title: ruleId,
+      description: getRule(ruleId)?.summary ?? `Scruple rule ${ruleId}`,
+    };
+  },
   head: [
     ["link", { rel: "icon", href: "/assets/scruple-mark.svg", type: "image/svg+xml" }],
     ["meta", { name: "theme-color", content: "#f4f1e8" }],
