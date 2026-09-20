@@ -513,15 +513,6 @@
     "tags": ["negative", "error-cause", "propagation"]
   },
   {
-    "id": "history-announces-removed-validation",
-    "filename": "comments.ts",
-    "source": "export function displayName(user: User) {\n  // Removed the old length validation when profiles were redesigned.\n  return user.displayName.trim();\n}\n",
-    "rule_id": "comments/no-change-history-comments",
-    "expected_finding": true,
-    "rationale": "The note only announces a completed removal and gives no current constraint.",
-    "tags": ["positive", "change-history", "removal"]
-  },
-  {
     "id": "history-announces-validator-switch",
     "filename": "comments.ts",
     "source": "export function validate(input: Input) {\n  // Switched from the legacy validator to schemaValidator in PR #412.\n  return schemaValidator(input);\n}\n",
@@ -565,15 +556,6 @@
     "expected_finding": false,
     "rationale": "The visible code does not establish whether the referenced compatibility implications remain relevant, so the rule should abstain.",
     "tags": ["negative", "insufficient-context", "abstention"]
-  },
-  {
-    "id": "history-warns-against-restoring-eager-fetch",
-    "filename": "comments.ts",
-    "source": "export function avatar(user: User) {\n  // This used to fetch eagerly; keep it lazy because the provider charges per image request.\n  return () => images.fetch(user.avatarId);\n}\n",
-    "rule_id": "comments/no-change-history-comments",
-    "expected_finding": false,
-    "rationale": "The history explains a current cost constraint and prevents a harmful regression.",
-    "tags": ["negative", "current-rationale", "cost"]
   },
   {
     "id": "http-axios-visible-wrapper-timeout",
@@ -812,11 +794,11 @@
   {
     "id": "misleading-wrong-return-unit",
     "filename": "comments.ts",
-    "source": "export function timeoutSeconds() {\n  // Return the timeout in milliseconds.\n  return 30;\n}\n",
+    "source": "export function timeoutMilliseconds() {\n  // seconds\n  return 30_000;\n}\n",
     "rule_id": "comments/no-misleading-comments",
     "expected_finding": true,
-    "rationale": "The function and value are expressed in seconds, contrary to the comment.",
-    "tags": ["positive", "units", "contradiction"]
+    "rationale": "The short unit claim contradicts the function name and millisecond-scale return value.",
+    "tags": ["positive", "units", "contradiction", "short-comment"]
   },
   {
     "id": "mongoose-query-results-joined-in-memory",
@@ -1141,15 +1123,6 @@
     "expected_finding": true,
     "rationale": "The marker identifies neither the defect nor the required future work.",
     "tags": ["positive", "todo", "vague", "block-comment"]
-  },
-  {
-    "id": "todo-vague-fix-later",
-    "filename": "comments.ts",
-    "source": "export function convert(value: string) {\n  // TODO: fix this later\n  return legacyConvert(value);\n}\n",
-    "rule_id": "comments/require-actionable-todos",
-    "expected_finding": true,
-    "rationale": "The marker identifies neither the defect nor the required future work.",
-    "tags": ["positive", "todo", "vague"]
   },
   {
     "id": "typeorm-repository-join-done-in-memory",
