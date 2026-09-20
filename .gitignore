@@ -3,4 +3,5 @@ dist/
 .scruple/
 coverage/
 *.tsbuildinfo
+apps/docs/.vitepress/cache/
 .amp/portals/*
