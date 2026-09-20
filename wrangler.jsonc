@@ -2,9 +2,6 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "scruple",
   "compatibility_date": "2026-09-20",
-  "build": {
-    "command": "pnpm --filter @scruple/docs build",
-  },
   "assets": {
     "directory": "./apps/docs/.vitepress/dist",
   },
