@@ -10,7 +10,12 @@
     "test": "vitepress build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
+  "dependencies": {
+    "@scruple/core": "workspace:*",
+    "@scruple/parser-oxc": "workspace:*"
+  },
   "devDependencies": {
+    "@oxc-parser/binding-wasm32-wasi": "0.150.0",
     "typescript": "^6.0.3",
     "vitepress": "^1.6.4",
     "vue": "^3.5.43",

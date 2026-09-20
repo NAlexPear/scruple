@@ -45,6 +45,7 @@ const copyConfiguration = async () => {
       <div class="rule-tags">
         <span v-for="tag in rule.tags" :key="tag">{{ tag }}</span>
       </div>
+      <a class="playground-link" href="/playground">Prototype a related rule in the playground →</a>
     </header>
 
     <section class="rule-section">
@@ -198,6 +199,14 @@ plugins: {
   border: 1px solid var(--vp-c-divider);
   color: var(--vp-c-text-3);
   font: 400 10px/1 var(--vp-font-family-mono);
+}
+
+.playground-link {
+  display: inline-block;
+  margin-top: 25px;
+  color: var(--vp-c-brand-1);
+  font: 500 11px/1 var(--vp-font-family-mono);
+  text-decoration: none;
 }
 
 .rule-section {

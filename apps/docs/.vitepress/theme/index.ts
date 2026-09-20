@@ -5,6 +5,7 @@ import { h } from "vue";
 import HeroExamples from "./HeroExamples.vue";
 import ProviderOptions from "./ProviderOptions.vue";
 import RuleDetail from "./RuleDetail.vue";
+import RulePlayground from "./RulePlayground.vue";
 import ScrupleMark from "./ScrupleMark.vue";
 
 // oxlint-disable-next-line import/no-unassigned-import -- Vite bundles theme styles from this import.
@@ -20,6 +21,7 @@ const theme: Theme = {
     app.component("HeroExamples", HeroExamples);
     app.component("ProviderOptions", ProviderOptions);
     app.component("RuleDetail", RuleDetail);
+    app.component("RulePlayground", RulePlayground);
     app.component("ScrupleMark", ScrupleMark);
   },
 };
