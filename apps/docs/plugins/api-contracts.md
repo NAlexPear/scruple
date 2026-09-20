@@ -25,6 +25,7 @@ export default defineConfig({
 | [`api-contracts/require-input-validation`](#api-contractsrequire-input-validation)                         | Unvalidated untrusted boundary input         |
 | [`api-contracts/no-side-effects-in-safe-http-methods`](#api-contractsno-side-effects-in-safe-http-methods) | Requested mutation through safe HTTP methods |
 | [`api-contracts/no-misleading-http-status`](#api-contractsno-misleading-http-status)                       | Statuses that contradict visible outcomes    |
+| [`api-contracts/no-ignored-significant-results`](#api-contractsno-ignored-significant-results)             | Meaningful call results discarded            |
 
 ## `api-contracts/no-misleading-function-names`
 
@@ -51,6 +52,10 @@ Reviews GET, HEAD, OPTIONS, and TRACE routes with visible mutation-like calls. I
 ## `api-contracts/no-misleading-http-status`
 
 Reviews explicit status exits against visible route outcomes. Accepted asynchronous work, deliberate privacy-preserving responses, and protocol-specific contracts are allowed. Defaults: `threshold: 0.9`, `minConfidence: 0.75`.
+
+## `api-contracts/no-ignored-significant-results`
+
+Reviews conservatively selected discarded call results when the visible contract makes the value significant, such as a success indicator, validation result, or partial-failure report. Results intentionally used only for side effects are accepted. Unresolved return types, external helper contracts, and APIs whose result is conventionally optional cause abstention.
 
 ```ts
 rules: {

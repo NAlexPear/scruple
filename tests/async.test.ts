@@ -23,7 +23,83 @@ await test("async plugin registers the conservative rule set", () => {
     "require-cancellation-propagation",
     "require-race-loser-cleanup",
     "require-abort-listener-cleanup",
+    "no-unobserved-async-work",
+    "no-async-initialization",
   ]);
+});
+
+await test("unobserved async work selects only bare async-looking calls", () => {
+  const document = parser.parse(
+    "work.ts",
+    `export async function run() {
+  client.sendAsync(payload);
+  await client.flushAsync();
+  return client.closeAsync();
+}
+export function observed() {
+  const pending = client.sendAsync(payload);
+  consume(client.flushAsync());
+  if (client.isReady()) proceed();
+  return pending;
+}
+`,
+  );
+  const rule = asyncRules().rules["no-unobserved-async-work"]();
+  const candidates = rule.collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    ["client.sendAsync(payload)"],
+  );
+  assert.equal(candidates[0]?.data?.["usage"], "expression");
+  const candidate = candidates[0];
+  assert.ok(candidate?.question.type === "choice");
+  assert.deepEqual(Object.keys(candidate.question.criteria), [
+    "unobserved_async_work",
+    "intentional_detached_work",
+    "not_async_work",
+    "insufficient_context",
+  ]);
+  assert.equal(rule.diagnose(answer("intentional_detached_work", 0.99, 0.99), candidate), null);
+  assert.equal(rule.diagnose(answer("not_async_work", 0.99, 0.99), candidate), null);
+  assert.equal(rule.diagnose(answer("insufficient_context", 0.99, 0.99), candidate), null);
+  assert.equal(
+    rule.diagnose(answer("unobserved_async_work", 0.9, 0.7), candidate)?.message,
+    "This async work appears to be started without observing its completion.",
+  );
+});
+
+await test("async initialization selects real class constructors, not functions named constructor", () => {
+  const document = parser.parse(
+    "service.ts",
+    `class Service {
+  constructor() { this.ready = client.connectAsync(); }
+  async start() { await client.connectAsync(); }
+}
+function constructor() { return client.connectAsync(); }
+`,
+  );
+  const rule = asyncRules().rules["no-async-initialization"]();
+  const candidates = rule.collect(document);
+
+  assert.equal(candidates.length, 1);
+  assert.match(candidates[0]!.target.source, /^constructor/u);
+  assert.equal(candidates[0]!.data?.["role"], "constructor");
+  assert.ok(candidates[0]!.question.type === "choice");
+  assert.deepEqual(Object.keys(candidates[0]!.question.criteria), [
+    "async_initialization",
+    "synchronous_initialization",
+    "deferred_or_explicit_lifecycle",
+    "insufficient_context",
+  ]);
+  assert.equal(
+    rule.diagnose(answer("deferred_or_explicit_lifecycle", 0.99, 0.99), candidates[0]!),
+    null,
+  );
+  assert.equal(
+    rule.diagnose(answer("async_initialization", 0.9, 0.7), candidates[0]!)?.message,
+    "This constructor appears to start asynchronous initialization.",
+  );
 });
 
 await test("unbounded concurrency selection is limited to native Promise fan-out", () => {

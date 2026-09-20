@@ -22,6 +22,7 @@ export type ErrorsPlugin = ScruplePlugin<{
   "no-swallowed-errors": RuleFactory<NoSwallowedErrorsOptions>;
   "no-lossy-error-wrapping": RuleFactory<NoLossyErrorWrappingOptions>;
   "no-message-based-error-dispatch": RuleFactory<NoMessageBasedErrorDispatchOptions>;
+  "no-useless-catch-boundaries": RuleFactory<NoSwallowedErrorsOptions>;
 }>;
 
 const maximumHandlerCharacters = 6_000;
@@ -35,8 +36,42 @@ export const errors = (): ErrorsPlugin => {
       "no-swallowed-errors": noSwallowedErrors,
       "no-lossy-error-wrapping": noLossyErrorWrapping,
       "no-message-based-error-dispatch": noMessageBasedErrorDispatch,
+      "no-useless-catch-boundaries": noUselessCatchBoundaries,
     },
   });
+};
+
+const noUselessCatchBoundaries = (options: NoSwallowedErrorsOptions = {}): SemanticRule => {
+  return errorHandlerChoiceRule({
+    description: "Catch boundaries should add meaningful error handling.",
+    options,
+    defaultThreshold: 0.9,
+    select: (handlers) => handlers.filter((handler) => isDirectRethrowOnly(handler)),
+    instructions:
+      "Does this catch handler only rethrow the same caught error without cleanup, reporting, context, translation, recovery, or another observable purpose? A finally-equivalent cleanup action, contextual mutation, structured wrapping, boundary translation, or meaningful reporting makes the boundary useful. Choose insufficient_context when a helper's effect or conditional path is unresolved.",
+    criteria: {
+      useless_rethrow_boundary:
+        "The handler only rethrows the same error and adds no meaningful behavior or boundary contract.",
+      cleanup_or_context_added:
+        "The handler performs cleanup, reporting, or adds useful context before preserving failure.",
+      error_translated:
+        "The handler deliberately translates or structurally wraps the error for this boundary.",
+      insufficient_context:
+        "Opaque helper effects or unresolved control flow prevent deciding whether the boundary adds behavior.",
+    },
+    finding: "useless_rethrow_boundary",
+    message: "Remove this catch boundary because it only rethrows the same error.",
+  });
+};
+
+const isDirectRethrowOnly = (handler: ErrorHandlerTarget): boolean => {
+  const binding = handler.binding;
+  if (binding === undefined || !identifierPattern.test(binding)) {
+    return false;
+  }
+  return new RegExp(`^\\{\\s*throw\\s+${escapeRegularExpression(binding)}\\s*;?\\s*\\}$`, "u").test(
+    handler.bodySource,
+  );
 };
 
 const noSwallowedErrors = (options: NoSwallowedErrorsOptions = {}): SemanticRule => {

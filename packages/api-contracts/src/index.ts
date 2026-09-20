@@ -21,6 +21,7 @@ export type ApiContractsPlugin = ScruplePlugin<{
   "require-input-validation": RuleFactory<ApiContractRuleOptions>;
   "no-side-effects-in-safe-http-methods": RuleFactory<ApiContractRuleOptions>;
   "no-misleading-http-status": RuleFactory<ApiContractRuleOptions>;
+  "no-ignored-significant-results": RuleFactory<ApiContractRuleOptions>;
 }>;
 
 const maxFunctionCharacters = 12_000;
@@ -34,8 +35,79 @@ export const apiContracts = (): ApiContractsPlugin => {
       "require-input-validation": requireInputValidation,
       "no-side-effects-in-safe-http-methods": noSideEffectsInSafeHttpMethods,
       "no-misleading-http-status": noMisleadingHttpStatus,
+      "no-ignored-significant-results": noIgnoredSignificantResults,
     },
   });
+};
+
+const significantResultCallee =
+  /(?:^|\.)(?:compareAndSet|create|delete|insert|parse|remove|safeParse|save|try[A-Z]\w*|update|validate)$/u;
+
+const noIgnoredSignificantResults = (options: ApiContractRuleOptions = {}): SemanticRule => {
+  const { threshold, minConfidence } = resolveDecisionOptions(options, {
+    threshold: 0.9,
+    minConfidence: 0.7,
+  });
+  const finding = "ignored_significant_result";
+  return {
+    description: "Results carrying meaningful outcome information should not be discarded.",
+    collect(document) {
+      return (document.facts?.calls ?? [])
+        .filter(
+          (call) =>
+            call.usage === "expression" &&
+            call.callee !== undefined &&
+            significantResultCallee.test(call.callee),
+        )
+        .map((call) => ({
+          target: {
+            kind: "expression" as const,
+            filename: document.filename,
+            language: document.language,
+            range: call.range,
+            location: sourceLocation(document.source, call.range),
+            source: call.source,
+          },
+          state: {
+            language: document.language,
+            imports: document.imports,
+            call: { callee: call.callee ?? null, source: call.source, usage: call.usage },
+            surrounding_function:
+              document.functions.find(
+                (fn) => fn.range.start <= call.range.start && fn.range.end >= call.range.end,
+              )?.source ?? null,
+            evidence_scope:
+              "The call and its syntactic usage are visible; unresolved return contracts are not evidence.",
+          },
+          data: { usage: call.usage },
+          question: {
+            type: "choice" as const,
+            instructions:
+              "Does this bare call discard a result that conveys success, failure, validation, affected state, or another outcome the caller must observe? Diagnose only when the visible contract or strong API convention establishes significance. Choose insufficient_context for opaque return contracts.",
+            criteria: {
+              ignored_significant_result:
+                "The discarded result carries outcome information that is required for correct handling.",
+              result_intentionally_ignored:
+                "The result is explicitly optional or intentionally irrelevant at this call site.",
+              no_significant_result:
+                "The operation has no meaningful return value or communicates its complete outcome another way.",
+              insufficient_context:
+                "The available evidence does not establish the return contract or whether the result matters.",
+            },
+          },
+        }));
+    },
+    diagnose(answer, candidate) {
+      return findingDiagnostic(
+        answer,
+        candidate,
+        finding,
+        threshold,
+        minConfidence,
+        "This call appears to ignore a result that carries significant outcome information.",
+      );
+    },
+  };
 };
 
 const noMisleadingFunctionNames = (options: ApiContractRuleOptions = {}): SemanticRule => {
@@ -439,6 +511,14 @@ const functionState = (
       Math.min(document.source.length, fn.range.end + contextCharacters),
     ),
   };
+};
+
+const sourceLocation = (source: string, range: { start: number; end: number }) => {
+  const position = (offset: number) => {
+    const lines = source.slice(0, offset).split("\n");
+    return { line: lines.length, column: (lines.at(-1)?.length ?? 0) + 1 };
+  };
+  return { start: position(range.start), end: position(range.end) };
 };
 
 const isFinding = (

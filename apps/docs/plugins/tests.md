@@ -23,6 +23,7 @@ export default defineConfig({
 | [`tests/no-vacuous-tests`](#testsno-vacuous-tests)                                   | Tests with no effective behavior verification |
 | [`tests/require-specific-error-assertions`](#testsrequire-specific-error-assertions) | Failure assertions that accept any error      |
 | [`tests/no-fixed-delay-synchronization`](#testsno-fixed-delay-synchronization)       | Sleeps used to synchronize tests              |
+| [`tests/no-nondeterministic-tests`](#testsno-nondeterministic-tests)                 | Uncontrolled inputs make tests flaky          |
 
 ## `tests/no-vacuous-tests`
 
@@ -37,6 +38,10 @@ Reviews recognized Node, Jest, Vitest, and Chai throw or rejection assertions. I
 ## `tests/no-fixed-delay-synchronization`
 
 Reviews sleeps, pauses, `waitForTimeout`, and direct timers used to wait for readiness. Condition waits, fake clocks, and intentional real-time timing tests are accepted.
+
+## `tests/no-nondeterministic-tests`
+
+Reviews test bodies with direct calls to common randomness and wall-clock sources. Seeded randomness, fake clocks, and tests explicitly asserting nondeterministic properties are accepted. Candidate selection is conservative, and opaque helpers or externally controlled inputs cause abstention.
 
 ```ts
 rules: { "tests/no-vacuous-tests": ["warn", { threshold: 0.95, minConfidence: 0.8 }] }

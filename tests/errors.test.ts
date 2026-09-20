@@ -36,7 +36,48 @@ await test("errors plugin registers the bounded error-handler rule set", () => {
     "no-swallowed-errors",
     "no-lossy-error-wrapping",
     "no-message-based-error-dispatch",
+    "no-useless-catch-boundaries",
   ]);
+});
+
+await test("useless catch boundaries contrast rethrow-only handlers with meaningful handling", () => {
+  const document = oxcParser().parse(
+    "boundaries.ts",
+    `try { await load(); } catch (error) { throw error; }
+try { await save(); } catch (error) { await cleanup(); throw error; }
+try { await publish(); } catch (error) { error.context = { operation: "publish" }; throw error; }
+try { await parse(); } catch (error) { throw new ParseError("invalid payload", { cause: error }); }
+`,
+  );
+  const rule = errors().rules["no-useless-catch-boundaries"]();
+  const candidates = rule.collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    ["catch (error) { throw error; }"],
+  );
+  const candidate = candidates[0];
+  assert.ok(candidate?.question.type === "choice");
+  assert.deepEqual(Object.keys(candidate.question.criteria), [
+    "useless_rethrow_boundary",
+    "cleanup_or_context_added",
+    "error_translated",
+    "insufficient_context",
+  ]);
+  assert.equal(
+    rule.diagnose(
+      choice("cleanup_or_context_added", { cleanup_or_context_added: 0.99 }, 0.99),
+      candidate,
+    ),
+    null,
+  );
+  assert.equal(
+    rule.diagnose(
+      choice("useless_rethrow_boundary", { useless_rethrow_boundary: 0.9 }, 0.7),
+      candidate,
+    )?.message,
+    "Remove this catch boundary because it only rethrows the same error.",
+  );
 });
 
 await test("OXC normalizes catch targets and direct control flow in source order", () => {

@@ -25,6 +25,8 @@ export default defineConfig({
 | [`async/require-cancellation-propagation`](#asyncrequire-cancellation-propagation) | Accepted cancellation not forwarded   |
 | [`async/require-race-loser-cleanup`](#asyncrequire-race-loser-cleanup)             | Locally owned race losers abandoned   |
 | [`async/require-abort-listener-cleanup`](#asyncrequire-abort-listener-cleanup)     | Abort listeners outlive operations    |
+| [`async/no-unobserved-async-work`](#asyncno-unobserved-async-work)                 | Started async work is not observed    |
+| [`async/no-async-initialization`](#asyncno-async-initialization)                   | Async work hidden in initialization   |
 
 ## `async/no-unbounded-concurrency`
 
@@ -45,6 +47,14 @@ Reviews native `Promise.race` and `Promise.any` calls for locally created work w
 ## `async/require-abort-listener-cleanup`
 
 Reviews literal abort listeners on signal-like receivers. One-shot listeners and visible removal or disposal are accepted; unresolved ownership or listener lifetime causes abstention.
+
+## `async/no-unobserved-async-work`
+
+Reviews conservatively selected promise-producing calls whose result is discarded. Awaiting, returning, chaining, aggregating, or deliberately marking fire-and-forget work with `void` counts as observation. Calls with unresolved return contracts, framework-managed lifetimes, or otherwise ambiguous ownership cause abstention.
+
+## `async/no-async-initialization`
+
+Reviews constructors that visibly start asynchronous work before an explicit lifecycle boundary can observe readiness or failure. Explicit startup factories and readiness contracts are accepted. It abstains when framework bootstrapping, generated code, or an opaque helper owns initialization.
 
 ```ts
 rules: { "async/require-cancellation-propagation": ["warn", { threshold: 0.95 }] }

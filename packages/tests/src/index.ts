@@ -23,6 +23,7 @@ export type TestsPlugin = ScruplePlugin<{
   "no-vacuous-tests": RuleFactory<NoVacuousTestsOptions>;
   "require-specific-error-assertions": RuleFactory<RequireSpecificErrorAssertionsOptions>;
   "no-fixed-delay-synchronization": RuleFactory<NoFixedDelaySynchronizationOptions>;
+  "no-nondeterministic-tests": RuleFactory<NoVacuousTestsOptions>;
 }>;
 
 const defaultErrorAssertionCallPatterns = [
@@ -37,7 +38,44 @@ export const tests = (): TestsPlugin => {
       "no-vacuous-tests": noVacuousTests,
       "require-specific-error-assertions": requireSpecificErrorAssertions,
       "no-fixed-delay-synchronization": noFixedDelaySynchronization,
+      "no-nondeterministic-tests": noNondeterministicTests,
     },
+  });
+};
+
+const nondeterministicCallees = new Set([
+  "crypto.getRandomValues",
+  "Date.now",
+  "Math.random",
+  "performance.now",
+  "process.hrtime",
+  "process.hrtime.bigint",
+]);
+
+const noNondeterministicTests = (options: NoVacuousTestsOptions = {}): SemanticRule => {
+  const { threshold, minConfidence } = decisionOptions(options);
+  return testChoiceRule({
+    description: "Tests should control nondeterministic inputs.",
+    select: (document) =>
+      testFunctions(document).filter((fn) =>
+        fn.calls.some((call) => nondeterministicCallees.has(call.callee)),
+      ),
+    instructions:
+      "Does this test depend on uncontrolled randomness or wall-clock time in a way that can change its outcome? Fake clocks, seeded or mocked randomness, and visible deterministic injection are controlled. Tests intentionally checking statistical or nondeterministic properties may be valid when their oracle is robust. Choose insufficient_context when control is hidden in helpers or framework setup.",
+    criteria: {
+      uncontrolled_nondeterminism:
+        "The test outcome can vary because randomness or time is read without visible deterministic control.",
+      controlled_nondeterminism:
+        "Randomness or time is visibly fixed, seeded, mocked, faked, or injected for this test.",
+      intentional_nondeterministic_test:
+        "The test intentionally exercises nondeterminism with an oracle designed for that contract.",
+      insufficient_context:
+        "The evidence does not establish whether the nondeterministic source is controlled elsewhere.",
+    },
+    finding: "uncontrolled_nondeterminism",
+    threshold,
+    minConfidence,
+    message: "Control randomness or time so this test is deterministic.",
   });
 };
 

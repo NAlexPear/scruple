@@ -79,6 +79,7 @@ export interface StructuredCallFact {
   /** Identifier and static member paths referenced by all arguments. */
   references: string[];
   awaited: boolean;
+  usage: "argument" | "assignment" | "await" | "condition" | "expression" | "other" | "return";
   control: ControlRegionFact[];
 }
 
@@ -106,6 +107,7 @@ export interface FunctionTarget extends CodeTarget {
   kind: "function" | "test";
   name?: string;
   testName?: string;
+  role?: "constructor" | "function" | "method";
   async: boolean;
   calls: CallCapture[];
 }

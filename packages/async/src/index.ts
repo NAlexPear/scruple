@@ -29,6 +29,8 @@ export type AsyncPlugin = ScruplePlugin<{
   "require-cancellation-propagation": RuleFactory<AsyncRuleOptions>;
   "require-race-loser-cleanup": RuleFactory<AsyncRuleOptions>;
   "require-abort-listener-cleanup": RuleFactory<AsyncRuleOptions>;
+  "no-unobserved-async-work": RuleFactory<AsyncRuleOptions>;
+  "no-async-initialization": RuleFactory<AsyncRuleOptions>;
 }>;
 
 const promiseFanOutCallees = new Set(["Promise.all", "Promise.allSettled", "Promise.any"]);
@@ -43,7 +45,67 @@ export const asyncRules = (): AsyncPlugin => {
       "require-cancellation-propagation": requireCancellationPropagation,
       "require-race-loser-cleanup": requireRaceLoserCleanup,
       "require-abort-listener-cleanup": requireAbortListenerCleanup,
+      "no-unobserved-async-work": noUnobservedAsyncWork,
+      "no-async-initialization": noAsyncInitialization,
     },
+  });
+};
+
+const asyncLookingCallee = /(?:^|\.)(?:fetch|readFile|writeFile)$|(?:Async|Promise)$/u;
+
+const noUnobservedAsyncWork = (options: AsyncRuleOptions = {}): SemanticRule => {
+  const resolved = resolveOptions(options, 0.9, 0.7);
+  return callChoiceRule(resolved, {
+    description: "Asynchronous work should have its completion observed.",
+    select: (document) =>
+      document.facts?.calls.filter(
+        (call) =>
+          call.usage === "expression" &&
+          call.callee !== undefined &&
+          asyncLookingCallee.test(call.callee),
+      ) ?? [],
+    instructions:
+      "Does this bare call start asynchronous work whose completion or failure is not observed? Diagnose only when the visible API contract or strong convention establishes that the call returns async work. Intentional detached work must visibly own error reporting and lifetime. Choose insufficient_context when return behavior or ownership is unknown.",
+    criteria: {
+      unobserved_async_work:
+        "The call visibly starts asynchronous work, but its promise, completion, and failure are discarded.",
+      intentional_detached_work:
+        "The work is deliberately detached with visible failure handling and an appropriate owner for its lifetime.",
+      not_async_work:
+        "The call does not return or start asynchronous work that requires observation.",
+      insufficient_context:
+        "The available source does not establish the call's return contract, ownership, or failure handling.",
+    },
+    finding: "unobserved_async_work",
+    message: "This async work appears to be started without observing its completion.",
+  });
+};
+
+const noAsyncInitialization = (options: AsyncRuleOptions = {}): SemanticRule => {
+  const resolved = resolveOptions(options, 0.9, 0.7);
+  return choiceRule(resolved, {
+    description: "Constructors should not hide asynchronous initialization.",
+    select: (document) =>
+      selectFunctions(document, resolved, (fn) =>
+        fn.role === "constructor"
+          ? fn.calls.filter((call) => asyncLookingCallee.test(call.callee))
+          : [],
+      ),
+    question: {
+      instructions:
+        "Does this constructor start asynchronous initialization that can leave the new instance observable before it is ready, or lose initialization failure? Diagnose only when async startup is visible. Synchronous setup and explicitly deferred lifecycle work are safe. Choose insufficient_context when the callee contract or readiness ownership is hidden.",
+      criteria: {
+        async_initialization:
+          "The constructor starts asynchronous setup without an explicit lifecycle boundary that observes readiness and failure.",
+        synchronous_initialization: "The constructor performs only synchronous initialization.",
+        deferred_or_explicit_lifecycle:
+          "Initialization is deferred to or represented by an explicit, observable lifecycle contract.",
+        insufficient_context:
+          "The source does not establish whether setup is asynchronous or how readiness and failure are observed.",
+      },
+    },
+    finding: "async_initialization",
+    message: "This constructor appears to start asynchronous initialization.",
   });
 };
 
@@ -191,6 +253,15 @@ interface ChoiceRuleDefinition {
   message: string;
 }
 
+interface CallChoiceRuleDefinition {
+  description: string;
+  select(document: ParsedDocument): StructuredCallFact[];
+  instructions: JsonValue;
+  criteria: Record<string, JsonValue>;
+  finding: string;
+  message: string;
+}
+
 interface ResolvedOptions {
   threshold: number;
   minConfidence: number;
@@ -228,6 +299,7 @@ const choiceRule = (options: ResolvedOptions, definition: ChoiceRuleDefinition):
             total_calls: target.calls.length,
             imports_truncated: imports.truncated,
             calls_truncated: calls.length < target.calls.length,
+            ...(target.role === "constructor" ? { role: target.role } : {}),
           },
           question: {
             type: "choice" as const,
@@ -247,6 +319,60 @@ const choiceRule = (options: ResolvedOptions, definition: ChoiceRuleDefinition):
       });
     },
   };
+};
+
+const callChoiceRule = (
+  options: ResolvedOptions,
+  definition: CallChoiceRuleDefinition,
+): SemanticRule => ({
+  description: definition.description,
+  collect(document) {
+    return definition.select(document).map((call) => ({
+      target: {
+        kind: "expression" as const,
+        filename: document.filename,
+        language: document.language,
+        range: call.range,
+        location: sourceLocation(document.source, call.range),
+        source: call.source,
+      },
+      state: {
+        language: document.language,
+        imports: document.imports,
+        call: { callee: call.callee ?? null, source: call.source, usage: call.usage },
+        surrounding_function:
+          document.functions.find(
+            (fn) => fn.range.start <= call.range.start && fn.range.end >= call.range.end,
+          )?.source ?? null,
+        evidence_scope:
+          "The call expression, its syntactic usage, imports, and enclosing function are shown; unresolved callee contracts are not evidence.",
+      },
+      data: { usage: call.usage },
+      question: {
+        type: "choice" as const,
+        instructions: definition.instructions,
+        criteria: definition.criteria,
+      },
+    }));
+  },
+  diagnose(answer, candidate) {
+    if (!isFinding(answer, definition.finding, options.threshold, options.minConfidence)) {
+      return null;
+    }
+    return diagnostic(candidate, definition.message, {
+      probability: answer.probabilities[definition.finding] ?? 0,
+      confidence: answer.confidence,
+    });
+  },
+});
+
+const sourceLocation = (source: string, range: { start: number; end: number }) => {
+  const position = (offset: number) => {
+    const prefix = source.slice(0, offset);
+    const lines = prefix.split("\n");
+    return { line: lines.length, column: (lines.at(-1)?.length ?? 0) + 1 };
+  };
+  return { start: position(range.start), end: position(range.end) };
 };
 
 const functionState = (

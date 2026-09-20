@@ -848,6 +848,7 @@ const collectStructuredFacts = (program: AstNode, source: string): StructuredFac
         arguments: args,
         references: uniqueStrings(args.flatMap((argument) => argument.references)),
         awaited: parent?.type === "AwaitExpression",
+        usage: callUsage(parent),
         control: controlRegions(node, ancestors),
       };
       const callee = getCalleeName(node.callee);
@@ -898,6 +899,38 @@ const collectStructuredFacts = (program: AstNode, source: string): StructuredFac
         : [],
     },
   };
+};
+
+const callUsage = (parent: AstNode | undefined): StructuredCallFact["usage"] => {
+  if (parent === undefined) {
+    return "other";
+  }
+  if (parent.type === "AwaitExpression") {
+    return "await";
+  }
+  if (parent.type === "ReturnStatement") {
+    return "return";
+  }
+  if (parent.type === "ExpressionStatement") {
+    return "expression";
+  }
+  if (parent.type === "VariableDeclarator" || parent.type === "AssignmentExpression") {
+    return "assignment";
+  }
+  if (
+    parent.type === "IfStatement" ||
+    parent.type === "SwitchStatement" ||
+    parent.type === "ConditionalExpression" ||
+    parent.type === "WhileStatement" ||
+    parent.type === "DoWhileStatement" ||
+    parent.type === "ForStatement"
+  ) {
+    return "condition";
+  }
+  if (parent.type === "CallExpression" || parent.type === "NewExpression") {
+    return "argument";
+  }
+  return "other";
 };
 
 const standaloneControlRegion = (
@@ -1119,15 +1152,18 @@ const collectFunctions = (
       if (functionTypes.has(node.type)) {
         const test = getTestDetails(node, parent, configuredTestCallees);
         const name = functionName(node, parent);
+        const role = functionRole(parent);
+        const targetNode = role === "constructor" && parent !== undefined ? parent : node;
         const target: FunctionTarget = {
           kind: test ? "test" : "function",
           filename,
           language,
-          range: rangeOf(node),
-          location: locate(rangeOf(node)),
-          source: source.slice(node.start, node.end),
+          range: rangeOf(targetNode),
+          location: locate(rangeOf(targetNode)),
+          source: source.slice(targetNode.start, targetNode.end),
           async: node.async === true,
           calls: [],
+          role,
         };
         if (test !== undefined && parent !== undefined) {
           target.enclosingSource = source.slice(parent.start, parent.end);
@@ -1164,6 +1200,16 @@ const collectFunctions = (
   });
 
   return functions;
+};
+
+const functionRole = (parent: AstNode | undefined): NonNullable<FunctionTarget["role"]> => {
+  if (parent?.type === "MethodDefinition") {
+    return parent.kind === "constructor" ? "constructor" : "method";
+  }
+  if (parent?.type === "Property" || parent?.type === "ObjectProperty") {
+    return "method";
+  }
+  return "function";
 };
 
 const convertComment = (

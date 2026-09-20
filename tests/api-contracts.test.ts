@@ -20,6 +20,50 @@ const targetName = (candidate: RuleCandidate): string | undefined => {
   return typeof name === "string" ? name : undefined;
 };
 
+await test("API contracts plugin registers ignored significant results", () => {
+  assert.ok("no-ignored-significant-results" in apiContracts().rules);
+});
+
+await test("ignored significant results selects bare calls but not used results", () => {
+  const document = oxcParser().parse(
+    "contracts.ts",
+    `export async function update() {
+  repository.save(record);
+  await repository.save(other);
+  return repository.delete(id);
+}
+export function consume() {
+  const result = validator.parse(input);
+  report(validator.parse(other));
+  if (cache.has(key)) return result;
+}
+`,
+  );
+  const rule = apiContracts().rules["no-ignored-significant-results"]();
+  const candidates = rule.collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    ["repository.save(record)"],
+  );
+  assert.equal(candidates[0]?.data?.["usage"], "expression");
+  const candidate = candidates[0];
+  assert.ok(candidate?.question.type === "choice");
+  assert.deepEqual(Object.keys(candidate.question.criteria), [
+    "ignored_significant_result",
+    "result_intentionally_ignored",
+    "no_significant_result",
+    "insufficient_context",
+  ]);
+  assert.equal(rule.diagnose(answer("result_intentionally_ignored", 0.99, 0.99), candidate), null);
+  assert.equal(rule.diagnose(answer("no_significant_result", 0.99, 0.99), candidate), null);
+  assert.equal(rule.diagnose(answer("insufficient_context", 0.99, 0.99), candidate), null);
+  assert.equal(
+    rule.diagnose(answer("ignored_significant_result", 0.9, 0.7), candidate)?.message,
+    "This call appears to ignore a result that carries significant outcome information.",
+  );
+});
+
 await test("API contract rules select a deterministic bounded subset", () => {
   const document = oxcParser().parse(
     "contracts.ts",

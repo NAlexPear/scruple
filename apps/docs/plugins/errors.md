@@ -23,6 +23,7 @@ export default defineConfig({
 | [`errors/no-swallowed-errors`](#errorsno-swallowed-errors)                         | Unexpected failures silently suppressed by catch handlers |
 | [`errors/no-lossy-error-wrapping`](#errorsno-lossy-error-wrapping)                 | Replacement errors that lose the original cause           |
 | [`errors/no-message-based-error-dispatch`](#errorsno-message-based-error-dispatch) | Control flow coupled to exception prose                   |
+| [`errors/no-useless-catch-boundaries`](#errorsno-useless-catch-boundaries)         | Catch handlers that add no behavior                       |
 
 ## `errors/no-swallowed-errors`
 
@@ -37,6 +38,10 @@ Reviews catch handlers with visible non-direct replacement throws. A structured 
 ## `errors/no-message-based-error-dispatch`
 
 Reviews direct reads of a catch binding's `message` for branching or classification. Logging, display, and stable structured discriminators are not findings; opaque external classifiers cause abstention.
+
+## `errors/no-useless-catch-boundaries`
+
+Reviews catch handlers that only rethrow the same error without adding recovery, cleanup, reporting, translation, or context. The candidate scope is limited to catches whose behavior is visible; conditional handling and calls to helpers with unresolved effects cause abstention.
 
 ```ts
 rules: { "errors/no-swallowed-errors": ["warn", { threshold: 0.95 }] }

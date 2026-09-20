@@ -30,7 +30,52 @@ await test("tests plugin registers all semantic test rules", () => {
     "no-vacuous-tests",
     "require-specific-error-assertions",
     "no-fixed-delay-synchronization",
+    "no-nondeterministic-tests",
   ]);
+});
+
+await test("nondeterministic tests select randomness and wall-clock access with control context", () => {
+  const rule = tests().rules["no-nondeterministic-tests"]();
+  const candidates = rule.collect(
+    oxcParser().parse(
+      "random.test.ts",
+      `test("uses uncontrolled randomness", () => expect(sample(Math.random())).toBeDefined());
+test("uses the wall clock", () => expect(expiresAt()).toBeGreaterThan(Date.now()));
+test("uses fake controls", () => {
+  vi.spyOn(Math, "random").mockReturnValue(0.5);
+  vi.setSystemTime(new Date("2020-01-01"));
+  expect(sample(Math.random())).toEqual(expected);
+  expect(Date.now()).toBe(1577836800000);
+});
+test("uses injected controls", () => {
+  expect(createToken({ random: () => 0.5, now: () => 123 })).toEqual(expected);
+});
+`,
+    ),
+  );
+
+  assert.deepEqual(selectedTestNames(candidates), [
+    "uses uncontrolled randomness",
+    "uses the wall clock",
+    "uses fake controls",
+  ]);
+  const candidate = candidates[0];
+  assert.ok(candidate);
+  assert.deepEqual(Object.keys(criteriaOf(candidate)), [
+    "uncontrolled_nondeterminism",
+    "controlled_nondeterminism",
+    "intentional_nondeterministic_test",
+    "insufficient_context",
+  ]);
+  assert.equal(
+    rule.diagnose(choice("controlled_nondeterminism", 0.99, 0.99), candidates[2]!),
+    null,
+  );
+  assert.equal(rule.diagnose(choice("insufficient_context", 0.99, 0.99), candidate), null);
+  assert.equal(
+    rule.diagnose(choice("uncontrolled_nondeterminism", 0.9, 0.7), candidate)?.message,
+    "Control randomness or time so this test is deterministic.",
+  );
 });
 
 await test("no-vacuous-tests distinguishes explicit checks, intentional smoke tests, and vacuity", () => {
