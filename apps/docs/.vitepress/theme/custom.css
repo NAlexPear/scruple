@@ -375,6 +375,16 @@
   white-space: normal;
 }
 
+@media (hover: none) {
+  .vp-doc [class*="language-"] > button.copy {
+    opacity: 1;
+  }
+
+  .vp-doc [class*="language-"] > button.copy + span.lang {
+    opacity: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .Layout:has(.VPContent:not(.is-home)) .VPNavBarHamburger {
     display: none;

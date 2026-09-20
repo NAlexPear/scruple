@@ -2,19 +2,50 @@
 
 Scruple separates source understanding, policy, and model execution so each can evolve independently.
 
-```text
-source files
-    ↓
-source parser
-    ↓
-normalized documents and targets
-    ↓
-enabled plugin rules
-    ↓
-typed provider decisions
-    ↓
-stable diagnostics
+## One comment, end to end
+
+Consider a comment that only narrates the assignment below it:
+
+::: code-group
+
+```ts [1. Source]
+export async function warmCache() {
+  // Set ready to true
+  ready = true;
+}
 ```
+
+```json [2. Target]
+{
+  "kind": "comment",
+  "filename": "src/cache.ts",
+  "language": "typescript",
+  "location": {
+    "start": { "line": 2, "column": 3 },
+    "end": { "line": 2, "column": 23 }
+  },
+  "source": "// Set ready to true",
+  "style": "line",
+  "value": " Set ready to true",
+  "enclosingSource": "async function warmCache() {\n  // Set ready to true\n  ready = true;\n}"
+}
+```
+
+```json [3. Answer]
+{
+  "type": "noul",
+  "noul": 0.96
+}
+```
+
+```text [4. Diagnostic]
+src/cache.ts
+  2:3       warning This comment appears to add no useful information. (96%)  comments/no-useless-comments
+```
+
+:::
+
+The parser identifies the comment and its surrounding function. The enabled rule selects bounded evidence and asks a typed question. The provider returns only a typed answer. Because `0.96` meets the rule's default `0.9` threshold, the rule emits its own fixed diagnostic message.
 
 ## Parse once
 
