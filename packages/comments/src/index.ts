@@ -16,9 +16,7 @@ export interface ProbabilityRuleOptions {
   minConfidence?: number;
 }
 
-export interface NoUselessCommentsOptions {
-  threshold?: number;
-}
+export type NoUselessCommentsOptions = ProbabilityRuleOptions;
 
 export interface PreferConciseCommentsOptions extends ProbabilityRuleOptions {
   minCharacters?: number;
@@ -31,6 +29,8 @@ export type CommentsPlugin = ScruplePlugin<{
   "no-change-history-comments": RuleFactory<ProbabilityRuleOptions>;
   "prefer-concise-comments": RuleFactory<PreferConciseCommentsOptions>;
   "require-actionable-todos": RuleFactory<ProbabilityRuleOptions>;
+  "require-justified-suppressions": RuleFactory<ProbabilityRuleOptions>;
+  "require-actionable-deprecations": RuleFactory<ProbabilityRuleOptions>;
 }>;
 
 export const comments = (): CommentsPlugin => {
@@ -42,39 +42,36 @@ export const comments = (): CommentsPlugin => {
       "no-change-history-comments": noChangeHistoryComments,
       "prefer-concise-comments": preferConciseComments,
       "require-actionable-todos": requireActionableTodos,
+      "require-justified-suppressions": requireJustifiedSuppressions,
+      "require-actionable-deprecations": requireActionableDeprecations,
     },
   });
 };
 
 const noUselessComments = (options: NoUselessCommentsOptions = {}): SemanticRule => {
-  const threshold = probabilityOption("threshold", options.threshold, 0.9);
-  return {
+  const { threshold, minConfidence } = probabilityOptions(options, 0.9, 0.7);
+  return choiceRule({
     description: "Comments should add information that the code does not already express.",
-    collect(document) {
-      return ordinaryComments(document).map((comment) => ({
-        target: comment,
-        state: commentState(comment, document),
-        question: {
-          type: "noul",
-          instructions:
-            "Does `comment` add no maintainability value because it merely restates obvious code, uses generic section-heading prose, narrates a straightforward next step, or contains AI-assistant meta commentary? A misleading claim, disabled code, change-history note, or TODO belongs to a different rule and is not useless for this question.",
-          criteria: {
-            true: "The comment adds no useful rationale, constraint, warning, domain knowledge, or non-obvious explanation.",
-            false:
-              "The comment adds useful current information, or it has a distinct problem owned by another comments rule.",
-          },
-        },
-      }));
+    select: ordinaryComments,
+    question: {
+      instructions:
+        "Does `comment` add no maintainability value because it merely restates obvious code, uses generic section-heading prose, narrates a straightforward next step, or contains AI-assistant meta commentary? Distinguish genuinely useful rationale from comments owned by another rule. Choose insufficient_context when the bounded evidence does not establish whether the comment adds information.",
+      criteria: {
+        redundant:
+          "The comment adds no useful rationale, constraint, warning, domain knowledge, or non-obvious explanation.",
+        useful:
+          "The comment adds current rationale, a constraint, a warning, domain knowledge, or another non-obvious explanation.",
+        belongs_to_other_rule:
+          "The comment's primary issue is that it is misleading, disabled code, change history, a deprecation, or another concern owned by a more specific rule.",
+        insufficient_context:
+          "The bounded evidence does not establish whether the comment adds information beyond the code.",
+      },
     },
-    diagnose(answer, candidate) {
-      if (answer.type !== "noul" || answer.noul < threshold) {
-        return null;
-      }
-      return diagnostic(candidate, "This comment appears to add no useful information.", {
-        probability: answer.noul,
-      });
-    },
-  };
+    finding: "redundant",
+    threshold,
+    minConfidence,
+    message: "This comment appears to add no useful information.",
+  });
 };
 
 const noMisleadingComments = (options: ProbabilityRuleOptions = {}): SemanticRule => {
@@ -206,6 +203,58 @@ const requireActionableTodos = (options: ProbabilityRuleOptions = {}): SemanticR
   });
 };
 
+const requireJustifiedSuppressions = (options: ProbabilityRuleOptions = {}): SemanticRule => {
+  const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
+  return choiceRule({
+    description: "Suppression directives should state a concrete, code-specific reason.",
+    select: (document) => document.comments.filter(isSuppressionCandidate),
+    question: {
+      instructions:
+        "Does this suppression directive lack a concrete, code-specific justification or use broader scope than its stated reason supports? A justification should explain why suppression is necessary here, not merely say TODO, legacy, false positive, or repeat the directive. Do not require an issue link. Treat clearly generated code and deliberate negative type-test fixtures separately. Choose insufficient_context when the affected code or suppression scope is not visible in the bounded evidence.",
+      criteria: {
+        justified_suppression:
+          "The comment gives a concrete reason specific to the affected code, and the visible scope is no broader than that reason supports.",
+        unjustified_suppression:
+          "The reason is missing, vague, tautological, or does not justify the visible breadth of the suppression.",
+        generated_or_test_fixture:
+          "The suppression is part of clearly generated code or a deliberate negative type-test fixture.",
+        insufficient_context:
+          "The bounded evidence does not show enough of the affected code, directive scope, or claimed constraint to judge the justification.",
+      },
+    },
+    finding: "unjustified_suppression",
+    threshold,
+    minConfidence,
+    message: "Explain why this suppression is necessary and keep its scope as narrow as possible.",
+  });
+};
+
+const requireActionableDeprecations = (options: ProbabilityRuleOptions = {}): SemanticRule => {
+  const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
+  return choiceRule({
+    description: "Deprecation comments should give consumers clear migration guidance.",
+    select: (document) => document.comments.filter(isDeprecationCandidate),
+    question: {
+      instructions:
+        "Does this `@deprecated` comment fail to tell consumers how to migrate? Accept a named replacement, concrete migration steps, or an explicit statement that no replacement exists with a useful reason or required action. Do not assume a referenced symbol exists when the bounded evidence cannot establish it; choose insufficient_context when association with the deprecated declaration or the guidance itself is unclear.",
+      criteria: {
+        actionable_replacement:
+          "The deprecation gives a named alternative or concrete steps that a consumer can follow.",
+        justified_no_replacement:
+          "The deprecation clearly says no replacement exists and explains the reason or required consumer action.",
+        unactionable_deprecation:
+          "The comment only says deprecated, old, or do not use, without usable migration guidance.",
+        insufficient_context:
+          "The bounded evidence does not establish the associated declaration or whether the stated guidance is usable.",
+      },
+    },
+    finding: "unactionable_deprecation",
+    threshold,
+    minConfidence,
+    message: "Add a replacement, migration steps, or a clear reason that no replacement exists.",
+  });
+};
+
 interface ChoiceRuleDefinition {
   description: string;
   select(document: ParsedDocument): CommentTarget[];
@@ -265,7 +314,8 @@ const commentState = (comment: CommentTarget, document: ParsedDocument): JsonVal
 
 const ordinaryComments = (document: ParsedDocument): CommentTarget[] => {
   return document.comments.filter(
-    (comment) => isBaseCandidate(comment) && !isTodoCandidate(comment),
+    (comment) =>
+      isBaseCandidate(comment) && !isTodoCandidate(comment) && !isDeprecationCandidate(comment),
   );
 };
 
@@ -292,6 +342,16 @@ const isIgnoredComment = (comment: CommentTarget): boolean => {
 
 const isTodoCandidate = (comment: CommentTarget): boolean => {
   return /^(?:\s*\*?\s*)(?:TODO|FIXME|HACK)\b/imu.test(comment.value);
+};
+
+const isSuppressionCandidate = (comment: CommentTarget): boolean => {
+  return /^(?:\s*\*?\s*)(?:(?:eslint|oxlint)-disable(?:-next-line|-line)?\b|tslint:disable\b|@ts-(?:expect-error|ignore|nocheck)\b|(?:c8|istanbul)\s+ignore\b|prettier-ignore\b|nosemgrep\b)/imu.test(
+    comment.value,
+  );
+};
+
+const isDeprecationCandidate = (comment: CommentTarget): boolean => {
+  return /@deprecated\b/iu.test(comment.value);
 };
 
 const isChangeHistoryCandidate = (comment: CommentTarget): boolean => {

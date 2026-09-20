@@ -65,26 +65,47 @@ export default defineConfig({
     "api-contracts/no-misleading-function-names": "warn",
     "api-contracts/no-ambiguous-failure-contracts": "warn",
     "api-contracts/require-input-validation": "warn",
+    "api-contracts/no-side-effects-in-safe-http-methods": "warn",
+    "api-contracts/no-misleading-http-status": "warn",
     "async/no-unbounded-concurrency": "warn",
     "async/no-serial-independent-work": "warn",
     "async/require-cancellation-propagation": "warn",
+    "async/require-race-loser-cleanup": "warn",
+    "async/require-abort-listener-cleanup": "warn",
     "comments/no-useless-comments": "warn",
     "comments/no-misleading-comments": "warn",
     "comments/no-commented-out-code": "warn",
     "comments/no-change-history-comments": "warn",
     "comments/prefer-concise-comments": ["warn", { threshold: 0.9 }],
     "comments/require-actionable-todos": "off",
+    "comments/require-justified-suppressions": "warn",
+    "comments/require-actionable-deprecations": "warn",
     "errors/no-swallowed-errors": "error",
+    "errors/no-lossy-error-wrapping": "warn",
+    "errors/no-message-based-error-dispatch": "warn",
     "observability/no-sensitive-logs": "error",
     "observability/no-unactionable-errors": "warn",
     "observability/require-operation-context": "warn",
+    "observability/require-stable-telemetry-names": "warn",
+    "observability/no-duplicate-error-reporting": "warn",
     "security/no-user-controlled-authorization": "warn",
     "security/no-sensitive-data-exposure": "warn",
+    "security/no-untrusted-command-execution": "warn",
+    "security/no-untrusted-mass-assignment": "warn",
+    "security/no-unsafe-redirect": "warn",
     "tests/no-vacuous-tests": "error",
+    "tests/require-specific-error-assertions": "warn",
+    "tests/no-fixed-delay-synchronization": "warn",
     "relational-databases/prefer-database-join": "warn",
+    "relational-databases/no-query-in-loop": "warn",
+    "relational-databases/require-transaction-scoped-client": "error",
+    "relational-databases/require-deterministic-pagination-order": "warn",
     "resources/no-leaked-resources": "error",
     "resources/require-bounded-retries": "warn",
     "resources/require-cleanup-on-failure": "error",
+    "resources/require-complete-resource-cleanup": "error",
+    "resources/require-retry-backoff-with-jitter": "warn",
+    "resources/require-retry-time-budget": "warn",
   },
 });
 ```
@@ -155,6 +176,9 @@ publishable rule packs, not rules built into the engine:
   start together.
 - `async/require-cancellation-propagation` checks explicit `AbortSignal` contracts when downstream
   cancellation support is visible.
+- `async/require-race-loser-cleanup` checks whether locally created race losers are cancelled or
+  otherwise observed.
+- `async/require-abort-listener-cleanup` checks abort listener lifetime against operation lifetime.
 - `comments/no-useless-comments` identifies comments that add no useful rationale, constraint, or
   context.
 - `comments/no-misleading-comments` identifies comments that contradict the visible code.
@@ -163,30 +187,54 @@ publishable rule packs, not rules built into the engine:
 - `comments/prefer-concise-comments` identifies useful comments padded with unnecessary prose.
 - `comments/require-actionable-todos` requires TODO, FIXME, and HACK comments to explain meaningful
   follow-up work.
+- `comments/require-justified-suppressions` requires suppression directives to explain their need.
+- `comments/require-actionable-deprecations` requires migration guidance or a justified lack of a
+  replacement.
 - `errors/no-swallowed-errors` identifies catch handlers that silently suppress unexpected failures
   without propagation, observable reporting, or a visible intentional recovery contract.
+- `errors/no-lossy-error-wrapping` preserves visible causes when replacing caught errors.
+- `errors/no-message-based-error-dispatch` avoids branching on unstable exception prose.
 - `observability/no-sensitive-logs` identifies visibly sensitive values emitted without redaction.
 - `observability/no-unactionable-errors` identifies error events that lack operation or failure
   evidence.
 - `observability/require-operation-context` requires events to name the operation they describe.
+- `observability/require-stable-telemetry-names` keeps event, span, and metric names low-cardinality.
+- `observability/no-duplicate-error-reporting` finds duplicate reports of the same caught failure.
 - `api-contracts/no-misleading-function-names` identifies names contradicted by visible function
   behavior while abstaining on domain-specific or delegated behavior.
 - `api-contracts/no-ambiguous-failure-contracts` identifies directly exported functions with
   overlapping visible failure channels.
 - `api-contracts/require-input-validation` identifies directly exported, visibly untrusted
   boundaries that use input without visible runtime validation.
+- `api-contracts/no-side-effects-in-safe-http-methods` checks GET, HEAD, OPTIONS, and TRACE routes
+  for requested state changes.
+- `api-contracts/no-misleading-http-status` checks explicit statuses against visible outcomes.
 - `tests/no-vacuous-tests` identifies tests that do not meaningfully verify behavior.
+- `tests/require-specific-error-assertions` distinguishes expected failures from unrelated errors.
+- `tests/no-fixed-delay-synchronization` prefers condition waits or controlled time over sleeps.
 - `relational-databases/prefer-database-join` identifies function-level in-memory joins that can
   reasonably be performed by the available database layer.
+- `relational-databases/no-query-in-loop` finds per-item database access suited to set operations.
+- `relational-databases/require-transaction-scoped-client` keeps transaction work on its scoped
+  client.
+- `relational-databases/require-deterministic-pagination-order` checks paginated queries for stable
+  ordering.
 - `resources/no-leaked-resources` identifies function-local resources left owned on a visible exit
   path.
 - `resources/require-bounded-retries` requires an enforced attempt, elapsed-time, or deadline bound.
 - `resources/require-cleanup-on-failure` identifies success-only cleanup after potentially failing
   work.
+- `resources/require-complete-resource-cleanup` checks every visible locally owned acquisition.
+- `resources/require-retry-backoff-with-jitter` checks retry timing for backoff and jitter.
+- `resources/require-retry-time-budget` requires an overall elapsed deadline for retry work.
 - `security/no-user-controlled-authorization` identifies visible authorization decisions that trust
   client-supplied authority claims.
-- `security/no-sensitive-data-exposure` identifies visible sensitive values sent to response or log
-  sinks without visible protection.
+- `security/no-sensitive-data-exposure` identifies visible sensitive values sent to response,
+  rendered-output, file-transfer, or redirect sinks without visible protection.
+- `security/no-untrusted-command-execution` checks direct request-to-command and dynamic-code flows.
+- `security/no-untrusted-mass-assignment` checks direct request-object persistence or assignment.
+- `security/no-unsafe-redirect` checks request-controlled redirect targets for local-path or exact
+  origin validation.
 
 A plugin registers named rules. Semantic rules collect normalized source targets and create typed
 decision questions, then deterministically turn provider answers into diagnostics or abstain. Rules

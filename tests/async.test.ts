@@ -16,11 +16,13 @@ const answer = (choice: string, probability: number, confidence: number): Choice
   };
 };
 
-await test("async plugin registers the conservative initial rule set", () => {
+await test("async plugin registers the conservative rule set", () => {
   assert.deepEqual(Object.keys(asyncRules().rules), [
     "no-unbounded-concurrency",
     "no-serial-independent-work",
     "require-cancellation-propagation",
+    "require-race-loser-cleanup",
+    "require-abort-listener-cleanup",
   ]);
 });
 
@@ -48,6 +50,7 @@ export async function settled(items: Item[]) {
   assert.deepEqual(candidates[0]?.state, {
     language: "typescript",
     imports: [`import { run } from "./worker.js";`],
+    imports_truncated: false,
     function:
       "async function concurrent(items: Item[]) {\n  return Promise.all(items.map((item) => run(item)));\n}",
     calls: [
@@ -57,8 +60,17 @@ export async function settled(items: Item[]) {
       },
       { callee: "items.map", source: "items.map((item) => run(item))" },
     ],
+    calls_truncated: false,
     evidence_scope:
-      "This function and its imports only; unknown external behavior is not evidence.",
+      "Bounded function-local source, imports, and calls only; unknown caller, callee, ownership, lifetime, and runtime behavior is not evidence.",
+  });
+  assert.deepEqual(candidates[0]?.data, {
+    selected_callees: ["Promise.all"],
+    function_characters: candidates[0]?.target.source.length,
+    total_imports: 1,
+    total_calls: 2,
+    imports_truncated: false,
+    calls_truncated: false,
   });
 });
 
@@ -84,7 +96,7 @@ export function notAsync() {
   assert.equal(candidates[0]?.target.source.includes("function two"), true);
 });
 
-await test("cancellation selection requires an explicit AbortSignal contract", () => {
+await test("cancellation selection requires an AbortSignal and a known cancellable platform call", () => {
   const document = parser.parse(
     "request.ts",
     `export async function cancellable(url: string, signal: AbortSignal) {
@@ -92,6 +104,12 @@ await test("cancellation selection requires an explicit AbortSignal contract", (
 }
 export async function ordinary(url: string) {
   return fetch(url);
+}
+export async function unsupported(entry: Entry, signal: AbortSignal) {
+  return legacyAuditLog.append(entry);
+}
+export async function shadowed(fetch: Client, signal: AbortSignal) {
+  return fetch("/jobs");
 }
 `,
   );
@@ -101,30 +119,169 @@ export async function ordinary(url: string) {
   assert.equal(candidates[0]?.target.source.includes("function cancellable"), true);
 });
 
+await test("race cleanup selection is deterministic and limited to native race combinators", () => {
+  const document = parser.parse(
+    "race.ts",
+    `export async function all(tasks: Promise<void>[]) {
+  return Promise.all(tasks);
+}
+export async function first(url: string) {
+  return Promise.race([fetch(url), delay(1000)]);
+}
+export async function anyReplica(urls: [string, string]) {
+  return Promise.any(urls.map((url) => fetch(url)));
+}
+export async function observe(tasks: Promise<void>[]) {
+  return Promise.race(tasks);
+}
+export async function custom(Promise: RaceApi, tasks: Promise<void>[]) {
+  return Promise.race(tasks);
+}
+`,
+  );
+  const candidates = asyncRules().rules["require-race-loser-cleanup"]().collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source.split("(")[0]),
+    ["async function first", "async function anyReplica", "async function observe"],
+  );
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.data?.["selected_callees"]),
+    [["Promise.race"], ["Promise.any"], ["Promise.race"]],
+  );
+  const raceCandidate = candidates[0];
+  assert.ok(raceCandidate);
+  assert.strictEqual(raceCandidate.question.type, "choice");
+  assert.deepEqual(Object.keys(raceCandidate.question.criteria), [
+    "race_loser_abandoned",
+    "loser_cleanup_present",
+    "harmless_or_externally_owned",
+    "insufficient_context",
+  ]);
+});
+
+await test("abort listener cleanup selection excludes unrelated event targets and event types", () => {
+  const document = parser.parse(
+    "listeners.ts",
+    `export function attach(signal: AbortSignal) {
+  signal.addEventListener("abort", onAbort);
+}
+export function attachOnce(abortSignal: AbortSignal) {
+  abortSignal.addEventListener("abort", onAbort, { once: true });
+}
+export function otherEvent(signal: AbortSignal) {
+  signal.addEventListener("change", onChange);
+}
+export function otherTarget(target: EventTarget, signal: AbortSignal) {
+  target.addEventListener("abort", onAbort);
+}
+`,
+  );
+  const candidates = asyncRules().rules["require-abort-listener-cleanup"]().collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source.split("(")[0]),
+    ["function attach", "function attachOnce"],
+  );
+  const listenerCandidate = candidates[0];
+  assert.ok(listenerCandidate);
+  assert.strictEqual(listenerCandidate.question.type, "choice");
+  assert.deepEqual(Object.keys(listenerCandidate.question.criteria), [
+    "abort_listener_may_leak",
+    "listener_cleanup_present",
+    "bounded_or_operation_owned",
+    "insufficient_context",
+  ]);
+});
+
+await test("async evidence is bounded without truncating function source", () => {
+  const document = parser.parse(
+    "bounded.ts",
+    `import { process } from "./worker.js";
+export async function run(items: Item[]) {
+  return Promise.all(items.map((item) => process(item)));
+}
+`,
+  );
+  const rule = asyncRules().rules["no-unbounded-concurrency"]({
+    maxImportCharacters: 5,
+    maxCallSites: 1,
+  });
+  const candidate = rule.collect(document)[0];
+  assert.ok(candidate);
+  assert.deepEqual(candidate.state, {
+    language: "typescript",
+    imports: [],
+    imports_truncated: true,
+    function: candidate.target.source,
+    calls: [
+      {
+        callee: "Promise.all",
+        source: "Promise.all(items.map((item) => process(item)))",
+      },
+    ],
+    calls_truncated: true,
+    evidence_scope:
+      "Bounded function-local source, imports, and calls only; unknown caller, callee, ownership, lifetime, and runtime behavior is not evidence.",
+  });
+  assert.equal(
+    asyncRules().rules["no-unbounded-concurrency"]({ maxFunctionCharacters: 20 }).collect(document)
+      .length,
+    0,
+  );
+});
+
+await test("async rule options reject invalid probabilities and evidence bounds", () => {
+  const factory = asyncRules().rules["require-race-loser-cleanup"];
+  assert.throws(() => factory({ threshold: -0.01 }), /threshold/u);
+  assert.throws(() => factory({ minConfidence: Number.NaN }), /minConfidence/u);
+  assert.throws(() => factory({ maxFunctionCharacters: 0 }), /maxFunctionCharacters/u);
+  assert.throws(() => factory({ maxImportCharacters: -1 }), /maxImportCharacters/u);
+  assert.throws(() => factory({ maxCallSites: 1.5 }), /maxCallSites/u);
+  assert.doesNotThrow(() =>
+    factory({
+      threshold: 0,
+      minConfidence: 1,
+      maxFunctionCharacters: 1,
+      maxImportCharacters: 0,
+      maxCallSites: 0,
+    }),
+  );
+});
+
 await test("async rules diagnose only calibrated finding answers and otherwise abstain", () => {
   const document = parser.parse(
     "async.ts",
     `export async function run(items: Item[], signal: AbortSignal) {
+  signal.addEventListener("abort", onAbort);
   await loadOne();
   await loadTwo();
   await fetch("/jobs");
+  const first = Promise.race([fetch("/primary"), delay(1000)]);
   return Promise.all(items.map((item) => process(item)));
 }
 `,
   );
   const plugin = asyncRules();
   const cases = [
-    ["no-unbounded-concurrency", "unbounded_concurrency"],
-    ["no-serial-independent-work", "serial_independent_work"],
-    ["require-cancellation-propagation", "cancellation_not_propagated"],
+    ["no-unbounded-concurrency", "unbounded_concurrency", "bounded_or_intentional"],
+    ["no-serial-independent-work", "serial_independent_work", "ordering_required"],
+    [
+      "require-cancellation-propagation",
+      "cancellation_not_propagated",
+      "cancellation_propagated_or_unavailable",
+    ],
+    ["require-race-loser-cleanup", "race_loser_abandoned", "loser_cleanup_present"],
+    ["require-abort-listener-cleanup", "abort_listener_may_leak", "listener_cleanup_present"],
   ] as const;
 
-  for (const [ruleName, finding] of cases) {
+  for (const [ruleName, finding, safeChoice] of cases) {
     const rule = plugin.rules[ruleName]();
     const candidate = rule.collect(document)[0];
     assert.ok(candidate);
     assert.equal(rule.diagnose(answer(finding, 0.89, 0.99), candidate), null);
     assert.equal(rule.diagnose(answer(finding, 0.99, 0.69), candidate), null);
+    assert.equal(rule.diagnose(answer(safeChoice, 0.99, 0.99), candidate), null);
     assert.equal(rule.diagnose(answer("insufficient_context", 0.99, 0.99), candidate), null);
     const diagnostic = rule.diagnose(answer(finding, 0.9, 0.7), candidate);
     assert.ok(diagnostic);

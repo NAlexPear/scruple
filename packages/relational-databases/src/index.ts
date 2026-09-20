@@ -1,63 +1,79 @@
 import type {
+  CallCapture,
+  ChoiceAnswer,
+  DecisionAnswer,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
+  RuleCandidate,
   RuleFactory,
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
 
-export interface PreferDatabaseJoinOptions {
+export interface DatabaseRuleOptions {
   threshold?: number;
   minConfidence?: number;
   databaseCallPatterns?: RegExp[];
+}
+
+export interface PreferDatabaseJoinOptions extends DatabaseRuleOptions {
   collectionOperationPatterns?: RegExp[];
 }
 
 export type RelationalDatabasesPlugin = ScruplePlugin<{
   "prefer-database-join": RuleFactory<PreferDatabaseJoinOptions>;
+  "no-query-in-loop": RuleFactory<DatabaseRuleOptions>;
+  "require-transaction-scoped-client": RuleFactory<DatabaseRuleOptions>;
+  "require-deterministic-pagination-order": RuleFactory<DatabaseRuleOptions>;
 }>;
 
 const defaultDatabaseCallPatterns = [
-  /(?:^|\.)(?:findMany|findAll|getMany)$/u,
+  /(?:^|\.)(?:createMany|deleteMany|findMany|findAll|getMany|updateMany)$/u,
   /^(?:db|database|knex|sql)$/iu,
-  /(?:^|\.)(?:db|database|prisma|knex|sequelize|mongoose|repository|repo|dataSource|entityManager|pool)\./iu,
-  /(?:^|\.)[\p{L}_$][\p{L}\p{N}_$]*Repository\.(?:find|findAndCount|findBy|findOne|query|createQueryBuilder)$/u,
+  /(?:^|\.)(?:db|database|prisma|knex|sequelize|repository|repo|dataSource|entityManager|pool)\./iu,
+  /(?:^|\.)[\p{L}_$][\p{L}\p{N}_$]*Repository\.(?:count|createQueryBuilder|delete|find|findAndCount|findBy|findOne|insert|query|remove|save|update)$/u,
 ];
 const databaseImportPatterns = [
-  /["'](?:@prisma\/client|better-sqlite3|drizzle-orm|knex|mongoose|mysql2?|pg|sequelize|sqlite3|typeorm)["']/iu,
+  /["'](?:@prisma\/client|better-sqlite3|drizzle-orm|knex|kysely|mysql2?|pg|sequelize|sqlite3|typeorm)["']/iu,
 ];
-const databaseImportCallPatterns = [
-  /(?:^|\.)(?:aggregate|all|execute|find|findBy|findOne|query|select)$/u,
+const importedDatabaseReceiverPatterns = [
+  /(?:^|\.)(?:client|connection|driver|entityManager|manager|pool|queryRunner)\.(?:aggregate|all|count|delete|execute|find|findBy|findOne|insert|query|remove|save|select|update)$/u,
 ];
 const defaultCollectionOperationPatterns = [
   /(?:^|\.)(?:map|filter|find|reduce|forEach|some|every)$/u,
 ];
+const iterationCallPatterns = [/(?:^|\.)(?:flatMap|forEach|map|reduce)$/u];
+const loopSourcePattern =
+  /\b(?:for\s*(?:await\s*)?\(|for\s+(?:await\s+)?(?:const|let|var)\b|while\s*\()/u;
+const transactionCallPatterns = [/(?:^|\.)(?:\$transaction|transaction)$/u];
+const paginationPattern = /\b(?:limit|offset|skip|take)\b/iu;
+const orderingPattern = /\b(?:order\s+by|orderBy|order_by)\b/iu;
 
 export const relationalDatabases = (): RelationalDatabasesPlugin => {
-  return definePlugin({ rules: { "prefer-database-join": preferDatabaseJoin } });
+  return definePlugin({
+    rules: {
+      "prefer-database-join": preferDatabaseJoin,
+      "no-query-in-loop": noQueryInLoop,
+      "require-transaction-scoped-client": requireTransactionScopedClient,
+      "require-deterministic-pagination-order": requireDeterministicPaginationOrder,
+    },
+  });
 };
 
 const preferDatabaseJoin = (options: PreferDatabaseJoinOptions = {}): SemanticRule => {
-  const threshold = options.threshold ?? 0.8;
-  const minConfidence = options.minConfidence ?? 0.5;
-  const databasePatterns = options.databaseCallPatterns ?? defaultDatabaseCallPatterns;
+  const { threshold, minConfidence } = decisionOptions(options, 0.85, 0.7);
+  const databasePatterns = databasePatternsFor(options);
   const collectionPatterns =
     options.collectionOperationPatterns ?? defaultCollectionOperationPatterns;
+  validatePatterns("collectionOperationPatterns", collectionPatterns);
 
   return {
-    description: "Prefer combining database-backed collections in the database.",
+    description: "Prefer combining related relational query results in the database.",
     collect(document) {
-      return document.functions.filter(isImplementationFunction).flatMap((fn) => {
-        const hasDatabaseImport = matchesAny(document.imports.join("\n"), databaseImportPatterns);
-        const databaseCalls = fn.calls.filter(
-          (call) =>
-            matchesAny(call.callee, databasePatterns) ||
-            (options.databaseCallPatterns === undefined &&
-              hasDatabaseImport &&
-              matchesAny(call.callee, databaseImportCallPatterns)),
-        );
+      return implementationFunctions(document).flatMap((fn) => {
+        const databaseCalls = directDatabaseCalls(fn, document, databasePatterns, options);
         const collectionOperations = fn.calls.filter((call) =>
           matchesAny(call.callee, collectionPatterns),
         );
@@ -66,82 +82,423 @@ const preferDatabaseJoin = (options: PreferDatabaseJoinOptions = {}): SemanticRu
         }
 
         return [
-          {
-            target: fn,
-            state: functionState(fn, document, databaseCalls, collectionOperations),
-            data: {
-              databaseCalls: databaseCalls.map((call) => call.callee),
-              collectionOperations: collectionOperations.map((call) => call.callee),
+          functionCandidate({
+            fn,
+            document,
+            evidence: {
+              database_calls: databaseCalls.map((call) => callEvidence(call)),
+              database_sources: uniqueSources(databaseCalls),
+              collection_operations: collectionOperations.map((call) => callEvidence(call)),
             },
-            question: {
-              type: "choice" as const,
-              instructions:
-                "Does this function combine results from multiple database queries in application memory when the database layer could reasonably do that work? Consider joins, relation includes, aggregations, subqueries, and filtered queries. First verify from the function and imports that the relevant calls are database queries and that the collection operation actually combines their results.",
-              criteria: {
-                database_pushdown:
-                  "The function fetches multiple database-backed collections and combines or searches across their results in memory even though the work can reasonably be expressed by the available database layer.",
-                intentionally_in_memory:
-                  "The collection operation does not combine multiple database query results, is a legitimate post-query transformation, operates on non-database data, combines separate database systems, or requires application-only semantics or intentionally bounded data.",
-                insufficient_context:
-                  "The function and imports do not establish database provenance, whether multiple query results are being combined, or whether the database abstraction supports the equivalent operation.",
-              },
+            instructions:
+              "Does this function combine results from multiple queries to the same relational database in application memory when that database layer could reasonably do the work? Verify that the selected calls produce the relevant query results, target a compatible store, and are actually combined by the collection operation. Consider joins, relation includes, aggregations, subqueries, and filtered queries. Do not infer database provenance or backend capabilities that the supplied file does not establish.",
+            criteria: {
+              database_pushdown:
+                "The function visibly fetches related results from a compatible relational database and combines or searches across them in memory even though the available database layer can reasonably express that work.",
+              intentionally_in_memory:
+                "The operation does not combine multiple query results, is an independent post-query transformation, operates on non-database data, uses separate database systems, or visibly requires application-only semantics.",
+              insufficient_context:
+                "The file does not establish query provenance, store compatibility, the relationship between results and collection operations, or support for an equivalent database operation.",
             },
-          },
+          }),
         ];
       });
     },
-    diagnose(answer, candidate) {
-      if (answer.type !== "choice") {
-        return null;
-      }
-      const probability = answer.probabilities["database_pushdown"] ?? 0;
-      if (
-        answer.choice !== "database_pushdown" ||
-        probability < threshold ||
-        answer.confidence < minConfidence
-      ) {
-        return null;
-      }
-      return {
-        message:
-          "This function appears to combine database query results in memory when that work should be pushed into the database.",
-        filename: candidate.target.filename,
-        location: candidate.target.location,
-        probability,
-        confidence: answer.confidence,
-      };
+    diagnose: choiceDiagnostic({
+      finding: "database_pushdown",
+      threshold,
+      minConfidence,
+      message:
+        "This function appears to combine relational query results in memory when that work should be pushed into the database.",
+    }),
+  };
+};
+
+const noQueryInLoop = (options: DatabaseRuleOptions = {}): SemanticRule => {
+  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const databasePatterns = databasePatternsFor(options);
+
+  return {
+    description: "Avoid issuing one relational database query per iterated item.",
+    collect(document) {
+      return implementationFunctions(document).flatMap((fn) => {
+        const directCalls = directDatabaseCalls(fn, document, databasePatterns, options);
+        const nestedCalls = descendantDatabaseCalls(fn, document, databasePatterns, options);
+        const iterationCalls = fn.calls.filter((call) =>
+          matchesAny(call.callee, iterationCallPatterns),
+        );
+        const hasLoop = loopSourcePattern.test(fn.source);
+        const suspectedCalls = hasLoop ? callsAfterFirstLoop(fn, directCalls) : nestedCalls;
+        if (suspectedCalls.length === 0 || (!hasLoop && iterationCalls.length === 0)) {
+          return [];
+        }
+
+        return [
+          functionCandidate({
+            fn,
+            document,
+            evidence: {
+              database_calls_in_iteration: suspectedCalls.map((call) => callEvidence(call)),
+              iteration_calls: iterationCalls.map((call) => callEvidence(call)),
+              loop_syntax_present: hasLoop,
+            },
+            instructions:
+              "Does this function issue a relational database query once per iterated item, creating N+1 or repeated-query behavior that should reasonably be replaced by a join, relation include, bulk query, IN filter, or supported batching? Confirm that the query executes inside the iteration and depends on an iterated item. Allow visibly small bounded inputs, automatic ORM batching, chunked or streaming work, and operations that must run sequentially.",
+            criteria: {
+              query_in_loop:
+                "A database query visibly executes per iterated item and a set-based, joined, included, bulk, or batched operation can reasonably preserve the behavior.",
+              batched_or_bounded:
+                "The calls are visibly batched by the database layer, operate on a deliberately small bounded input, or are chunked or streamed appropriately.",
+              required_sequential:
+                "The per-item operations visibly require sequential ordering, locking, or application-only behavior that cannot reasonably be batched.",
+              not_per_item_query:
+                "The database call is not executed by the iteration or does not depend on an iterated item.",
+              insufficient_context:
+                "The file does not establish execution nesting, input bounds, batching behavior, or whether a set-based equivalent is available.",
+            },
+          }),
+        ];
+      });
+    },
+    diagnose: choiceDiagnostic({
+      finding: "query_in_loop",
+      threshold,
+      minConfidence,
+      message:
+        "This function appears to issue a database query per iterated item; use a set-based or batched operation.",
+    }),
+  };
+};
+
+const requireTransactionScopedClient = (options: DatabaseRuleOptions = {}): SemanticRule => {
+  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.75);
+  const databasePatterns = databasePatternsFor(options);
+
+  return {
+    description: "Database work in a transaction should use its transaction-scoped client.",
+    collect(document) {
+      return implementationFunctions(document).flatMap((fn) => {
+        const callbackCandidates = fn.calls.flatMap((call) => {
+          if (!matchesAny(call.callee, transactionCallPatterns)) {
+            return [];
+          }
+          const binding = transactionBinding(call.source);
+          if (binding === undefined) {
+            return [];
+          }
+          const databaseCalls = databaseCallsWithin(
+            call.range,
+            document,
+            databasePatterns,
+            options,
+            binding,
+          ).filter((candidate) => candidate.range.start !== call.range.start);
+          const escapedCalls = databaseCalls.filter(
+            (candidate) => callRoot(candidate.callee) !== binding,
+          );
+          return escapedCalls.length === 0
+            ? []
+            : [{ transactionCall: call, binding, escapedCalls, databaseCalls }];
+        });
+        const manualCandidates = manualTransactionEscapes(fn, document, databasePatterns, options);
+
+        return [...callbackCandidates, ...manualCandidates].map((evidence) =>
+          functionCandidate({
+            fn,
+            document,
+            evidence: {
+              transaction_call: callEvidence(evidence.transactionCall),
+              transaction_binding: evidence.binding,
+              database_calls: evidence.databaseCalls.map((call) => callEvidence(call)),
+              suspected_escaped_calls: evidence.escapedCalls.map((call) => callEvidence(call)),
+            },
+            instructions:
+              "Does this function execute database work through a global, pooled, or otherwise different client while a transaction is open, causing that work to escape the transaction? For callback transactions, operations that must roll back together should use the supplied transaction binding. For manual transactions, BEGIN, work, COMMIT, and ROLLBACK must use the same checked-out client. Allow a visibly intentional operation outside the atomic unit, and abstain when receiver aliases or helper contracts are not established.",
+            criteria: {
+              escaped_transaction:
+                "Database work that belongs to the atomic operation visibly uses a client other than the transaction-scoped binding or the client that began the transaction.",
+              transaction_scoped:
+                "All visible work that belongs to the transaction uses its scoped binding or checked-out client.",
+              intentional_external_operation:
+                "The different-client operation is visibly intended to remain outside the transaction and does not need to roll back with it.",
+              insufficient_context:
+                "The file does not establish receiver identity, helper behavior, or whether the operation belongs to the atomic unit.",
+            },
+          }),
+        );
+      });
+    },
+    diagnose: choiceDiagnostic({
+      finding: "escaped_transaction",
+      threshold,
+      minConfidence,
+      message:
+        "This database operation appears to escape the active transaction; use its transaction-scoped client.",
+    }),
+  };
+};
+
+const requireDeterministicPaginationOrder = (options: DatabaseRuleOptions = {}): SemanticRule => {
+  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.75);
+  const databasePatterns = databasePatternsFor(options);
+
+  return {
+    description: "Paginated relational queries should define a deterministic order.",
+    collect(document) {
+      return implementationFunctions(document).flatMap((fn) => {
+        const unorderedCalls = directDatabaseCalls(fn, document, databasePatterns, options).filter(
+          (call) => paginationPattern.test(call.source) && !orderingPattern.test(call.source),
+        );
+        if (unorderedCalls.length === 0) {
+          return [];
+        }
+
+        return [
+          functionCandidate({
+            fn,
+            document,
+            evidence: {
+              unordered_paginated_calls: unorderedCalls.map((call) => callEvidence(call)),
+            },
+            instructions:
+              "Does this function use LIMIT/OFFSET, skip/take, or an equivalent mechanism to return pages of relational query results without an explicit deterministic ordering? Flag only actual pagination where repeatable page membership matters. Allow deliberate unordered sampling, aggregate or singleton queries, and limits used only as safety caps. Do not claim an ordering is unique without schema evidence.",
+            criteria: {
+              missing_order:
+                "A query is used for pagination or stable page traversal but has no explicit ordering, so page membership can be inconsistent.",
+              deterministic_order:
+                "The paginated query visibly defines an ordering appropriate to its cursor or page traversal.",
+              unordered_by_design:
+                "The limited result is deliberately unordered or sampled and stable page membership is not required.",
+              not_pagination:
+                "The limit is a safety cap, aggregate, singleton bound, or another operation that does not traverse pages.",
+              insufficient_context:
+                "The file does not establish whether the limit represents pagination or whether ordering is supplied externally.",
+            },
+          }),
+        ];
+      });
+    },
+    diagnose: choiceDiagnostic({
+      finding: "missing_order",
+      threshold,
+      minConfidence,
+      message: "This paginated query appears to lack an explicit deterministic ordering.",
+    }),
+  };
+};
+
+interface FunctionCandidateDefinition {
+  fn: FunctionTarget;
+  document: ParsedDocument;
+  evidence: Record<string, JsonValue>;
+  instructions: JsonValue;
+  criteria: Record<string, JsonValue>;
+}
+
+const functionCandidate = (definition: FunctionCandidateDefinition): RuleCandidate => {
+  return {
+    target: definition.fn,
+    state: {
+      language: definition.document.language,
+      imports: definition.document.imports,
+      function: definition.fn.source,
+      evidence: definition.evidence,
+      context: { evidence_boundary: "current_file" },
+    },
+    question: {
+      type: "choice",
+      instructions: definition.instructions,
+      criteria: definition.criteria,
     },
   };
 };
 
-const functionState = (
+interface DiagnosticDefinition {
+  finding: string;
+  threshold: number;
+  minConfidence: number;
+  message: string;
+}
+
+const choiceDiagnostic = (definition: DiagnosticDefinition) => {
+  return (answer: DecisionAnswer, candidate: RuleCandidate) => {
+    if (!isFinding(answer, definition.finding, definition.threshold, definition.minConfidence)) {
+      return null;
+    }
+    return {
+      message: definition.message,
+      filename: candidate.target.filename,
+      location: candidate.target.location,
+      probability: answer.probabilities[definition.finding] ?? 0,
+      confidence: answer.confidence,
+    };
+  };
+};
+
+const databasePatternsFor = (options: DatabaseRuleOptions): RegExp[] => {
+  const patterns = options.databaseCallPatterns ?? defaultDatabaseCallPatterns;
+  validatePatterns("databaseCallPatterns", patterns);
+  return patterns;
+};
+
+const directDatabaseCalls = (
   fn: FunctionTarget,
   document: ParsedDocument,
-  databaseCalls: FunctionTarget["calls"],
-  collectionOperations: FunctionTarget["calls"],
-): JsonValue => {
-  return {
-    language: document.language,
-    imports: document.imports,
-    function: fn.source,
-    evidence: {
-      database_calls: databaseCalls.map((call) => callEvidence(call)),
-      collection_operations: collectionOperations.map((call) => callEvidence(call)),
-    },
-  };
+  patterns: RegExp[],
+  options: DatabaseRuleOptions,
+): CallCapture[] => {
+  return fn.calls.filter((call) => isDatabaseCall(call, document, patterns, options));
 };
 
-const callEvidence = (call: FunctionTarget["calls"][number]): JsonValue => {
+const descendantDatabaseCalls = (
+  fn: FunctionTarget,
+  document: ParsedDocument,
+  patterns: RegExp[],
+  options: DatabaseRuleOptions,
+): CallCapture[] => {
+  return document.functions
+    .filter(
+      (candidate) =>
+        candidate !== fn &&
+        candidate.range.start >= fn.range.start &&
+        candidate.range.end <= fn.range.end,
+    )
+    .flatMap((candidate) => directDatabaseCalls(candidate, document, patterns, options));
+};
+
+const databaseCallsWithin = (
+  range: { start: number; end: number },
+  document: ParsedDocument,
+  patterns: RegExp[],
+  options: DatabaseRuleOptions,
+  scopedReceiver: string,
+): CallCapture[] => {
+  return document.functions
+    .flatMap((fn) => fn.calls)
+    .filter(
+      (call) =>
+        call.range.start >= range.start &&
+        call.range.end <= range.end &&
+        (callRoot(call.callee) === scopedReceiver ||
+          isDatabaseCall(call, document, patterns, options)),
+    );
+};
+
+const callsAfterFirstLoop = (fn: FunctionTarget, calls: CallCapture[]): CallCapture[] => {
+  const match = loopSourcePattern.exec(fn.source);
+  if (match === null) {
+    return [];
+  }
+  const loopStart = fn.range.start + match.index;
+  return calls.filter((call) => call.range.start >= loopStart);
+};
+
+const isDatabaseCall = (
+  call: CallCapture,
+  document: ParsedDocument,
+  patterns: RegExp[],
+  options: DatabaseRuleOptions,
+): boolean => {
+  if (matchesAny(call.callee, patterns)) {
+    return true;
+  }
+  return (
+    options.databaseCallPatterns === undefined &&
+    matchesAny(document.imports.join("\n"), databaseImportPatterns) &&
+    matchesAny(call.callee, importedDatabaseReceiverPatterns)
+  );
+};
+
+interface TransactionEvidence {
+  transactionCall: CallCapture;
+  binding: string;
+  databaseCalls: CallCapture[];
+  escapedCalls: CallCapture[];
+}
+
+const manualTransactionEscapes = (
+  fn: FunctionTarget,
+  document: ParsedDocument,
+  patterns: RegExp[],
+  options: DatabaseRuleOptions,
+): TransactionEvidence[] => {
+  const beginCall = fn.calls.find((call) => /["'`]\s*BEGIN\s*["'`]/iu.test(call.source));
+  if (beginCall === undefined) {
+    return [];
+  }
+  const binding = callRoot(beginCall.callee);
+  const databaseCalls = directDatabaseCalls(fn, document, patterns, options);
+  const escapedCalls = databaseCalls.filter((call) => callRoot(call.callee) !== binding);
+  return escapedCalls.length === 0
+    ? []
+    : [{ transactionCall: beginCall, binding, databaseCalls, escapedCalls }];
+};
+
+const transactionBinding = (source: string): string | undefined => {
+  return /(?:async\s*)?(?:\(\s*([\p{L}_$][\p{L}\p{N}_$]*)\s*\)|([\p{L}_$][\p{L}\p{N}_$]*))\s*=>/u
+    .exec(source)
+    ?.slice(1)
+    .find((binding) => binding !== undefined);
+};
+
+const callEvidence = (call: CallCapture): JsonValue => {
   return { callee: call.callee, source: call.source };
 };
 
-const isImplementationFunction = (fn: FunctionTarget): boolean => {
-  return fn.kind === "function" && fn.source.length > 0;
+const callRoot = (callee: string): string => {
+  return callee.split(".")[0] ?? callee;
 };
 
-const matchesAny = (value: string, patterns: RegExp[]): boolean => {
+const uniqueSources = (calls: CallCapture[]): JsonValue[] => {
+  return [...new Set(calls.map((call) => callRoot(call.callee)))];
+};
+
+const implementationFunctions = (document: ParsedDocument): FunctionTarget[] => {
+  return document.functions.filter((fn) => fn.kind === "function" && fn.source.length > 0);
+};
+
+const decisionOptions = (
+  options: { threshold?: number; minConfidence?: number },
+  defaultThreshold: number,
+  defaultMinConfidence: number,
+): { threshold: number; minConfidence: number } => {
+  validateProbability("threshold", options.threshold);
+  validateProbability("minConfidence", options.minConfidence);
+  return {
+    threshold: options.threshold ?? defaultThreshold,
+    minConfidence: options.minConfidence ?? defaultMinConfidence,
+  };
+};
+
+const validateProbability = (name: string, value: number | undefined): void => {
+  if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1)) {
+    throw new TypeError(`${name} must be a finite number between 0 and 1`);
+  }
+};
+
+const validatePatterns = (name: string, patterns: RegExp[]): void => {
+  if (!Array.isArray(patterns) || patterns.some((pattern) => !(pattern instanceof RegExp))) {
+    throw new TypeError(`${name} must be an array of regular expressions`);
+  }
+};
+
+const matchesAny = (value: string, patterns: readonly RegExp[]): boolean => {
   return patterns.some((pattern) => {
     pattern.lastIndex = 0;
     return pattern.test(value);
   });
+};
+
+const isFinding = (
+  answer: DecisionAnswer,
+  finding: string,
+  threshold: number,
+  minConfidence: number,
+): answer is ChoiceAnswer => {
+  return (
+    answer.type === "choice" &&
+    answer.choice === finding &&
+    (answer.probabilities[finding] ?? 0) >= threshold &&
+    answer.confidence >= minConfidence
+  );
 };

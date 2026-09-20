@@ -1,4 +1,5 @@
 import type {
+  ApiBoundaryTarget,
   ChoiceAnswer,
   DecisionAnswer,
   FunctionTarget,
@@ -20,6 +21,8 @@ export type ApiContractsPlugin = ScruplePlugin<{
   "no-misleading-function-names": RuleFactory<ApiContractRuleOptions>;
   "no-ambiguous-failure-contracts": RuleFactory<ApiContractRuleOptions>;
   "require-input-validation": RuleFactory<ApiContractRuleOptions>;
+  "no-side-effects-in-safe-http-methods": RuleFactory<ApiContractRuleOptions>;
+  "no-misleading-http-status": RuleFactory<ApiContractRuleOptions>;
 }>;
 
 const maxFunctionCharacters = 12_000;
@@ -31,6 +34,8 @@ export const apiContracts = (): ApiContractsPlugin => {
       "no-misleading-function-names": noMisleadingFunctionNames,
       "no-ambiguous-failure-contracts": noAmbiguousFailureContracts,
       "require-input-validation": requireInputValidation,
+      "no-side-effects-in-safe-http-methods": noSideEffectsInSafeHttpMethods,
+      "no-misleading-http-status": noMisleadingHttpStatus,
     },
   });
 };
@@ -84,27 +89,111 @@ const noAmbiguousFailureContracts = (options: ApiContractRuleOptions = {}): Sema
 };
 
 const requireInputValidation = (options: ApiContractRuleOptions = {}): SemanticRule => {
-  return choiceRule({
-    description: "Untrusted API inputs should be validated before they are used.",
-    options,
-    defaults: { threshold: 0.85, minConfidence: 0.7 },
-    select: directlyExportedFunctions,
-    question: {
-      instructions:
-        "Does this directly exported function visibly form an untrusted input boundary and use that input without runtime validation? Request objects, raw payloads, unknown data, headers, query values, and webhook bodies are boundary evidence. Schema parsing, framework validation calls visible in the function, explicit guards, and validated domain types are counter-evidence. Type annotations alone do not validate raw boundary data. A direct export does not establish its callers: choose insufficient_context when the evidence does not establish that input is untrusted, and never assume validation occurs in unseen callers or middleware.",
-      criteria: {
-        validation_present:
-          "The function visibly validates or parses untrusted input before using it, including through a recognizable schema or framework validation API.",
-        validation_required:
-          "The function visibly accepts untrusted boundary data and uses it without visible runtime validation.",
-        trusted_input:
-          "The contract explicitly receives a validated or trusted domain value rather than raw boundary data.",
-        insufficient_context:
-          "The per-file evidence does not establish input trust, caller behavior, middleware, or validation semantics strongly enough.",
-      },
+  const threshold = options.threshold ?? 0.85;
+  const minConfidence = options.minConfidence ?? 0.7;
+  const question = {
+    type: "choice" as const,
+    instructions:
+      "Does this visible API boundary use untrusted request or raw payload data without runtime validation? Treat the normalized request sources as untrusted. An attached inline framework schema is validation evidence only for the request parts it visibly covers. Captured middleware or referenced schemas whose behavior is not shown do not prove validation. Schema parsing, explicit guards, and validated domain types are counter-evidence. Type annotations and type assertions alone are not runtime validation. Choose insufficient_context when validation behavior or coverage is hidden.",
+    criteria: {
+      validation_present:
+        "The visible handler validates or parses each used untrusted input before consequential use.",
+      framework_validation_present:
+        "An attached framework schema or middleware visibly validates every used request source before the handler uses it.",
+      validation_required:
+        "The boundary visibly uses untrusted request or raw payload data without visible runtime validation.",
+      trusted_input:
+        "The fallback function explicitly receives a validated or trusted domain value rather than raw boundary data.",
+      insufficient_context:
+        "Referenced schema, middleware, caller, or helper behavior is needed to establish validation or input trust.",
     },
-    finding: "validation_required",
-    message: "This exported boundary appears to use untrusted input without runtime validation.",
+  };
+  return {
+    description: "Untrusted API inputs should be validated before they are used.",
+    collect(document) {
+      const boundaries = (document.apiBoundaries ?? []).filter(
+        (boundary) => boundary.requestSources.length > 0,
+      );
+      const representedHandlers = new Set(
+        boundaries.map((boundary) => `${boundary.handlerRange.start}:${boundary.handlerRange.end}`),
+      );
+      const routeCandidates: RuleCandidate[] = boundaries.map((boundary) => ({
+        target: boundary,
+        state: boundaryState(boundary, document),
+        question,
+        data: { evidenceKind: "normalized_api_boundary" },
+      }));
+      const fallbackCandidates: RuleCandidate[] = explicitRawBoundaryFunctions(document)
+        .filter(({ fn }) => !representedHandlers.has(`${fn.range.start}:${fn.range.end}`))
+        .map(({ fn, exportEvidence }) => ({
+          target: fn,
+          state: functionState(fn, document, exportEvidence),
+          question,
+          data: { evidenceKind: "explicit_raw_export", exportEvidence: exportEvidence ?? "" },
+        }));
+      return [...routeCandidates, ...fallbackCandidates];
+    },
+    diagnose(answer, candidate) {
+      return findingDiagnostic(
+        answer,
+        candidate,
+        "validation_required",
+        threshold,
+        minConfidence,
+        "This API boundary appears to use untrusted input without runtime validation.",
+      );
+    },
+  };
+};
+
+const noSideEffectsInSafeHttpMethods = (options: ApiContractRuleOptions = {}): SemanticRule => {
+  return boundaryChoiceRule({
+    description: "Safe HTTP methods should not implement requested state-changing behavior.",
+    options,
+    defaults: { threshold: 0.9, minConfidence: 0.75 },
+    select: (document) =>
+      (document.apiBoundaries ?? []).filter(
+        (boundary) => safeHttpMethods.has(boundary.method) && hasPossibleStateChange(boundary),
+      ),
+    instructions:
+      "Does this GET, HEAD, OPTIONS, or TRACE operation visibly perform a state change requested by the client? Distinguish the operation's intended effect from incidental logging, metrics, tracing, cache population, or audit recording. Do not infer effects hidden inside unfamiliar callees. Choose insufficient_context when a call name or incomplete handler evidence does not establish the effect.",
+    criteria: {
+      requested_side_effect:
+        "The safe-method operation visibly creates, changes, deletes, charges, dispatches, publishes, or enqueues domain state as an intended request effect.",
+      incidental_side_effect:
+        "Visible writes are incidental logging, metrics, tracing, auditing, or cache maintenance rather than requested resource changes.",
+      read_only: "The operation only reads or computes a response.",
+      insufficient_context:
+        "The supplied handler and call evidence does not establish whether the operation changes domain state.",
+    },
+    finding: "requested_side_effect",
+    message: "This safe-method route appears to perform a requested state change.",
+  });
+};
+
+const noMisleadingHttpStatus = (options: ApiContractRuleOptions = {}): SemanticRule => {
+  return boundaryChoiceRule({
+    description: "Explicit HTTP status codes should match the visible operation outcome.",
+    options,
+    defaults: { threshold: 0.9, minConfidence: 0.75 },
+    select: (document) =>
+      (document.apiBoundaries ?? []).filter((boundary) =>
+        boundary.responseExits.some((exit) => exit.status !== undefined),
+      ),
+    instructions:
+      "Does an explicitly emitted HTTP status code contradict the visible outcome on that response path? Judge standard status semantics together with the operation method, path, body, and visible control flow. 202 for accepted asynchronous work, 204 without content, and deliberate privacy-preserving 404 responses can be coherent. Do not invent framework defaults or outcomes hidden in callees, global error handlers, or middleware.",
+    criteria: {
+      aligned_status:
+        "Each explicit status is consistent with the visible outcome and response body on its path.",
+      misleading_status:
+        "An explicit status clearly represents failure as success, success as the wrong outcome, or otherwise contradicts the visible response path.",
+      deliberate_policy:
+        "The unusual status is visibly explained by asynchronous processing, privacy policy, or another deliberate contract.",
+      insufficient_context:
+        "Hidden callee, middleware, framework, or error-handler behavior is needed to determine the outcome.",
+    },
+    finding: "misleading_status",
+    message: "This route appears to emit an HTTP status that contradicts its visible outcome.",
   });
 };
 
@@ -117,6 +206,17 @@ interface ChoiceRuleDefinition {
     instructions: JsonValue;
     criteria: Record<string, JsonValue>;
   };
+  finding: string;
+  message: string;
+}
+
+interface BoundaryChoiceRuleDefinition {
+  description: string;
+  options: ApiContractRuleOptions;
+  defaults: { threshold: number; minConfidence: number };
+  select(document: ParsedDocument): ApiBoundaryTarget[];
+  instructions: JsonValue;
+  criteria: Record<string, JsonValue>;
   finding: string;
   message: string;
 }
@@ -161,6 +261,117 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
     },
   };
 };
+
+const boundaryChoiceRule = (definition: BoundaryChoiceRuleDefinition): SemanticRule => {
+  const threshold = definition.options.threshold ?? definition.defaults.threshold;
+  const minConfidence = definition.options.minConfidence ?? definition.defaults.minConfidence;
+  return {
+    description: definition.description,
+    collect(document) {
+      return definition.select(document).map((boundary) => ({
+        target: boundary,
+        state: boundaryState(boundary, document),
+        question: {
+          type: "choice" as const,
+          instructions: definition.instructions,
+          criteria: definition.criteria,
+        },
+        data: { evidenceKind: "normalized_api_boundary" },
+      }));
+    },
+    diagnose(answer, candidate) {
+      if (!isFinding(answer, definition.finding, threshold, minConfidence)) {
+        return null;
+      }
+      return diagnostic(
+        candidate,
+        definition.message,
+        answer.probabilities[definition.finding] ?? 0,
+        answer.confidence,
+      );
+    },
+  };
+};
+
+const findingDiagnostic = (
+  answer: DecisionAnswer,
+  candidate: RuleCandidate,
+  finding: string,
+  threshold: number,
+  minConfidence: number,
+  message: string,
+) => {
+  if (!isFinding(answer, finding, threshold, minConfidence)) {
+    return null;
+  }
+  return diagnostic(candidate, message, answer.probabilities[finding] ?? 0, answer.confidence);
+};
+
+const safeHttpMethods = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
+const possibleStateChangePattern =
+  /(?:^|\.)(?:add|append|charge|create|delete|destroy|dispatch|enqueue|insert|mutate|publish|remove|save|set|update|write)(?:$|[A-Z_])/u;
+const incidentalCallRootPattern = /^(?:console|log|logger|metrics|reply|res|response)(?:\.|$)/u;
+
+const hasPossibleStateChange = (boundary: ApiBoundaryTarget): boolean => {
+  return boundary.calls.some(
+    (call) =>
+      possibleStateChangePattern.test(call.callee) && !incidentalCallRootPattern.test(call.callee),
+  );
+};
+
+const explicitRawBoundaryFunctions = (document: ParsedDocument): SelectedFunction[] => {
+  return directlyExportedFunctions(document).filter(({ fn }) => {
+    const evidence = fn.source;
+    return (
+      /\bunknown\b/u.test(evidence) ||
+      /\b(?:raw|payload|webhook)\b/iu.test(evidence) ||
+      /\b(?:req|request)\s*\.\s*(?:body|cookies|headers|params|query|raw)\b/u.test(evidence)
+    );
+  });
+};
+
+const boundaryState = (boundary: ApiBoundaryTarget, document: ParsedDocument): JsonValue => ({
+  language: document.language,
+  imports: document.imports,
+  apiBoundary: {
+    framework: boundary.framework,
+    method: boundary.method,
+    path: boundary.path,
+    registration: boundary.source,
+    handler: boundary.handlerSource,
+    requestSources: boundary.requestSources.map((source) => ({
+      kind: source.kind,
+      source: source.source,
+    })),
+    attachments: boundary.attachments.map((attachment) => ({
+      kind: attachment.kind,
+      source: attachment.source,
+    })),
+    responseExits: boundary.responseExits.map((exit) => ({
+      kind: exit.kind,
+      status: exit.status ?? null,
+      body: exit.bodySource ?? null,
+      headers: exit.headerSources,
+      source: exit.source,
+    })),
+    calls: boundary.calls.map((call) => ({
+      callee: call.callee,
+      source: call.source,
+    })),
+    completeness: {
+      handler: boundary.completeness.handler,
+      requestSources: boundary.completeness.requestSources,
+      attachments: boundary.completeness.attachments,
+      responseExits: boundary.completeness.responseExits,
+      reasons: boundary.completeness.reasons,
+    },
+  },
+  evidenceLimitations: [
+    "Only this route registration and a locally resolvable handler are shown.",
+    "Attached middleware and referenced schemas are captured but their behavior is not resolved.",
+    "Callee effects, mounted routers, plugins, global hooks, and global error handling are not established.",
+  ],
+});
 
 const namedFunctions = (document: ParsedDocument): SelectedFunction[] => {
   return document.functions.flatMap((fn) => {

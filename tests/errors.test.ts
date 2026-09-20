@@ -31,6 +31,14 @@ const swallowedProvider = (): DecisionProvider => {
   };
 };
 
+await test("errors plugin registers the bounded error-handler rule set", () => {
+  assert.deepEqual(Object.keys(errors().rules), [
+    "no-swallowed-errors",
+    "no-lossy-error-wrapping",
+    "no-message-based-error-dispatch",
+  ]);
+});
+
 await test("OXC normalizes catch targets and direct control flow in source order", () => {
   const document = oxcParser().parse(
     "handlers.ts",
@@ -92,6 +100,91 @@ await test("errors plugin deterministically selects catch handlers and supplies 
   assert.match(state, /return null/u);
 });
 
+await test("no-swallowed-errors does not treat reporting followed by false success as handled", () => {
+  const candidate = errors()
+    .rules["no-swallowed-errors"]()
+    .collect(
+      oxcParser().parse(
+        "upload.ts",
+        `export async function upload(file: File) {
+  try {
+    await client.upload(file);
+    return { ok: true };
+  } catch (error) {
+    telemetry.captureException(error);
+    return { ok: true };
+  }
+}`,
+      ),
+    )[0];
+  assert.ok(candidate);
+
+  const question = JSON.stringify(candidate.question);
+  assert.match(question, /Logging, telemetry, or cleanup alone does not handle/u);
+  assert.match(question, /distinguishable failed outcome rather than false success/u);
+  assert.match(question, /"reported_failure"/u);
+  assert.doesNotMatch(question, /"intentionally_handled"/u);
+});
+
+await test("no-lossy-error-wrapping selects visible replacement throws in source order", () => {
+  const document = oxcParser().parse(
+    "wrapping.ts",
+    `try { direct(); } catch (error) { throw error; }
+try { preserved(); } catch (error) { throw new Error("preserved", { cause: error }); }
+try { lossy(); } catch (error) { throw new Error("lost"); }
+try { opaque(); } catch (error) { throw wrapFailure(error); }
+try { unbound(); } catch { throw new Error("lost"); }
+`,
+  );
+  const rule = errors().rules["no-lossy-error-wrapping"]();
+  const candidates = rule.collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    [
+      'catch (error) { throw new Error("preserved", { cause: error }); }',
+      'catch (error) { throw new Error("lost"); }',
+      "catch (error) { throw wrapFailure(error); }",
+      'catch { throw new Error("lost"); }',
+    ],
+  );
+  assert.match(JSON.stringify(candidates[2]?.question), /opaque wrapper function/u);
+  assert.equal(
+    rule.diagnose(
+      choice("insufficient_context", { insufficient_context: 0.99 }, 0.99),
+      candidates[2]!,
+    ),
+    null,
+  );
+});
+
+await test("no-message-based-error-dispatch selects message uses but leaves judgment semantic", () => {
+  const document = oxcParser().parse(
+    "dispatch.ts",
+    `try { first(); } catch (error) {
+  if (error.message.includes("not found")) return undefined;
+  throw error;
+}
+try { second(); } catch (error) { logger.error(error.message); throw error; }
+try { third(); } catch (error) { if (error.code === "ENOENT") return undefined; throw error; }
+try { fourth(); } catch (cause) { return classify(cause?.message); }
+`,
+  );
+  const rule = errors().rules["no-message-based-error-dispatch"]();
+  const candidates = rule.collect(document);
+
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.target.source),
+    [
+      'catch (error) {\n  if (error.message.includes("not found")) return undefined;\n  throw error;\n}',
+      "catch (error) { logger.error(error.message); throw error; }",
+      "catch (cause) { return classify(cause?.message); }",
+    ],
+  );
+  assert.match(JSON.stringify(candidates[1]?.question), /not message-based dispatch/u);
+  assert.match(JSON.stringify(candidates[2]?.question), /opaque classifier/u);
+});
+
 await test("no-swallowed-errors applies typed margins and abstains on other decisions", () => {
   const factory = errors().rules["no-swallowed-errors"];
   const candidate = factory().collect(
@@ -110,6 +203,61 @@ await test("no-swallowed-errors applies typed margins and abstains on other deci
   assert.equal(factory().diagnose(choice("swallowed", { swallowed: 0.89 }, 0.99), candidate), null);
   assert.throws(() => factory({ threshold: 1.1 }), /threshold must be a finite number/u);
   assert.throws(() => factory({ minConfidence: Number.NaN }), /minConfidence must be/u);
+});
+
+await test("new error rules apply calibrated margins and stable diagnostics", () => {
+  const plugin = errors();
+  const cases = [
+    {
+      ruleName: "no-lossy-error-wrapping" as const,
+      source: 'try { load(); } catch (error) { throw new Error("Load failed"); }',
+      finding: "lossy_wrapping",
+      threshold: 0.9,
+      message: "This replacement error appears to discard the original failure cause.",
+    },
+    {
+      ruleName: "no-message-based-error-dispatch" as const,
+      source:
+        'try { load(); } catch (error) { if (error.message === "missing") return null; throw error; }',
+      finding: "message_based_dispatch",
+      threshold: 0.85,
+      message: "This handler appears to dispatch on unstable error message text.",
+    },
+  ];
+
+  for (const entry of cases) {
+    const rule = plugin.rules[entry.ruleName]();
+    const candidate = rule.collect(oxcParser().parse("errors.ts", entry.source))[0];
+    assert.ok(candidate);
+    assert.equal(
+      rule.diagnose(
+        choice(entry.finding, { [entry.finding]: entry.threshold - 0.01 }, 0.99),
+        candidate,
+      ),
+      null,
+    );
+    assert.equal(
+      rule.diagnose(choice(entry.finding, { [entry.finding]: 0.99 }, 0.69), candidate),
+      null,
+    );
+    assert.equal(
+      rule.diagnose(
+        choice("insufficient_context", { insufficient_context: 0.99 }, 0.99),
+        candidate,
+      ),
+      null,
+    );
+    assert.deepEqual(
+      rule.diagnose(choice(entry.finding, { [entry.finding]: entry.threshold }, 0.7), candidate),
+      {
+        message: entry.message,
+        filename: "errors.ts",
+        location: candidate.target.location,
+        probability: entry.threshold,
+        confidence: 0.7,
+      },
+    );
+  }
 });
 
 await test("no-swallowed-errors reports a stable catch-level diagnostic", async () => {

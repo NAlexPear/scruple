@@ -6,4 +6,6 @@ Example semantic rules for source-code comments, packaged as plugins for [Scrupl
 pnpm add --save-dev @scruple/comments
 ```
 
-See the [Scruple documentation](https://github.com/NAlexPear/scruple#readme) for rule configuration and the current exported rules.
+Rules include comment usefulness, correctness, disabled code, change history, concision, actionable
+TODOs, justified suppression directives, and actionable deprecations. See the
+[Scruple documentation](https://github.com/NAlexPear/scruple#readme) for configuration.

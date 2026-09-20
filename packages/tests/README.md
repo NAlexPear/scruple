@@ -6,4 +6,6 @@ Example semantic rules for automated tests, packaged as plugins for [Scruple](ht
 pnpm add --save-dev @scruple/tests
 ```
 
-See the [Scruple documentation](https://github.com/NAlexPear/scruple#readme) for rule configuration and the current exported rules.
+Rules check meaningful test oracles, specific error assertions, and fixed delays used for
+synchronization. See the [Scruple documentation](https://github.com/NAlexPear/scruple#readme) for
+configuration.

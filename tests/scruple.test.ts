@@ -22,6 +22,18 @@ const fixtureProvider = (): DecisionProvider => {
       for (const [id, question] of Object.entries(request.questions)) {
         if (question.type === "noul") {
           answers[id] = { type: "noul", noul: 0.99 };
+        } else if ("redundant" in question.criteria) {
+          answers[id] = {
+            type: "choice",
+            choice: "redundant",
+            confidence: 0.9,
+            probabilities: {
+              redundant: 0.96,
+              useful: 0.02,
+              belongs_to_other_rule: 0.01,
+              insufficient_context: 0.01,
+            },
+          };
         } else if ("vacuous" in question.criteria) {
           answers[id] = {
             type: "choice",
@@ -278,6 +290,8 @@ await test("plugins register rules without enabling them", async () => {
     "no-change-history-comments",
     "prefer-concise-comments",
     "require-actionable-todos",
+    "require-justified-suppressions",
+    "require-actionable-deprecations",
   ]);
   const result = await runScruple(
     {
@@ -400,7 +414,15 @@ await test("comments rules preserve calibrated default decision margins", () => 
   assert.ok(todoCandidate);
 
   assert.ok(
-    plugin.rules["no-useless-comments"]().diagnose({ type: "noul", noul: 0.9 }, ordinaryCandidate),
+    plugin.rules["no-useless-comments"]().diagnose(
+      {
+        type: "choice",
+        choice: "redundant",
+        confidence: 0.7,
+        probabilities: { redundant: 0.9 },
+      },
+      ordinaryCandidate,
+    ),
   );
   assert.ok(
     plugin.rules["no-misleading-comments"]().diagnose(
@@ -521,14 +543,6 @@ async function joined() {
   const teams = await knex("teams");
   return users.map((user) => teams.find((team) => team.id === user.team_id));
 }`,
-    `import mongoose from "mongoose";
-const User = mongoose.model("User", userSchema);
-const Team = mongoose.model("Team", teamSchema);
-async function joined() {
-  const users = await User.find();
-  const teams = await Team.find();
-  return users.map((user) => teams.find((team) => team.id === user.teamId));
-}`,
   ];
 
   for (const [index, source] of sources.entries()) {
@@ -573,11 +587,13 @@ async function report() {
         { callee: "db.user.findMany", source: "db.user.findMany()" },
         { callee: "db.team.findMany", source: "db.team.findMany()" },
       ],
+      database_sources: ["db"],
       collection_operations: [
         { callee: "users.map", source: "users.map(toApiUser)" },
         { callee: "teams.map", source: "teams.map(toApiTeam)" },
       ],
     },
+    context: { evidence_boundary: "current_file" },
   });
   assert.equal(
     rule.diagnose(
@@ -664,6 +680,7 @@ await test("all comments rules produce their own configured diagnostics", async 
     {
       ruleId: "comments/no-useless-comments",
       source: "// Set active to true\nuser.active = true;",
+      finding: "redundant",
       options: {},
     },
     {
@@ -697,6 +714,18 @@ await test("all comments rules produce their own configured diagnostics", async 
       ruleId: "comments/require-actionable-todos",
       source: "export function value() {\n  // TODO: fix this later\n  return legacyValue;\n}",
       finding: "unactionable",
+      options: {},
+    },
+    {
+      ruleId: "comments/require-justified-suppressions",
+      source: "// eslint-disable-next-line no-eval\neval(source);",
+      finding: "unjustified_suppression",
+      options: {},
+    },
+    {
+      ruleId: "comments/require-actionable-deprecations",
+      source: "/** @deprecated */\nexport function legacyValue() { return 1; }",
+      finding: "unactionable_deprecation",
       options: {},
     },
   ];

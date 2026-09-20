@@ -11,8 +11,13 @@ The initial rules inspect selected functions plus bounded context from the same 
 
 - `security/no-user-controlled-authorization` identifies visible authorization decisions that trust
   client-supplied authority claims such as roles, permissions, scopes, or tenant access.
-- `security/no-sensitive-data-exposure` identifies visible sensitive values sent to response or log
-  sinks without visible projection, masking, or sanitization.
+- `security/no-sensitive-data-exposure` identifies visible sensitive values sent to response,
+  rendered-output, file-transfer, or redirect sinks without visible projection, masking, or
+  sanitization.
+- `security/no-untrusted-command-execution` checks direct request-controlled command or dynamic-code
+  flows.
+- `security/no-untrusted-mass-assignment` checks direct request-object persistence and assignment.
+- `security/no-unsafe-redirect` checks direct request-controlled redirect targets.
 
 The rules explicitly abstain when trust provenance, middleware, helper behavior, data sensitivity, or
 an access boundary is not established by the supplied file. A general

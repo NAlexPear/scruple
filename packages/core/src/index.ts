@@ -17,7 +17,7 @@ export interface SourceLocation {
 }
 
 export interface CodeTarget {
-  kind: "comment" | "error-handler" | "function" | "test" | "expression" | "file";
+  kind: "api-boundary" | "comment" | "error-handler" | "function" | "test" | "expression" | "file";
   filename: string;
   language: string;
   range: SourceRange;
@@ -55,6 +55,55 @@ export interface ErrorHandlerTarget extends CodeTarget {
   exits: ErrorHandlerExitCapture[];
 }
 
+export type ApiFramework = "express" | "fastify";
+
+export type ApiRequestSourceKind = "body" | "cookies" | "headers" | "params" | "query" | "raw";
+
+export interface ApiRequestSourceCapture {
+  kind: ApiRequestSourceKind;
+  range: SourceRange;
+  source: string;
+}
+
+export interface ApiBoundaryAttachmentCapture {
+  kind: "middleware" | "schema";
+  range: SourceRange;
+  source: string;
+}
+
+export interface ApiResponseExitCapture {
+  kind: "return" | "send" | "throw";
+  range: SourceRange;
+  source: string;
+  status?: number;
+  bodySource?: string;
+  headerSources: string[];
+}
+
+export type ApiEvidenceCompleteness = "complete" | "partial";
+
+export interface ApiBoundaryCompleteness {
+  handler: ApiEvidenceCompleteness;
+  requestSources: ApiEvidenceCompleteness;
+  attachments: ApiEvidenceCompleteness;
+  responseExits: ApiEvidenceCompleteness;
+  reasons: string[];
+}
+
+export interface ApiBoundaryTarget extends CodeTarget {
+  kind: "api-boundary";
+  framework: ApiFramework;
+  method: string;
+  path: string;
+  handlerRange: SourceRange;
+  handlerSource: string;
+  requestSources: ApiRequestSourceCapture[];
+  attachments: ApiBoundaryAttachmentCapture[];
+  responseExits: ApiResponseExitCapture[];
+  calls: CallCapture[];
+  completeness: ApiBoundaryCompleteness;
+}
+
 export interface CommentTarget extends CodeTarget {
   kind: "comment";
   style: "line" | "block";
@@ -75,6 +124,8 @@ export interface ParsedDocument {
   comments: CommentTarget[];
   functions: FunctionTarget[];
   errorHandlers: ErrorHandlerTarget[];
+  /** Present when the parser supports normalized server API boundary extraction. */
+  apiBoundaries?: ApiBoundaryTarget[];
   issues: ParseIssue[];
 }
 

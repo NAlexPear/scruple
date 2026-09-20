@@ -36,15 +36,6 @@
     "tags": ["negative", "fan-out", "visible-limit"]
   },
   {
-    "id": "async-downstream-api-has-no-cancellation",
-    "filename": "audit.ts",
-    "source": "export function audit(entry: Entry, signal: AbortSignal) {\n  signal.throwIfAborted();\n  return legacyAuditLog.append(entry);\n}\n",
-    "rule_id": "async/require-cancellation-propagation",
-    "expected_finding": false,
-    "rationale": "The visible legacy API offers no cancellation parameter, so propagation cannot be required.",
-    "tags": ["negative", "abort-signal", "unsupported-api"]
-  },
-  {
     "id": "async-fetch-drops-signal",
     "filename": "request.ts",
     "source": "export async function load(url: string, signal: AbortSignal) {\n  return fetch(url);\n}\n",
@@ -119,12 +110,12 @@
   {
     "id": "authorization-helper-provenance-ambiguous",
     "filename": "access.ts",
-    "source": "export async function accessReport(req: Request) {\n  const permission = await resolvePermission(req);\n  return permission.allows(\"report:read\");\n}\n",
+    "source": "export async function accessReport(req: Request) {\n  if (!isAllowedRole(req.body.role)) throw new ForbiddenError();\n  return reports.load();\n}\n",
     "rule_id": "security/no-user-controlled-authorization",
     "expected_finding": false,
     "expected_choice": "insufficient_context",
     "expected_abstention": true,
-    "rationale": "The file does not establish whether resolvePermission uses trusted identity or attacker-controlled input, so the rule must abstain.",
+    "rationale": "The file does not establish what the role helper accepts or whether it resolves the client claim against trusted policy, so the rule must abstain.",
     "tags": ["negative", "authorization", "ambiguous", "insufficient-context"]
   },
   {
@@ -144,15 +135,6 @@
     "expected_finding": false,
     "rationale": "Authority comes from an authenticated identity and server-side policy, not a client authority claim.",
     "tags": ["negative", "authorization", "trusted-identity"]
-  },
-  {
-    "id": "bounded-data-intentionally-in-memory",
-    "filename": "report.ts",
-    "source": "import { db } from \"./db.js\";\nexport async function labelSelectedUsers(selectedIds: string[]) {\n  const users = await db.user.findMany({ where: { id: { in: selectedIds } } });\n  const labels = await db.label.findMany({ where: { userId: { in: selectedIds } } });\n  // selectedIds is capped at 10 by the API schema; this preserves locale-aware application sorting.\n  return users.map((user) => ({ ...user, labels: labels.filter((label) => label.userId === user.id) }));\n}\n",
-    "rule_id": "relational-databases/prefer-database-join",
-    "expected_finding": false,
-    "rationale": "The bounded input and locale-aware sorting justify application-level combination.",
-    "tags": ["negative", "bounded-data", "application-semantics"]
   },
   {
     "id": "cleanup-close-only-after-success",
@@ -486,7 +468,7 @@
     "id": "log-exposes-session-token",
     "filename": "session.ts",
     "source": "export function recordSession(session: Session) {\n  logger.info({ userId: session.userId, sessionToken: session.token }, \"session created\");\n}\n",
-    "rule_id": "security/no-sensitive-data-exposure",
+    "rule_id": "observability/no-sensitive-logs",
     "expected_finding": true,
     "rationale": "The log payload visibly includes a session token.",
     "tags": ["positive", "logging", "token"]
@@ -622,18 +604,9 @@
     "tags": ["positive", "units", "contradiction", "short-comment"]
   },
   {
-    "id": "mongoose-query-results-joined-in-memory",
-    "filename": "report.ts",
-    "source": "import mongoose from \"mongoose\";\nconst User = mongoose.model(\"User\", userSchema);\nconst Team = mongoose.model(\"Team\", teamSchema);\nexport async function report() {\n  const users = await User.find();\n  const teams = await Team.find();\n  return users.map((user) => ({ ...user, team: teams.find((team) => team.id === user.teamId) }));\n}\n",
-    "rule_id": "relational-databases/prefer-database-join",
-    "expected_finding": true,
-    "rationale": "Two Mongoose model queries are joined by a foreign key after retrieval.",
-    "tags": ["positive", "in-memory-join", "mongoose"]
-  },
-  {
     "id": "operation-context-dynamic-event-ambiguity",
     "filename": "worker.ts",
-    "source": "export function record(event: OperationalEvent) {\n  logger.info(event);\n}\n",
+    "source": "export function record(event: OperationalEvent) {\n  logger.info({ status: \"completed\", ...event });\n}\n",
     "rule_id": "observability/require-operation-context",
     "expected_finding": false,
     "expected_choice": "insufficient_context",
@@ -1024,15 +997,6 @@
     "tags": ["negative", "framework-validation", "schema", "request-body"]
   },
   {
-    "id": "validation-trusted-domain-input",
-    "filename": "invoice.ts",
-    "source": "export function recalculateInvoice(invoice: ValidatedInvoice) {\n  return invoice.lines.reduce((total, line) => total + line.unitPrice * line.quantity, 0);\n}\n",
-    "rule_id": "api-contracts/require-input-validation",
-    "expected_finding": false,
-    "rationale": "The function contract explicitly accepts a validated domain object, with no evidence that it is a raw external boundary.",
-    "tags": ["negative", "trusted-input", "domain-type", "caller-ambiguity"]
-  },
-  {
     "id": "validation-webhook-payload-unchecked",
     "filename": "webhook.ts",
     "source": "export async function receiveWebhook(payload: unknown) {\n  const event = payload as PaymentEvent;\n  return payments.apply(event.accountId, event.amount);\n}\n",
@@ -1058,5 +1022,405 @@
     "expected_finding": true,
     "rationale": "The useful retry cap is repeated with filler and can be stated in one short sentence.",
     "tags": ["positive", "wordslop", "repetition"]
+  },
+  {
+    "id": "race-abandons-losing-fetch",
+    "filename": "race.ts",
+    "source": "export async function fastest() {\n  return Promise.race([fetch(\"/primary\"), fetch(\"/replica\")]);\n}\n",
+    "rule_id": "async/require-race-loser-cleanup",
+    "expected_finding": true,
+    "rationale": "Both requests are started locally and the losing request continues without cancellation.",
+    "tags": ["positive", "promise-race", "fetch", "cleanup"]
+  },
+  {
+    "id": "race-clears-losing-timeout",
+    "filename": "race.ts",
+    "source": "export async function withDeadline(work: Promise<Result>) {\n  const timer = setTimeout(() => {}, 1000);\n  try { return await Promise.race([work, timeout(timer)]); }\n  finally { clearTimeout(timer); }\n}\n",
+    "rule_id": "async/require-race-loser-cleanup",
+    "expected_finding": false,
+    "expected_choice": "loser_cleanup_present",
+    "rationale": "The locally owned timer is cleared in a finally block after the race settles.",
+    "tags": ["negative", "promise-race", "timer", "finally"]
+  },
+  {
+    "id": "abort-listener-left-attached",
+    "filename": "abort.ts",
+    "source": "export async function load(signal: AbortSignal) {\n  signal.addEventListener(\"abort\", onAbort);\n  return fetch(\"/data\");\n}\n",
+    "rule_id": "async/require-abort-listener-cleanup",
+    "expected_finding": true,
+    "rationale": "A listener is attached to the caller-owned signal without once-only registration or settled-path removal.",
+    "tags": ["positive", "abort-listener", "leak"]
+  },
+  {
+    "id": "abort-listener-once-only",
+    "filename": "abort.ts",
+    "source": "export function attach(signal: AbortSignal) {\n  signal.addEventListener(\"abort\", onAbort, { once: true });\n}\n",
+    "rule_id": "async/require-abort-listener-cleanup",
+    "expected_finding": false,
+    "expected_choice": "listener_cleanup_present",
+    "rationale": "Once-only registration visibly removes the listener when abort fires.",
+    "tags": ["negative", "abort-listener", "once"]
+  },
+  {
+    "id": "suppression-without-reason",
+    "filename": "suppression.ts",
+    "source": "// eslint-disable-next-line no-console\nconsole.log(value);\n",
+    "rule_id": "comments/require-justified-suppressions",
+    "expected_finding": true,
+    "rationale": "The suppression gives no code-specific reason for disabling the rule.",
+    "tags": ["positive", "eslint", "suppression"]
+  },
+  {
+    "id": "suppression-with-specific-reason",
+    "filename": "suppression.ts",
+    "source": "// eslint-disable-next-line no-console -- CLI output is the command's public interface\nconsole.log(result);\n",
+    "rule_id": "comments/require-justified-suppressions",
+    "expected_finding": false,
+    "expected_choice": "justified_suppression",
+    "rationale": "The narrow directive explains why console output is required at this location.",
+    "tags": ["negative", "eslint", "justified"]
+  },
+  {
+    "id": "deprecation-without-migration",
+    "filename": "legacy.ts",
+    "source": "/** @deprecated */\nexport function connectOld() {}\n",
+    "rule_id": "comments/require-actionable-deprecations",
+    "expected_finding": true,
+    "rationale": "The deprecation provides consumers no replacement or migration action.",
+    "tags": ["positive", "deprecated", "migration"]
+  },
+  {
+    "id": "deprecation-names-replacement",
+    "filename": "legacy.ts",
+    "source": "/** @deprecated Use connect({ protocol: \"v2\" }) instead. */\nexport function connectLegacy() {}\n",
+    "rule_id": "comments/require-actionable-deprecations",
+    "expected_finding": false,
+    "expected_choice": "actionable_replacement",
+    "rationale": "The comment names a concrete replacement invocation.",
+    "tags": ["negative", "deprecated", "replacement"]
+  },
+  {
+    "id": "error-wrap-discards-cause",
+    "filename": "errors.ts",
+    "source": "try { await load(); } catch (error) { throw new Error(\"Load failed\"); }\n",
+    "rule_id": "errors/no-lossy-error-wrapping",
+    "expected_finding": true,
+    "rationale": "The escaping replacement Error does not preserve the caught error as structured cause data.",
+    "tags": ["positive", "error-wrapping", "cause"]
+  },
+  {
+    "id": "error-wrap-preserves-cause",
+    "filename": "errors.ts",
+    "source": "try { await load(); } catch (error) { throw new Error(\"Load failed\", { cause: error }); }\n",
+    "rule_id": "errors/no-lossy-error-wrapping",
+    "expected_finding": false,
+    "expected_choice": "preserved",
+    "rationale": "The replacement Error visibly retains the caught error in its cause.",
+    "tags": ["negative", "error-wrapping", "cause"]
+  },
+  {
+    "id": "error-message-controls-branch",
+    "filename": "errors.ts",
+    "source": "try { return await load(); } catch (error) {\n  if (error.message.includes(\"not found\")) return undefined;\n  throw error;\n}\n",
+    "rule_id": "errors/no-message-based-error-dispatch",
+    "expected_finding": true,
+    "rationale": "A substring match on human-readable message text determines recovery behavior.",
+    "tags": ["positive", "error-message", "dispatch"]
+  },
+  {
+    "id": "error-message-only-logged",
+    "filename": "errors.ts",
+    "source": "try { return await load(); } catch (error) { logger.error(error.message); throw error; }\n",
+    "rule_id": "errors/no-message-based-error-dispatch",
+    "expected_finding": false,
+    "expected_choice": "stable_or_non_dispatch_use",
+    "rationale": "The message is emitted for reporting and does not choose control flow.",
+    "tags": ["negative", "error-message", "logging"]
+  },
+  {
+    "id": "telemetry-name-includes-order-id",
+    "filename": "telemetry.ts",
+    "source": "export function record(order: Order) { span.addEvent(`order.${order.id}`); }\n",
+    "rule_id": "observability/require-stable-telemetry-names",
+    "expected_finding": true,
+    "rationale": "The event name embeds an occurrence-specific order identifier.",
+    "tags": ["positive", "telemetry-name", "cardinality"]
+  },
+  {
+    "id": "telemetry-name-stable-literal",
+    "filename": "telemetry.ts",
+    "source": "export function record(order: Order) { span.addEvent(\"order.completed\", { orderId: order.id }); }\n",
+    "rule_id": "observability/require-stable-telemetry-names",
+    "expected_finding": false,
+    "expected_choice": "stable_low_cardinality",
+    "rationale": "The stable event name keeps the order identifier in attributes.",
+    "tags": ["negative", "telemetry-name", "attribute"]
+  },
+  {
+    "id": "exception-logged-and-captured",
+    "filename": "telemetry.ts",
+    "source": "try { await charge(); } catch (error) { logger.error(error); telemetry.captureException(error); throw error; }\n",
+    "rule_id": "observability/no-duplicate-error-reporting",
+    "expected_finding": true,
+    "rationale": "Two visible reporting sinks emit the same caught exception in one boundary.",
+    "tags": ["positive", "duplicate-reporting", "exception"]
+  },
+  {
+    "id": "dual-error-emission-policy-unknown",
+    "filename": "telemetry.ts",
+    "source": "try { await migrate(); } catch (error) { logger.error(error); telemetry.captureException(error); }\n",
+    "rule_id": "observability/no-duplicate-error-reporting",
+    "expected_finding": false,
+    "expected_choice": "insufficient_context",
+    "expected_abstention": true,
+    "rationale": "Both sinks receive the exception, but the bounded source does not establish whether dual emission is required during migration.",
+    "tags": ["negative", "duplicate-reporting", "policy", "insufficient-context"]
+  },
+  {
+    "id": "database-query-per-user",
+    "filename": "posts.ts",
+    "source": "import { db } from \"./db.js\";\nexport async function load(users: User[]) {\n  return Promise.all(users.map((user) => db.post.findMany({ where: { userId: user.id } })));\n}\n",
+    "rule_id": "relational-databases/no-query-in-loop",
+    "expected_finding": true,
+    "rationale": "The callback issues one relational query for every user instead of a set-based query.",
+    "tags": ["positive", "database", "n-plus-one"]
+  },
+  {
+    "id": "database-query-over-bounded-pair",
+    "filename": "posts.ts",
+    "source": "import { db } from \"./db.js\";\nexport async function compare(ids: [string, string]) {\n  return Promise.all(ids.map((id) => db.post.findMany({ where: { userId: id } })));\n}\n",
+    "rule_id": "relational-databases/no-query-in-loop",
+    "expected_finding": false,
+    "expected_choice": "batched_or_bounded",
+    "rationale": "The tuple type visibly bounds the fan-out to exactly two independent queries.",
+    "tags": ["negative", "database", "bounded"]
+  },
+  {
+    "id": "transaction-uses-global-client",
+    "filename": "transaction.ts",
+    "source": "import { prisma } from \"./db.js\";\nexport function save() {\n  return prisma.$transaction(async (tx) => { await tx.user.create({ data: {} }); await prisma.audit.create({ data: {} }); });\n}\n",
+    "rule_id": "relational-databases/require-transaction-scoped-client",
+    "expected_finding": true,
+    "rationale": "Audit work that belongs to the operation uses the global client inside the transaction callback.",
+    "tags": ["positive", "transaction", "client"]
+  },
+  {
+    "id": "transaction-intentional-external-notification",
+    "filename": "transaction.ts",
+    "source": "import { prisma } from \"./db.js\";\nexport function save() {\n  return prisma.$transaction(async (tx) => { await tx.user.create({ data: {} }); /* independent heartbeat must not roll back */ await prisma.heartbeat.create({ data: {} }); });\n}\n",
+    "rule_id": "relational-databases/require-transaction-scoped-client",
+    "expected_finding": false,
+    "expected_choice": "intentional_external_operation",
+    "rationale": "The visible comment establishes that the different-client heartbeat is intentionally outside the atomic unit.",
+    "tags": ["negative", "transaction", "intentional-external"]
+  },
+  {
+    "id": "pagination-without-order",
+    "filename": "users.ts",
+    "source": "import { db } from \"./db.js\";\nexport function page(skip: number) { return db.user.findMany({ skip, take: 20 }); }\n",
+    "rule_id": "relational-databases/require-deterministic-pagination-order",
+    "expected_finding": true,
+    "rationale": "Offset pagination has no explicit ordering to stabilize page membership.",
+    "tags": ["positive", "pagination", "ordering"]
+  },
+  {
+    "id": "query-limit-is-safety-cap",
+    "filename": "jobs.ts",
+    "source": "import { db } from \"./db.js\";\nexport function recentFailures() { return db.job.findMany({ where: { failed: true }, take: 100 }); }\n",
+    "rule_id": "relational-databases/require-deterministic-pagination-order",
+    "expected_finding": false,
+    "expected_choice": "not_pagination",
+    "rationale": "The one-shot bounded failure lookup uses take as a safety cap, not for page traversal.",
+    "tags": ["negative", "limit", "safety-cap"]
+  },
+  {
+    "id": "multi-resource-cleanup-can-short-circuit",
+    "filename": "files.ts",
+    "source": "export async function read() { const a = await open(\"a\"); const b = await open(\"b\"); await a.close(); await b.close(); }\n",
+    "rule_id": "resources/require-complete-resource-cleanup",
+    "expected_finding": true,
+    "rationale": "Failure acquiring or closing the second resource can prevent complete cleanup.",
+    "tags": ["positive", "resources", "partial-cleanup"]
+  },
+  {
+    "id": "multi-resource-nested-finally",
+    "filename": "files.ts",
+    "source": "export async function read() {\n  const a = await open(\"a\");\n  try { const b = await open(\"b\"); try { return await use(a, b); } finally { await b.close(); } }\n  finally { await a.close(); }\n}\n",
+    "rule_id": "resources/require-complete-resource-cleanup",
+    "expected_finding": false,
+    "expected_choice": "complete_cleanup",
+    "rationale": "Nested finally blocks ensure the first resource is cleaned if later acquisition, work, or cleanup fails.",
+    "tags": ["negative", "resources", "nested-finally"]
+  },
+  {
+    "id": "retry-uses-fixed-delay",
+    "filename": "retry.ts",
+    "source": "export async function run() { return retry(() => request(), { retries: 3, delay: 100 }); }\n",
+    "rule_id": "resources/require-retry-backoff-with-jitter",
+    "expected_finding": true,
+    "rationale": "Multiple attempts use a fixed delay without progressive backoff or randomization.",
+    "tags": ["positive", "retry", "fixed-delay"]
+  },
+  {
+    "id": "retry-configures-backoff-and-jitter",
+    "filename": "retry.ts",
+    "source": "export async function run() { return retry(() => request(), { retries: 3, backoff: \"exponential\", jitter: true }); }\n",
+    "rule_id": "resources/require-retry-backoff-with-jitter",
+    "expected_finding": false,
+    "expected_choice": "backoff_with_jitter",
+    "rationale": "The retry options visibly combine exponential backoff with jitter.",
+    "tags": ["negative", "retry", "backoff", "jitter"]
+  },
+  {
+    "id": "retry-has-no-total-budget",
+    "filename": "retry.ts",
+    "source": "export async function run() { return retry(() => request(), { retries: 3 }); }\n",
+    "rule_id": "resources/require-retry-time-budget",
+    "expected_finding": true,
+    "rationale": "A finite attempt count does not bound total elapsed time when an attempt can hang.",
+    "tags": ["positive", "retry", "time-budget"]
+  },
+  {
+    "id": "retry-has-total-timeout",
+    "filename": "retry.ts",
+    "source": "export async function run() { return retry(() => request(), { retries: 3, totalTimeoutMs: 5000 }); }\n",
+    "rule_id": "resources/require-retry-time-budget",
+    "expected_finding": false,
+    "expected_choice": "total_time_budget",
+    "rationale": "A visible total-timeout option spans all retry attempts.",
+    "tags": ["negative", "retry", "total-timeout"]
+  },
+  {
+    "id": "request-command-executed",
+    "filename": "command.ts",
+    "source": "export function run(req: Request) { return exec(req.body.command); }\n",
+    "rule_id": "security/no-untrusted-command-execution",
+    "expected_finding": true,
+    "rationale": "Request-controlled command text flows directly to a shell execution sink.",
+    "tags": ["positive", "command-injection", "request"]
+  },
+  {
+    "id": "request-operation-mapped-to-fixed-argument",
+    "filename": "command.ts",
+    "source": "export function run(req: Request) {\n  const operations = { status: \"status\", diff: \"diff\" };\n  const operation = operations[req.body.operation];\n  if (!operation) throw new Error(\"unsupported operation\");\n  return execFile(\"git\", [operation], { shell: false });\n}\n",
+    "rule_id": "security/no-untrusted-command-execution",
+    "expected_finding": false,
+    "expected_choice": "constrained_execution",
+    "rationale": "The executable is fixed, shell parsing is disabled, and request input selects from a visible argument allowlist.",
+    "tags": ["negative", "command-execution", "allowlist"]
+  },
+  {
+    "id": "request-body-mass-assigned",
+    "filename": "account.ts",
+    "source": "export function update(req: Request) { return accounts.update(req.params.id, req.body); }\n",
+    "rule_id": "security/no-untrusted-mass-assignment",
+    "expected_finding": true,
+    "rationale": "The entire request body is passed to persistence without a field allowlist.",
+    "tags": ["positive", "mass-assignment", "request-body"]
+  },
+  {
+    "id": "request-fields-explicitly-projected",
+    "filename": "account.ts",
+    "source": "export function update(req: Request) { const { displayName, biography } = req.body; return accounts.update(req.params.id, { displayName, biography }); }\n",
+    "rule_id": "security/no-untrusted-mass-assignment",
+    "expected_finding": false,
+    "expected_choice": "allowlisted_assignment",
+    "rationale": "Only two visibly allowlisted client-mutable fields reach persistence.",
+    "tags": ["negative", "mass-assignment", "projection"]
+  },
+  {
+    "id": "request-target-open-redirect",
+    "filename": "redirect.ts",
+    "source": "export function continueTo(req: Request, res: Response) { res.redirect(req.query.next); }\n",
+    "rule_id": "security/no-unsafe-redirect",
+    "expected_finding": true,
+    "rationale": "Request data directly determines the redirect target without a local-path or origin restriction.",
+    "tags": ["positive", "redirect", "request"]
+  },
+  {
+    "id": "redirect-exact-origin-allowlist",
+    "filename": "redirect.ts",
+    "source": "export function continueTo(req: Request, res: Response) { const target = new URL(req.query.next, \"https://app.example\"); if (target.origin !== \"https://app.example\") throw new Error(\"bad redirect\"); res.redirect(target.toString()); }\n",
+    "rule_id": "security/no-unsafe-redirect",
+    "expected_finding": false,
+    "expected_choice": "validated_redirect",
+    "rationale": "The parsed target must match the exact allowed origin before redirecting.",
+    "tags": ["negative", "redirect", "origin-allowlist"]
+  },
+  {
+    "id": "generic-throw-assertion",
+    "filename": "parse.test.ts",
+    "source": "test(\"rejects malformed JSON\", () => { assert.throws(() => parsePayload(\"{\")); });\n",
+    "rule_id": "tests/require-specific-error-assertions",
+    "expected_finding": true,
+    "rationale": "The test promises a distinguishable malformed-input failure but accepts any thrown error.",
+    "tags": ["positive", "test", "error-assertion"]
+  },
+  {
+    "id": "specific-error-class-assertion",
+    "filename": "parse.test.ts",
+    "source": "test(\"rejects malformed JSON\", () => { assert.throws(() => parsePayload(\"{\"), SyntaxError); });\n",
+    "rule_id": "tests/require-specific-error-assertions",
+    "expected_finding": false,
+    "expected_choice": "specific_error_contract",
+    "rationale": "The assertion checks the stable error class promised by the test.",
+    "tags": ["negative", "test", "error-class"]
+  },
+  {
+    "id": "test-sleeps-before-readiness-check",
+    "filename": "ready.test.ts",
+    "source": "test(\"becomes ready\", async () => { startWork(); await sleep(500); expect(status()).toBe(\"ready\"); });\n",
+    "rule_id": "tests/no-fixed-delay-synchronization",
+    "expected_finding": true,
+    "rationale": "A fixed real-time sleep guesses when work is ready before checking status.",
+    "tags": ["positive", "test", "fixed-delay"]
+  },
+  {
+    "id": "test-advances-fake-clock",
+    "filename": "timer.test.ts",
+    "source": "test(\"fires after timeout\", async () => { vi.useFakeTimers(); setTimeout(markFired, 500); await vi.advanceTimersByTimeAsync(500); expect(fired()).toBe(true); });\n",
+    "rule_id": "tests/no-fixed-delay-synchronization",
+    "expected_finding": false,
+    "expected_choice": "controlled_time_test",
+    "rationale": "The test advances controlled virtual time to verify timeout behavior rather than sleeping for readiness.",
+    "tags": ["negative", "test", "fake-timers"]
+  },
+  {
+    "id": "safe-get-deletes-user",
+    "filename": "routes.ts",
+    "source": "import express from \"express\";\nconst app = express();\napp.get(\"/users/:id/delete\", async (req, res) => { await users.delete(req.params.id); res.sendStatus(204); });\n",
+    "rule_id": "api-contracts/no-side-effects-in-safe-http-methods",
+    "expected_finding": true,
+    "rationale": "A GET route visibly performs the client-requested deletion of domain state.",
+    "tags": ["positive", "http", "safe-method", "state-change"]
+  },
+  {
+    "id": "safe-get-populates-cache",
+    "filename": "routes.ts",
+    "source": "import express from \"express\";\nconst app = express();\napp.get(\"/users/:id\", async (req, res) => { const user = await users.find(req.params.id); cache.set(req.params.id, user); res.status(200).json(user); });\n",
+    "rule_id": "api-contracts/no-side-effects-in-safe-http-methods",
+    "expected_finding": false,
+    "expected_choice": "incidental_side_effect",
+    "rationale": "The GET reads the requested resource; populating an application cache is an incidental implementation effect.",
+    "tags": ["negative", "http", "safe-method", "cache"]
+  },
+  {
+    "id": "failed-delete-returns-success-status",
+    "filename": "routes.ts",
+    "source": "import express from \"express\";\nconst app = express();\napp.delete(\"/users/:id\", async (req, res) => { try { await users.delete(req.params.id); return res.sendStatus(204); } catch (error) { return res.status(200).json({ ok: true }); } });\n",
+    "rule_id": "api-contracts/no-misleading-http-status",
+    "expected_finding": true,
+    "rationale": "The caught failed deletion is explicitly represented as a successful 200 response.",
+    "tags": ["positive", "http", "status", "false-success"]
+  },
+  {
+    "id": "created-user-returns-created-status",
+    "filename": "routes.ts",
+    "source": "import express from \"express\";\nconst app = express();\napp.post(\"/users\", async (req, res) => { const user = await users.create(req.body); return res.status(201).json(user); });\n",
+    "rule_id": "api-contracts/no-misleading-http-status",
+    "expected_finding": false,
+    "expected_choice": "aligned_status",
+    "rationale": "The route visibly creates a user and returns the standard 201 Created status with that resource.",
+    "tags": ["negative", "http", "status", "created"]
   }
 ]

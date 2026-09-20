@@ -6,6 +6,6 @@ Semantic rules for error handling, packaged as a plugin for [Scruple](https://gi
 pnpm add --save-dev @scruple/errors
 ```
 
-The initial `errors/no-swallowed-errors` rule evaluates normalized catch handlers and reports only
-high-confidence cases where an unexpected failure is silently suppressed. It abstains when handling
-or fallback behavior depends on code outside the bounded evidence.
+The rules evaluate normalized catch handlers for swallowed failures, lossy replacement errors, and
+dispatch based on unstable error messages. They abstain when recovery contracts, custom wrappers, or
+classifiers depend on code outside the bounded evidence.

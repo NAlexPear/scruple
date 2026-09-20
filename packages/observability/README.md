@@ -15,6 +15,8 @@ rules: {
   "observability/no-sensitive-logs": "error",
   "observability/no-unactionable-errors": "warn",
   "observability/require-operation-context": "warn",
+  "observability/require-stable-telemetry-names": "warn",
+  "observability/no-duplicate-error-reporting": "warn",
 },
 ```
 

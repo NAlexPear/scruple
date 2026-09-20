@@ -6,9 +6,10 @@ Conservative semantic rules for asynchronous code, packaged as plugins for [Scru
 pnpm add --save-dev @scruple/async
 ```
 
-The initial rules use only function-local evidence. They intentionally abstain when dependencies,
-concurrency bounds, cancellation support, or required ordering are not visible in the selected
-function and its imports.
+The rules use bounded function-local evidence to review concurrency fan-out, independent serial
+work, cancellation propagation, race-loser cleanup, and abort-listener lifetime. They intentionally
+abstain when dependencies, ownership, cleanup, cancellation support, or required ordering are not
+visible in the selected function and imports.
 
 See the [Scruple documentation](https://github.com/NAlexPear/scruple#readme) for configuration and
 the current exported rules.
