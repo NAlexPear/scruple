@@ -158,7 +158,7 @@ const makeChoiceBenchmarkPlugin = (): ScruplePlugin => {
   });
 };
 
-await test("benchmark excludes warmups and respects bounded concurrency", async () => {
+await test("accuracy benchmark excludes warmups, avoids caching, and respects concurrency", async () => {
   let calls = 0;
   let active = 0;
   let maximumActive = 0;

@@ -111,9 +111,38 @@ pnpm benchmark-llm \
 pnpm benchmark-semgrep --warmups 1 --repetitions 2 > semgrep.json
 pnpm benchmark-codeql --warmups 1 --repetitions 2 > codeql.json
 pnpm benchmark-sonarqube --warmups 1 --repetitions 2 > sonarqube.json
+
+# Cache behavior uses a local provider and needs no API key.
+pnpm benchmark-cache --warmups 1 --repetitions 2 > cache.json
 ```
 
 The JSON report includes every measured case, full provider answers, whether each answer and final rule result matched, cases where the rule declined to decide, run times, case latency, throughput, token usage, selected model, and information about the client machine. Warmup work is not included in the totals.
+
+The model-quality benchmarks do not use the decision cache. Every measured case reaches the selected
+model, so saved answers cannot make an accuracy or latency result look better.
+
+## Benchmark the decision cache
+
+The cache benchmark uses a local provider with a fixed delay. It needs no API key and does not measure
+model quality or internet latency.
+
+```sh
+pnpm benchmark-cache > cache.json
+```
+
+Each measured cycle runs the same unique requests four ways:
+
+1. **Uncached** provides the baseline.
+2. **Cold** writes every response to an empty cache.
+3. **Warm** reads every response from that cache without calling the provider.
+4. **Incremental** changes one source file and checks that only its request misses.
+
+This is the same `benchmark-cache` command listed with the regular benchmark commands above. The report
+includes mean, p50, and p95 time for each scenario, cache hits, provider calls, token counts, cache entry
+counts and bytes, warm-run savings, and cold-cache overhead. It also checks that cached and uncached runs
+produce the same diagnostics. Change workload size, repetitions, concurrency, or simulated provider delay
+with `--workload-size`, `--repetitions`, `--concurrency`, and `--provider-delay-ms`. Use `--warmups` to
+change the number of unmeasured cycles.
 
 The hosted runs require API keys. The static tools have their own installation requirements. See each runner's README for setup details:
 

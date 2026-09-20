@@ -19,6 +19,11 @@
       "types": "./dist/benchmark-options.d.ts",
       "import": "./dist/benchmark-options.js"
     },
+    "./cache-benchmark": {
+      "source": "./src/cache-benchmark.ts",
+      "types": "./dist/cache-benchmark.d.ts",
+      "import": "./dist/cache-benchmark.js"
+    },
     "./codeql-benchmark": {
       "source": "./src/codeql-benchmark.ts",
       "types": "./dist/codeql-benchmark.d.ts",
@@ -62,6 +67,7 @@
   "dependencies": {
     "@scruple/api-contracts": "workspace:*",
     "@scruple/async": "workspace:*",
+    "@scruple/cli": "workspace:*",
     "@scruple/comments": "workspace:*",
     "@scruple/core": "workspace:*",
     "@scruple/errors": "workspace:*",

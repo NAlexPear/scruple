@@ -14,7 +14,8 @@
   },
   "type": "module",
   "scripts": {
-    "benchmark": "pnpm build && node packages/eval/dist/benchmark-cli.js",
+    "benchmark": "pnpm build 1>&2 && node packages/eval/dist/benchmark-cli.js",
+    "benchmark-cache": "pnpm build 1>&2 && node packages/eval/dist/cache-benchmark-cli.js",
     "benchmark-codeql": "pnpm build 1>&2 && node packages/eval/dist/codeql-benchmark-cli.js",
     "benchmark-llm": "node --conditions=source packages/eval/src/llm-benchmark-cli.ts",
     "benchmark-semgrep": "pnpm build 1>&2 && node packages/eval/dist/semgrep-benchmark-cli.js",

@@ -162,8 +162,8 @@ const collectionProvider = (): DecisionProvider => ({
           : {
               type: "choice" as const,
               choice: "unactionable",
-              confidence: 1,
-              probabilities: { unactionable: 1 },
+              confidence: 0.9,
+              probabilities: { unactionable: 0.9, actionable: 0.1 },
             },
       ]),
     );
@@ -174,6 +174,9 @@ const collectionProvider = (): DecisionProvider => ({
     });
   },
 });
+
+const rejectProviderRequest: DecisionProvider["evaluate"] = () =>
+  Promise.reject(new Error("Temporary provider failure"));
 
 const vacuousAnswer = (probability: number, confidence: number): DecisionAnswer => {
   return {
@@ -654,7 +657,7 @@ await test("collection can use the managed provider to classify possible candida
   });
 });
 
-await test("decision cache covers collection and final provider requests", async () => {
+await test("decision cache covers collection and final requests but not rule policy", async () => {
   const stored = new Map<string, DecisionResponse>();
   const cache: DecisionCache = {
     get(providerId, request) {
@@ -688,11 +691,25 @@ await test("decision cache covers collection and final provider requests", async
   ];
 
   const first = await runScruple(config, files, undefined, { cache });
-  const second = await runScruple(config, files, undefined, { cache });
+  const second = await runScruple(
+    {
+      ...config,
+      rules: {
+        "comments/require-actionable-todos": [
+          "warn" as const,
+          { threshold: { warning: 0.99, error: 1 } },
+        ],
+      },
+    },
+    files,
+    undefined,
+    { cache },
+  );
 
   assert.deepEqual(first.errors, []);
   assert.deepEqual(second.errors, []);
-  assert.deepEqual(second.diagnostics, first.diagnostics);
+  assert.equal(first.diagnostics.length, 1);
+  assert.equal(second.diagnostics.length, 0);
   assert.equal(first.stats.requests, 2);
   assert.equal(first.stats.cacheHits, 0);
   assert.equal(second.stats.requests, 0);
@@ -700,6 +717,61 @@ await test("decision cache covers collection and final provider requests", async
   assert.equal(second.stats.inputTokens, 0);
   assert.equal(second.stats.outputTokens, 0);
   assert.equal(providerRequests, 2);
+});
+
+await test("decision cache stores only successful provider responses", async () => {
+  const stored = new Map<string, DecisionResponse>();
+  let cacheWrites = 0;
+  const cache: DecisionCache = {
+    get(providerId, request) {
+      return Promise.resolve(stored.get(`${providerId}:${JSON.stringify(request)}`));
+    },
+    set(providerId, request, response) {
+      cacheWrites += 1;
+      stored.set(`${providerId}:${JSON.stringify(request)}`, response);
+      return Promise.resolve();
+    },
+  };
+  let providerRequests = 0;
+  let evaluateProvider: DecisionProvider["evaluate"] = rejectProviderRequest;
+  const provider: DecisionProvider = {
+    id: "sometimes-fails",
+    evaluate(request, signal): Promise<DecisionResponse> {
+      providerRequests += 1;
+      return evaluateProvider(request, signal);
+    },
+  };
+  const recoverProvider = (): void => {
+    evaluateProvider = (request) =>
+      Promise.resolve({
+        model: "fixture-model",
+        answers: Object.fromEntries(
+          Object.keys(request.questions).map((id) => [id, { type: "noul" as const, noul: 0.1 }]),
+        ),
+      });
+  };
+  const config = {
+    parser: oxcParser(),
+    provider,
+    plugins: { fixture: definePlugin({ rules: { check: () => makeRule("check") } }) },
+    rules: { "fixture/check": "warn" as const },
+  };
+  const files = [{ filename: "fixture.ts", source: "function fixture() { return true; }" }];
+
+  const failed = await runScruple(config, files, undefined, { cache });
+  recoverProvider();
+  const recovered = await runScruple(config, files, undefined, { cache });
+  const cached = await runScruple(config, files, undefined, { cache });
+
+  assert.equal(failed.errors.length, 1);
+  assert.equal(failed.stats.requests, 1);
+  assert.equal(recovered.errors.length, 0);
+  assert.equal(recovered.stats.requests, 1);
+  assert.equal(cached.errors.length, 0);
+  assert.equal(cached.stats.requests, 0);
+  assert.equal(cached.stats.cacheHits, 1);
+  assert.equal(providerRequests, 2);
+  assert.equal(cacheWrites, 1);
 });
 
 await test("test rule preserves conservative default decision margins", () => {

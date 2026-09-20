@@ -240,6 +240,9 @@ importers:
       '@scruple/async':
         specifier: workspace:*
         version: link:../async
+      '@scruple/cli':
+        specifier: workspace:*
+        version: link:../cli
       '@scruple/comments':
         specifier: workspace:*
         version: link:../comments

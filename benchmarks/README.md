@@ -1,4 +1,13 @@
-# Scruple Jev benchmark
+# Scruple benchmarks
+
+Scruple's own engine has two benchmark commands:
+
+- `pnpm benchmark` measures rule accuracy and speed against Jev. It requires a Typesafe API key and
+  always calls the model.
+- `pnpm benchmark-cache` measures uncached, cold-cache, warm-cache, and one-file-change runs. It uses
+  a local fixed-delay provider, so it needs no API key.
+
+## Benchmark Scruple with Jev
 
 This benchmark runs a versioned semantic-rule workload against Jev. It measures Scruple end to end, including parsing, candidate collection, provider requests, and diagnosis.
 
@@ -44,3 +53,15 @@ The JSON report includes:
 - Strict failures and resolved model names
 
 Warmup work is excluded from measured samples and token totals. Keep workload, concurrency, warmups, repetitions, and environment identical when comparing models.
+
+This model-quality benchmark deliberately bypasses the decision cache so every case reaches Jev.
+Use the separate local cache benchmark to compare uncached, cold, warm, and one-file-change runs:
+
+```sh
+pnpm benchmark-cache > cache-benchmark.json
+```
+
+The cache benchmark uses a deterministic delayed provider and does not require an API key. It reports
+mean, p50, and p95 run time; provider calls; cache hits; token savings; cache entries and bytes; and
+whether every scenario produced the same diagnostics. Run `pnpm benchmark-cache --help` to see its
+workload, warmup, repetition, concurrency, and provider-delay controls.

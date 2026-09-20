@@ -15,6 +15,7 @@
       "@scruple/eval": ["./packages/eval/src/index.ts"],
       "@scruple/eval/benchmark": ["./packages/eval/src/benchmark.ts"],
       "@scruple/eval/benchmark-options": ["./packages/eval/src/benchmark-options.ts"],
+      "@scruple/eval/cache-benchmark": ["./packages/eval/src/cache-benchmark.ts"],
       "@scruple/eval/codeql-benchmark": ["./packages/eval/src/codeql-benchmark.ts"],
       "@scruple/eval/llm-benchmark": ["./packages/eval/src/llm-benchmark.ts"],
       "@scruple/eval/openai-evaluator": ["./packages/eval/src/openai-evaluator.ts"],
