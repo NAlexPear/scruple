@@ -31,6 +31,29 @@ rules: {
 
 Warnings are reported but do not produce exit code 1. Error-severity findings do.
 
+## Inline suppressions
+
+Use a `scruple-disable` comment when a configured rule is correct in general but should not evaluate a specific target. Place the comment relative to the line Scruple reports and use the full `plugin/rule` ID.
+
+```ts
+// scruple-disable-next-line comments/no-useless-comments -- Required.
+const status = deriveStatus();
+
+smoke(); // scruple-disable-line tests/no-vacuous-tests -- Intentional.
+```
+
+Disable one or more rules for a region with `scruple-disable`, then restore them with `scruple-enable`:
+
+```ts
+/* scruple-disable tests/no-vacuous-tests -- Smoke-test fixtures. */
+export const fixture = buildFixture();
+/* scruple-enable tests/no-vacuous-tests */
+```
+
+Separate multiple rule IDs with commas. Omit rule IDs to affect every active rule. A rule-specific `scruple-enable` can re-enable that rule inside an all-rule disabled region. Text after `--` is a justification, not part of the rule list.
+
+Scruple removes suppressed candidates before sending requests to the provider, so they do not consume provider tokens or appear in `--explain` output. The [`comments/require-justified-suppressions`](../plugins/comments.md#commentsrequire-justified-suppressions) rule can review suppression scope and rationale.
+
 ## File selection
 
 Use `include` when the CLI receives no positional patterns. `ignore` extends Scruple's built-in exclusions for dependencies, build output, coverage, and Git metadata.

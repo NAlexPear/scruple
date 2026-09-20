@@ -87,6 +87,26 @@ const makeRule = (id: string): SemanticRule => {
   };
 };
 
+const reportingRule = (id: string): SemanticRule => {
+  return {
+    description: id,
+    collect(document) {
+      return document.functions.map((target) => ({
+        target,
+        state: { function: target.source },
+        question: { type: "noul", instructions: id },
+      }));
+    },
+    diagnose(_answer, candidate) {
+      return {
+        message: id,
+        filename: candidate.target.filename,
+        location: candidate.target.location,
+      };
+    },
+  };
+};
+
 const findingProvider = (finding: string | undefined): DecisionProvider => {
   return {
     id: "finding-fixture",
@@ -548,16 +568,22 @@ await test("commented-out code rule collects short executable comments", () => {
   assert.equal(plugin.rules["no-useless-comments"]().collect(document).length, 0);
 });
 
-await test("comments rules recognize block TODOs and ignore tool directives", () => {
+await test("comments rules recognize block TODOs, ignore directives, and retain prose", () => {
   const plugin = comments();
   const document = oxcParser().parse(
     "comments.ts",
-    '/**\n * TODO: fix this later\n */\nexport const value = legacyValue;\n/* #__PURE__ */ factory();\n/// <reference path="./types.d.ts" />\n',
+    '/**\n * TODO: fix this later\n */\nexport const value = legacyValue;\n/* #__PURE__ */ factory();\n// scruple-disable-next-line comments/no-useless-comments -- Generated fixture.\ngenerated();\n// Scruple reports semantic policy findings.\n/// <reference path="./types.d.ts" />\n',
   );
 
   assert.equal(plugin.rules["require-actionable-todos"]().collect(document).length, 1);
-  assert.equal(plugin.rules["no-useless-comments"]().collect(document).length, 0);
-  assert.equal(plugin.rules["no-commented-out-code"]().collect(document).length, 0);
+  for (const ruleName of ["no-useless-comments", "no-commented-out-code"] as const) {
+    assert.deepEqual(
+      plugin.rules[ruleName]()
+        .collect(document)
+        .map((candidate) => candidate.target.source),
+      ["// Scruple reports semantic policy findings."],
+    );
+  }
 });
 
 await test("comments rules bound evidence from large enclosing functions", () => {
@@ -708,6 +734,104 @@ await test("engine batches independent questions sharing identical evidence", as
   assert.equal(result.stats.candidates, 2);
   assert.equal(result.stats.requests, 1);
   assert.equal(requests, 1);
+});
+
+await test("engine suppresses rule-specific candidates before provider evaluation", async () => {
+  const result = await runScruple(
+    {
+      parser: oxcParser(),
+      provider: fixtureProvider(),
+      plugins: {
+        fixture: definePlugin({
+          rules: {
+            one: () => reportingRule("one"),
+            two: () => reportingRule("two"),
+          },
+        }),
+      },
+      rules: { "fixture/one": "warn", "fixture/two": "error" },
+    },
+    [
+      {
+        filename: "suppressed.ts",
+        source: `// scruple-disable-next-line fixture/one -- The first function is intentionally exceptional.
+function first() {}
+function second() {} // scruple-disable-line fixture/missing, fixture/two -- This error is expected.
+/* scruple-disable fixture/one -- Generated compatibility region. */
+function third() {}
+/* scruple-enable fixture/one */
+function fourth() {}
+`,
+      },
+    ],
+    undefined,
+    { includeDecisions: true },
+  );
+
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(
+    result.diagnostics.map((diagnostic) => ({
+      ruleId: diagnostic.ruleId,
+      severity: diagnostic.severity,
+      line: diagnostic.location.start.line,
+    })),
+    [
+      { ruleId: "fixture/two", severity: "error", line: 2 },
+      { ruleId: "fixture/one", severity: "warning", line: 3 },
+      { ruleId: "fixture/two", severity: "error", line: 5 },
+      { ruleId: "fixture/one", severity: "warning", line: 7 },
+      { ruleId: "fixture/two", severity: "error", line: 7 },
+    ],
+  );
+  assert.equal(result.stats.candidates, 5);
+  assert.equal(result.stats.requests, 4);
+  assert.equal(result.decisions?.length, 5);
+});
+
+await test("engine supports all-rule suppression and selective re-enabling", async () => {
+  const result = await runScruple(
+    {
+      parser: oxcParser(),
+      provider: fixtureProvider(),
+      plugins: {
+        fixture: definePlugin({
+          rules: {
+            one: () => reportingRule("one"),
+            two: () => reportingRule("two"),
+          },
+        }),
+      },
+      rules: { "fixture/one": "warn", "fixture/two": "warn" },
+    },
+    [
+      {
+        filename: "all-rules.ts",
+        source:
+          "/* scruple-disable-next-line -- Generated fixture. */\r\n" +
+          "function first() {}\r\n" +
+          "/* scruple-disable -- Generated compatibility region. */\r\n" +
+          "/* scruple-enable fixture/one */\r\n" +
+          "function second() {}\r\n" +
+          "/* scruple-enable */\r\n" +
+          "function third() {}\r\n",
+      },
+    ],
+  );
+
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(
+    result.diagnostics.map((diagnostic) => ({
+      ruleId: diagnostic.ruleId,
+      line: diagnostic.location.start.line,
+    })),
+    [
+      { ruleId: "fixture/one", line: 5 },
+      { ruleId: "fixture/one", line: 7 },
+      { ruleId: "fixture/two", line: 7 },
+    ],
+  );
+  assert.equal(result.stats.candidates, 3);
+  assert.equal(result.stats.requests, 2);
 });
 
 await test("engine rejects rules from missing plugins and unknown rule names", async () => {

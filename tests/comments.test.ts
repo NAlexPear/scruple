@@ -60,6 +60,9 @@ const stable = true;
 legacyClient.send(payload);
 // eslint-disable-next-line security/detect-object-injection -- key is checked above
 result[key] = value;
+// scruple-disable-next-line security/no-untrusted-command-execution -- command is a fixed fixture
+execute(command);
+// scruple-enable security/no-untrusted-command-execution
 /* c8 ignore next -- platform branch cannot run on Linux */
 runWindowsFallback();
 `,
@@ -71,6 +74,7 @@ runWindowsFallback();
     [
       "// @ts-expect-error: TODO",
       "// eslint-disable-next-line security/detect-object-injection -- key is checked above",
+      "// scruple-disable-next-line security/no-untrusted-command-execution -- command is a fixed fixture",
       "/* c8 ignore next -- platform branch cannot run on Linux */",
     ],
   );

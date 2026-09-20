@@ -333,7 +333,7 @@ const isBaseCandidate = (comment: CommentTarget): boolean => {
 };
 
 const isIgnoredComment = (comment: CommentTarget): boolean => {
-  return /^(?:\*\s*)?(?:eslint|oxlint|prettier|istanbul|c8|tslint|@ts-|@vite-ignore\b|@license\b|@preserve\b|SPDX-|Copyright\b|Generated\b|Code generated\b|#__PURE__\b|#__NO_SIDE_EFFECTS__\b|\/\s*<reference\b|\/\s*<amd-)/iu.test(
+  return /^(?:\*\s*)?(?:scruple-(?:disable|enable)\b|eslint|oxlint|prettier|istanbul|c8|tslint|@ts-|@vite-ignore\b|@license\b|@preserve\b|SPDX-|Copyright\b|Generated\b|Code generated\b|#__PURE__\b|#__NO_SIDE_EFFECTS__\b|\/\s*<reference\b|\/\s*<amd-)/iu.test(
     comment.value.trim(),
   );
 };
@@ -343,7 +343,7 @@ const isTodoCandidate = (comment: CommentTarget): boolean => {
 };
 
 const isSuppressionCandidate = (comment: CommentTarget): boolean => {
-  return /^(?:\s*\*?\s*)(?:(?:eslint|oxlint)-disable(?:-next-line|-line)?\b|tslint:disable\b|@ts-(?:expect-error|ignore|nocheck)\b|(?:c8|istanbul)\s+ignore\b|prettier-ignore\b|nosemgrep\b)/imu.test(
+  return /^(?:\s*\*?\s*)(?:(?:eslint|oxlint|scruple)-disable(?:-next-line|-line)?\b|tslint:disable\b|@ts-(?:expect-error|ignore|nocheck)\b|(?:c8|istanbul)\s+ignore\b|prettier-ignore\b|nosemgrep\b)/imu.test(
     comment.value,
   );
 };

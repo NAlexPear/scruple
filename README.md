@@ -141,6 +141,17 @@ rules: {
 The key in `plugins` supplies the namespace used by its rule IDs. Unknown rules and rules whose
 plugin is not registered are configuration errors.
 
+### Suppress a finding
+
+Use a full rule ID to suppress an exceptional target without disabling the rule for the project:
+
+```ts
+// scruple-disable-next-line comments/no-useless-comments -- Domain convention.
+const status = deriveStatus();
+```
+
+Scruple also supports `scruple-disable-line` and paired `scruple-disable` and `scruple-enable` region comments. Suppressed candidates are removed before provider evaluation. See [inline suppressions](https://scruple.alexpear.workers.dev/guide/configuration#inline-suppressions) for the complete syntax.
+
 ### Use local Laya
 
 Install the Laya provider and Laya itself:

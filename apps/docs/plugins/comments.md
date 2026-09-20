@@ -61,7 +61,7 @@ Checks TODO, FIXME, and HACK comments for enough context to identify work, ratio
 
 ## `comments/require-justified-suppressions`
 
-Reviews explicit lint, TypeScript, coverage, formatter, and Semgrep suppression directives. Generated code and deliberate negative fixtures are accepted. Defaults: `threshold: 0.85`, `minConfidence: 0.7`.
+Reviews explicit Scruple, lint, TypeScript, coverage, formatter, and Semgrep suppression directives. Generated code and deliberate negative fixtures are accepted. Defaults: `threshold: 0.85`, `minConfidence: 0.7`.
 
 ## `comments/require-actionable-deprecations`
 

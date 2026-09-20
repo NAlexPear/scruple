@@ -1,3 +1,5 @@
+import { createSuppressionFilter } from "./suppressions.js";
+
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
@@ -475,10 +477,14 @@ export const runScruple = async (
       }
     }
 
+    const isSuppressed = createSuppressionFilter(document.filename, document.comments);
     for (const activeRule of activeRules) {
       const rule = activeRule.rule;
       try {
-        for (const candidate of rule.collect(document)) {
+        const candidates = rule
+          .collect(document)
+          .filter((candidate) => !isSuppressed(activeRule.id, candidate.target));
+        for (const candidate of candidates) {
           allPending.push({ activeRule, candidate });
         }
       } catch (cause) {
