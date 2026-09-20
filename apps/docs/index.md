@@ -1,50 +1,62 @@
 ---
 layout: home
-
-hero:
-  name: Scruple
-  text: Ground every judgment in evidence.
-  tagline: Semantic checks for code that compiles, but may still be risky, unclear, or inconsistent.
-  image:
-    src: /assets/scruple-mark.png
-    alt: Scruple
-  actions:
-    - theme: brand
-      text: Get started
-      link: /guide/quickstart
-    - theme: alt
-      text: Read the docs
-      link: /guide/introduction
-
-features:
-  - title: Focused evidence
-    details: Rules send bounded, normalized source context instead of entire repositories or syntax trees.
-  - title: Typed decisions
-    details: Providers answer explicit schemas. They do not invent diagnostics, fixes, or policy.
-  - title: Stable diagnostics
-    details: Plugins own messages and thresholds, and can abstain when the evidence is not strong enough.
+title: Semantic code checks
 ---
 
-<section class="home-example" aria-labelledby="example-title">
-  <div class="home-example-copy">
-    <p class="example-kicker">A focused question. A stable diagnostic.</p>
-    <h2 id="example-title">Find what compilers cannot.</h2>
+<section class="landing-splash" aria-labelledby="landing-title">
+  <div class="landing-copy">
+    <p class="landing-kicker"><span></span>Semantic checks for code that compiles</p>
+    <h1 id="landing-title">Ground every<br>judgment in <em>evidence.</em></h1>
     <p>
-      Scruple gives a provider bounded source evidence and a typed question. The rule, not the
-      model, owns the final message and severity.
+      Scruple asks narrow, typed questions about your code, then turns high-confidence answers
+      into stable diagnostics your team can trust.
     </p>
-    <a href="/guide/introduction">See how decisions work <span>→</span></a>
-  </div>
-  <div class="example-window" aria-label="Example Scruple diagnostic">
-    <div class="example-toolbar"><span>src/cache.ts</span><b>1 finding</b></div>
-    <pre><span class="line-number">1</span> <span class="keyword">export async function</span> warmCache() {
-<span class="line-number">2</span>   <span class="comment">// Set ready to true</span>
-<span class="line-number">3</span>   ready = <span class="literal">true</span>;
-<span class="line-number">4</span> }</pre>
-    <div class="example-diagnostic">
-      <div><strong>!</strong><b>Comment restates the code</b><span>warning</span></div>
-      <p>Remove it, or explain why the cache must be marked ready here.</p>
-      <code>comments/no-useless-comments</code>
+    <div class="landing-actions">
+      <a class="landing-primary" href="/guide/quickstart">Get started <span>→</span></a>
+      <a class="landing-secondary" href="/guide/introduction">Read the docs</a>
     </div>
   </div>
+
+  <div class="landing-example" role="img" aria-label="A Scruple diagnostic example">
+    <div class="landing-window-bar">
+      <div class="landing-window-dots"><i></i><i></i><i></i></div>
+      <span>src/cache.ts</span>
+      <span class="landing-window-state">01 finding</span>
+    </div>
+    <pre class="landing-source"><span class="landing-line">1</span> <span class="landing-keyword">export async function</span> <span class="landing-function">warmCache</span>() {
+<span class="landing-line">2</span>   <span class="landing-comment">// Set ready to true</span>
+<span class="landing-line">3</span>   ready = <span class="landing-literal">true</span>;
+<span class="landing-line">4</span> }
+<span class="landing-line">5</span></pre>
+    <div class="landing-diagnostic">
+      <p class="landing-output-command"><span>$</span> pnpm exec scruple check src/cache.ts</p>
+      <p class="landing-output-file">src/cache.ts</p>
+      <p class="landing-output-line">
+        <span class="landing-output-location">2:3</span>
+        <span class="landing-output-severity">warning</span>
+        <span>This comment appears to add no useful information. (96%)</span>
+        <span class="landing-output-rule">comments/no-useless-comments</span>
+      </p>
+      <p class="landing-output-summary">
+        1 finding(s), 0 operational error(s), 1 candidate(s), 1 decision request(s)
+      </p>
+    </div>
+    <span class="landing-tag landing-tag-one">focused excerpt</span>
+    <span class="landing-tag landing-tag-two">typed answer</span>
+  </div>
+</section>
+
+<section class="landing-principles" aria-label="Scruple principles">
+  <article>
+    <span>01</span>
+    <div><h2>Focused evidence</h2><p>Rules receive bounded, normalized source context.</p></div>
+  </article>
+  <article>
+    <span>02</span>
+    <div><h2>Typed decisions</h2><p>Providers answer explicit schemas, not open-ended prompts.</p></div>
+  </article>
+  <article>
+    <span>03</span>
+    <div><h2>Stable diagnostics</h2><p>Plugins own every message and can abstain when evidence is weak.</p></div>
+  </article>
 </section>
