@@ -2,6 +2,7 @@ import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { h } from "vue";
 
+import HeroExamples from "./HeroExamples.vue";
 import ProviderOptions from "./ProviderOptions.vue";
 import RuleDetail from "./RuleDetail.vue";
 import ScrupleMark from "./ScrupleMark.vue";
@@ -16,6 +17,7 @@ const theme: Theme = {
       "nav-bar-title-before": () => h(ScrupleMark, { class: "nav-mark", compact: true }),
     }),
   enhanceApp({ app }) {
+    app.component("HeroExamples", HeroExamples);
     app.component("ProviderOptions", ProviderOptions);
     app.component("RuleDetail", RuleDetail);
     app.component("ScrupleMark", ScrupleMark);

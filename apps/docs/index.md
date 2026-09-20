@@ -23,29 +23,7 @@ title: Code checks for problems linters miss
       </div>
   </div>
 
-  <div class="landing-example" role="img" aria-label="A Scruple diagnostic example">
-      <div class="landing-window-bar">
-        <div class="landing-window-dots"><i></i><i></i><i></i></div>
-        <span>test/users.test.ts</span>
-        <span class="landing-window-state">01 finding</span>
-      </div>
-      <pre class="landing-source"><span class="landing-line">1</span> <span class="landing-function">test</span>(<span class="landing-literal">"creates a persisted user"</span>, <span class="landing-keyword">async</span> () => {
-<span class="landing-line">2</span>   <span class="landing-comment"><span class="landing-keyword">await</span> createUser({ name: <span class="landing-literal">"Ada"</span> });</span>
-<span class="landing-line">3</span> });
-<span class="landing-line">4</span></pre>
-      <div class="landing-diagnostic">
-        <p class="landing-output-command"><span>$</span> pnpm exec scruple test/users.test.ts</p>
-        <p class="landing-output-file">test/users.test.ts</p>
-        <p class="landing-output-line">
-          <span class="landing-output-location">1:1</span>
-          <span class="landing-output-severity">warning</span>
-          <span>This test appears to have no effective verification of behavior. (96%)</span>
-          <span class="landing-output-rule">tests/no-vacuous-tests</span>
-        </p>
-      </div>
-      <span class="landing-tag landing-tag-one">relevant code only</span>
-      <span class="landing-tag landing-tag-two">fixed warning</span>
-  </div>
+  <HeroExamples />
 </section>
 
 <section class="landing-principles" aria-label="Scruple principles">
