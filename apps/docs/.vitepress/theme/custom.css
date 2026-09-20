@@ -170,6 +170,7 @@
   color: var(--vp-c-text-1);
   font-size: 13px;
   font-weight: 700;
+  text-decoration: none;
   transition: transform 0.2s;
 }
 
@@ -184,7 +185,10 @@
 }
 
 .landing-primary span {
-  color: #c7f36b;
+  color: currentcolor;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .landing-actions .landing-secondary {
