@@ -1,6 +1,7 @@
 import type {
   ChoiceAnswer,
   DecisionAnswer,
+  DecisionRuleOptions,
   ErrorHandlerTarget,
   JsonValue,
   RuleCandidate,
@@ -8,12 +9,9 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface NoSwallowedErrorsOptions {
-  threshold?: number;
-  minConfidence?: number;
-}
+export type NoSwallowedErrorsOptions = DecisionRuleOptions;
 
 export type NoLossyErrorWrappingOptions = NoSwallowedErrorsOptions;
 
@@ -126,12 +124,10 @@ interface ErrorHandlerChoiceRuleDefinition {
 }
 
 const errorHandlerChoiceRule = (definition: ErrorHandlerChoiceRuleDefinition): SemanticRule => {
-  const threshold = probabilityOption(
-    "threshold",
-    definition.options.threshold,
-    definition.defaultThreshold,
-  );
-  const minConfidence = probabilityOption("minConfidence", definition.options.minConfidence, 0.7);
+  const { threshold, minConfidence } = resolveDecisionOptions(definition.options, {
+    threshold: definition.defaultThreshold,
+    minConfidence: 0.7,
+  });
   return {
     description: definition.description,
     collect(document) {
@@ -235,14 +231,6 @@ const bounded = (value: string, maximumCharacters: number): string => {
   }
   const half = Math.floor(maximumCharacters / 2);
   return `${value.slice(0, half)}\n/* … bounded evidence omitted … */\n${value.slice(-half)}`;
-};
-
-const probabilityOption = (name: string, value: number | undefined, fallback: number): number => {
-  const resolved = value ?? fallback;
-  if (!Number.isFinite(resolved) || resolved < 0 || resolved > 1) {
-    throw new RangeError(`${name} must be a finite number between 0 and 1`);
-  }
-  return resolved;
 };
 
 const isFinding = (

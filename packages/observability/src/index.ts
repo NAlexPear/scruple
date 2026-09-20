@@ -3,6 +3,7 @@ import type {
   ChoiceAnswer,
   CodeTarget,
   DecisionAnswer,
+  DecisionRuleOptions,
   ErrorHandlerTarget,
   FunctionTarget,
   JsonValue,
@@ -13,11 +14,9 @@ import type {
   SemanticRule,
   SourceLocation,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface ObservabilityRuleOptions {
-  threshold?: number;
-  minConfidence?: number;
+export interface ObservabilityRuleOptions extends DecisionRuleOptions {
   loggingCallPatterns?: RegExp[];
   telemetryCallPatterns?: RegExp[];
   telemetryNameCallPatterns?: RegExp[];
@@ -169,8 +168,10 @@ const requireStableTelemetryNames = (options: ObservabilityRuleOptions = {}): Se
 };
 
 const noDuplicateErrorReporting = (options: ObservabilityRuleOptions = {}): SemanticRule => {
-  const threshold = options.threshold ?? 0.9;
-  const minConfidence = options.minConfidence ?? 0.7;
+  const { threshold, minConfidence } = resolveDecisionOptions(options, {
+    threshold: 0.9,
+    minConfidence: 0.7,
+  });
   return {
     description: "The same exception should not be reported repeatedly in one error boundary.",
     collect(document) {
@@ -223,8 +224,10 @@ const makeChoiceRule = (
   options: ObservabilityRuleOptions,
   definition: ChoiceRuleDefinition,
 ): SemanticRule => {
-  const threshold = options.threshold ?? definition.defaultThreshold;
-  const minConfidence = options.minConfidence ?? 0.7;
+  const { threshold, minConfidence } = resolveDecisionOptions(options, {
+    threshold: definition.defaultThreshold,
+    minConfidence: 0.7,
+  });
   return {
     description: definition.description,
     collect(document) {

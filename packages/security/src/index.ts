@@ -1,6 +1,7 @@
 import type {
   ChoiceAnswer,
   DecisionAnswer,
+  DecisionRuleOptions,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -9,12 +10,9 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface SecurityRuleOptions {
-  threshold?: number;
-  minConfidence?: number;
-}
+export type SecurityRuleOptions = DecisionRuleOptions;
 
 export type SecurityPlugin = ScruplePlugin<{
   "no-user-controlled-authorization": RuleFactory<SecurityRuleOptions>;
@@ -289,10 +287,7 @@ const decisionOptions = (
   threshold: number;
   minConfidence: number;
 } => {
-  return {
-    threshold: options.threshold ?? 0.9,
-    minConfidence: options.minConfidence ?? 0.75,
-  };
+  return resolveDecisionOptions(options, { threshold: 0.9, minConfidence: 0.75 });
 };
 
 const isFinding = (

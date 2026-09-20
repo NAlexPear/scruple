@@ -2,6 +2,7 @@ import type {
   CallCapture,
   ChoiceAnswer,
   DecisionAnswer,
+  DecisionRuleOptions,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -10,11 +11,9 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface AsyncRuleOptions {
-  threshold?: number;
-  minConfidence?: number;
+export interface AsyncRuleOptions extends DecisionRuleOptions {
   /** Functions larger than this are skipped rather than evaluated with incomplete source. */
   maxFunctionCharacters?: number;
   /** Maximum total import-source characters included in model evidence. */
@@ -377,12 +376,10 @@ const resolveOptions = (
   defaultThreshold: number,
   defaultMinConfidence: number,
 ): ResolvedOptions => {
-  const threshold = probabilityOption("threshold", options.threshold, defaultThreshold);
-  const minConfidence = probabilityOption(
-    "minConfidence",
-    options.minConfidence,
-    defaultMinConfidence,
-  );
+  const { threshold, minConfidence } = resolveDecisionOptions(options, {
+    threshold: defaultThreshold,
+    minConfidence: defaultMinConfidence,
+  });
   const maxFunctionCharacters = integerOption(
     "maxFunctionCharacters",
     options.maxFunctionCharacters,
@@ -403,14 +400,6 @@ const resolveOptions = (
     maxImportCharacters,
     maxCallSites,
   };
-};
-
-const probabilityOption = (name: string, value: number | undefined, fallback: number): number => {
-  const resolved = value ?? fallback;
-  if (!Number.isFinite(resolved) || resolved < 0 || resolved > 1) {
-    throw new RangeError(`${name} must be a finite number between 0 and 1`);
-  }
-  return resolved;
 };
 
 const integerOption = (

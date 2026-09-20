@@ -233,6 +233,33 @@ export type RuleFactory<Options = never, Result extends SemanticRule = SemanticR
 ) => Result;
 export type RuleFactories = Record<string, RuleFactory>;
 
+export interface DecisionRuleOptions {
+  threshold?: number;
+  minConfidence?: number;
+}
+
+export interface DecisionThresholds {
+  threshold: number;
+  minConfidence: number;
+}
+
+export const resolveDecisionOptions = (
+  options: DecisionRuleOptions,
+  defaults: DecisionThresholds,
+): DecisionThresholds => {
+  const threshold = options.threshold ?? defaults.threshold;
+  const minConfidence = options.minConfidence ?? defaults.minConfidence;
+  validateProbability("threshold", threshold);
+  validateProbability("minConfidence", minConfidence);
+  return { threshold, minConfidence };
+};
+
+const validateProbability = (name: string, value: number): void => {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new RangeError(`${name} must be a finite number between 0 and 1`);
+  }
+};
+
 export interface ScruplePlugin<Rules extends RuleFactories = RuleFactories> {
   readonly rules: Rules;
 }

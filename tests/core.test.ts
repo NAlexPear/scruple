@@ -1,7 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { resolveDecisionOptions } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
+
+await test("resolves and validates shared decision rule options", () => {
+  const defaults = { threshold: 0.9, minConfidence: 0.7 };
+
+  assert.deepEqual(resolveDecisionOptions({}, defaults), defaults);
+  assert.deepEqual(resolveDecisionOptions({ threshold: 0, minConfidence: 1 }, defaults), {
+    threshold: 0,
+    minConfidence: 1,
+  });
+  assert.throws(
+    () => resolveDecisionOptions({ threshold: Number.NaN }, defaults),
+    /threshold must be a finite number between 0 and 1/u,
+  );
+  assert.throws(
+    () => resolveDecisionOptions({ minConfidence: 1.01 }, defaults),
+    /minConfidence must be a finite number between 0 and 1/u,
+  );
+});
 
 await test("normalizes an explicit Fastify route with bounded local evidence", () => {
   const document = oxcParser().parse(

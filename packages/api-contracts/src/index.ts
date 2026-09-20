@@ -2,6 +2,7 @@ import type {
   ApiBoundaryTarget,
   ChoiceAnswer,
   DecisionAnswer,
+  DecisionRuleOptions,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -10,12 +11,9 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface ApiContractRuleOptions {
-  threshold?: number;
-  minConfidence?: number;
-}
+export type ApiContractRuleOptions = DecisionRuleOptions;
 
 export type ApiContractsPlugin = ScruplePlugin<{
   "no-misleading-function-names": RuleFactory<ApiContractRuleOptions>;
@@ -89,8 +87,10 @@ const noAmbiguousFailureContracts = (options: ApiContractRuleOptions = {}): Sema
 };
 
 const requireInputValidation = (options: ApiContractRuleOptions = {}): SemanticRule => {
-  const threshold = options.threshold ?? 0.85;
-  const minConfidence = options.minConfidence ?? 0.7;
+  const { threshold, minConfidence } = resolveDecisionOptions(options, {
+    threshold: 0.85,
+    minConfidence: 0.7,
+  });
   const question = {
     type: "choice" as const,
     instructions:
@@ -227,8 +227,10 @@ interface SelectedFunction {
 }
 
 const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
-  const threshold = definition.options.threshold ?? definition.defaults.threshold;
-  const minConfidence = definition.options.minConfidence ?? definition.defaults.minConfidence;
+  const { threshold, minConfidence } = resolveDecisionOptions(
+    definition.options,
+    definition.defaults,
+  );
   return {
     description: definition.description,
     collect(document) {
@@ -263,8 +265,10 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
 };
 
 const boundaryChoiceRule = (definition: BoundaryChoiceRuleDefinition): SemanticRule => {
-  const threshold = definition.options.threshold ?? definition.defaults.threshold;
-  const minConfidence = definition.options.minConfidence ?? definition.defaults.minConfidence;
+  const { threshold, minConfidence } = resolveDecisionOptions(
+    definition.options,
+    definition.defaults,
+  );
   return {
     description: definition.description,
     collect(document) {

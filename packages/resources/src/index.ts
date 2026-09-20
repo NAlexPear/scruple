@@ -1,6 +1,7 @@
 import type {
   ChoiceAnswer,
   DecisionAnswer,
+  DecisionRuleOptions,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -9,17 +10,13 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface ResourceLifecycleRuleOptions {
-  threshold?: number;
-  minConfidence?: number;
+export interface ResourceLifecycleRuleOptions extends DecisionRuleOptions {
   lifecycleCallPatterns?: RegExp[];
 }
 
-export interface RequireBoundedRetriesOptions {
-  threshold?: number;
-  minConfidence?: number;
+export interface RequireBoundedRetriesOptions extends DecisionRuleOptions {
   retryCallPatterns?: RegExp[];
 }
 
@@ -311,10 +308,10 @@ const decisionOptions = (
   defaultThreshold: number,
   defaultMinConfidence: number,
 ): { threshold: number; minConfidence: number } => {
-  return {
-    threshold: options.threshold ?? defaultThreshold,
-    minConfidence: options.minConfidence ?? defaultMinConfidence,
-  };
+  return resolveDecisionOptions(options, {
+    threshold: defaultThreshold,
+    minConfidence: defaultMinConfidence,
+  });
 };
 
 const isFinding = (

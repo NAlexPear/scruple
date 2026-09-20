@@ -1,4 +1,5 @@
 import type {
+  DecisionRuleOptions,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -6,12 +7,9 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface NoVacuousTestsOptions {
-  threshold?: number;
-  minConfidence?: number;
-}
+export type NoVacuousTestsOptions = DecisionRuleOptions;
 
 export interface RequireSpecificErrorAssertionsOptions extends NoVacuousTestsOptions {
   assertionCallPatterns?: RegExp[];
@@ -224,15 +222,7 @@ const supportingFunctions = (fn: FunctionTarget, document: ParsedDocument): Json
 const decisionOptions = (
   options: NoVacuousTestsOptions,
 ): { threshold: number; minConfidence: number } => {
-  const threshold = options.threshold ?? 0.9;
-  const minConfidence = options.minConfidence ?? 0.7;
-  if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
-    throw new TypeError("threshold must be a finite number between 0 and 1");
-  }
-  if (!Number.isFinite(minConfidence) || minConfidence < 0 || minConfidence > 1) {
-    throw new TypeError("minConfidence must be a finite number between 0 and 1");
-  }
-  return { threshold, minConfidence };
+  return resolveDecisionOptions(options, { threshold: 0.9, minConfidence: 0.7 });
 };
 
 const matchesAny = (value: string, patterns: RegExp[]): boolean => {

@@ -2,6 +2,7 @@ import type {
   ChoiceAnswer,
   CommentTarget,
   DecisionAnswer,
+  DecisionRuleOptions,
   JsonValue,
   ParsedDocument,
   RuleCandidate,
@@ -9,12 +10,9 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface ProbabilityRuleOptions {
-  threshold?: number;
-  minConfidence?: number;
-}
+export type ProbabilityRuleOptions = DecisionRuleOptions;
 
 export type NoUselessCommentsOptions = ProbabilityRuleOptions;
 
@@ -372,18 +370,10 @@ const probabilityOptions = (
   defaultThreshold: number,
   defaultMinConfidence: number,
 ): { threshold: number; minConfidence: number } => {
-  return {
-    threshold: probabilityOption("threshold", options.threshold, defaultThreshold),
-    minConfidence: probabilityOption("minConfidence", options.minConfidence, defaultMinConfidence),
-  };
-};
-
-const probabilityOption = (name: string, value: number | undefined, fallback: number): number => {
-  const resolved = value ?? fallback;
-  if (!Number.isFinite(resolved) || resolved < 0 || resolved > 1) {
-    throw new RangeError(`${name} must be a finite number between 0 and 1`);
-  }
-  return resolved;
+  return resolveDecisionOptions(options, {
+    threshold: defaultThreshold,
+    minConfidence: defaultMinConfidence,
+  });
 };
 
 const isFinding = (

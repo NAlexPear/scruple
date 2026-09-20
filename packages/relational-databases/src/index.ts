@@ -2,6 +2,7 @@ import type {
   CallCapture,
   ChoiceAnswer,
   DecisionAnswer,
+  DecisionRuleOptions,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -10,11 +11,9 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
-export interface DatabaseRuleOptions {
-  threshold?: number;
-  minConfidence?: number;
+export interface DatabaseRuleOptions extends DecisionRuleOptions {
   databaseCallPatterns?: RegExp[];
 }
 
@@ -462,18 +461,10 @@ const decisionOptions = (
   defaultThreshold: number,
   defaultMinConfidence: number,
 ): { threshold: number; minConfidence: number } => {
-  validateProbability("threshold", options.threshold);
-  validateProbability("minConfidence", options.minConfidence);
-  return {
-    threshold: options.threshold ?? defaultThreshold,
-    minConfidence: options.minConfidence ?? defaultMinConfidence,
-  };
-};
-
-const validateProbability = (name: string, value: number | undefined): void => {
-  if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1)) {
-    throw new TypeError(`${name} must be a finite number between 0 and 1`);
-  }
+  return resolveDecisionOptions(options, {
+    threshold: defaultThreshold,
+    minConfidence: defaultMinConfidence,
+  });
 };
 
 const validatePatterns = (name: string, patterns: RegExp[]): void => {
