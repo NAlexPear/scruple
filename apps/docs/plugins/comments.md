@@ -1,6 +1,6 @@
 # Comments
 
-`@scruple/comments` provides provider-backed semantic checks for source comments.
+`@scruple/comments` checks whether source comments are useful, accurate, concise, and actionable.
 
 ```sh
 pnpm add -D @scruple/comments

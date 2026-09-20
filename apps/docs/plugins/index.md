@@ -16,7 +16,7 @@ Scruple sends bounded source evidence to the configured decision provider and re
 | [Errors](./errors.md)                             | Swallowed, wrapped, and message-dispatched exceptions               |
 | [Observability](./observability.md)               | Safe, actionable, stable, and non-duplicated telemetry              |
 | [Relational Databases](./relational-databases.md) | Joins, loop queries, transaction scope, and pagination order        |
-| [Resources](./resources.md)                       | Cleanup, ownership, and bounded well-behaved retries                |
+| [Resources](./resources.md)                       | Cleanup, ownership, retry limits, backoff, jitter, and deadlines    |
 | [Security](./security.md)                         | Authorization, exposure, and direct request-to-sensitive-sink flows |
 | [Tests](./tests.md)                               | Meaningful oracles, specific failures, and reliable synchronization |
 

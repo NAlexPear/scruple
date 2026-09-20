@@ -1,6 +1,6 @@
 # Errors
 
-`@scruple/errors` provides provider-backed semantic checks for error handling and caught failures.
+`@scruple/errors` checks error handling and caught failures.
 
 ```sh
 pnpm add -D @scruple/errors

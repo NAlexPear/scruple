@@ -33,7 +33,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
   },
   {
     text: "Custom rules",
-    items: [{ text: "Write your own plugin", link: "/guide/writing-a-plugin" }],
+    items: [{ text: "Write a plugin", link: "/guide/writing-a-plugin" }],
   },
   {
     text: "Providers",

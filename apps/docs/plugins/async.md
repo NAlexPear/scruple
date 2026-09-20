@@ -1,6 +1,6 @@
 # Async
 
-`@scruple/async` provides provider-backed semantic checks for asynchronous control flow.
+`@scruple/async` checks asynchronous control flow, including concurrency, cancellation, cleanup, and unobserved work.
 
 ```sh
 pnpm add -D @scruple/async

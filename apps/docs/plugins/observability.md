@@ -1,6 +1,6 @@
 # Observability
 
-`@scruple/observability` provides provider-backed semantic checks for logging and telemetry calls.
+`@scruple/observability` checks logging and telemetry calls.
 
 ```sh
 pnpm add -D @scruple/observability
@@ -26,7 +26,7 @@ export default defineConfig({
 | [`observability/require-stable-telemetry-names`](#observabilityrequire-stable-telemetry-names) | Dynamic event, span, or metric names               |
 | [`observability/no-duplicate-error-reporting`](#observabilityno-duplicate-error-reporting)     | The same caught failure reported twice             |
 
-All rules accept `threshold`, `minConfidence`, `loggingCallPatterns`, and `telemetryCallPatterns`. Pattern arrays replace, rather than extend, built-in patterns. `minConfidence` defaults to `0.7`.
+All rules accept `threshold`, `minConfidence`, and custom call-pattern options. Custom patterns extend the built-in patterns. `minConfidence` defaults to `0.7`.
 
 ## `observability/no-sensitive-logs`
 

@@ -6,7 +6,7 @@
           <span>Hosted</span>
           <h3>Jev</h3>
         </div>
-        <p>Send focused decisions to Jev over HTTPS for quick setup and parallel checks in CI.</p>
+        <p>Send rule questions and selected code to Jev over HTTPS.</p>
       </header>
 
       <div class="provider-card-code">

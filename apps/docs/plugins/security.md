@@ -1,6 +1,6 @@
 # Security
 
-`@scruple/security` provides advisory, provider-backed semantic checks for security-sensitive code. Findings depend on visible same-file evidence and are designed to abstain when trust boundaries or helper behavior are unavailable.
+`@scruple/security` checks security-sensitive code using evidence visible in one file. It reports nothing when the rule cannot see enough about trust boundaries or helper behavior.
 
 ```sh
 pnpm add -D @scruple/security

@@ -1,6 +1,6 @@
 # API Contracts
 
-`@scruple/api-contracts` provides provider-backed semantic checks for function and API contracts. Analysis is bounded to visible per-file evidence.
+`@scruple/api-contracts` checks function and API contracts using only code visible in one file.
 
 ```sh
 pnpm add -D @scruple/api-contracts

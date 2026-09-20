@@ -134,10 +134,10 @@ Every team has standards that live in review comments. Scruple turns those repea
 
 If a review comment starts with "we usually," it may belong in a Scruple rule. [Write your own rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).
 
-A plugin registers named rules. Semantic rules collect normalized source targets and create typed
-decision questions, then apply fixed thresholds to a provider answer. For a given answer, the rule
-produces its own diagnostic or abstains. Provider answers and which findings appear may vary. Rules
-provide fixed diagnostic text and never ask a model to generate messages or fixes.
+A rule selects the code it needs and asks the provider a fixed question. It then compares the answer
+with fixed thresholds. If the answer passes, the rule reports its own diagnostic. Otherwise, it
+reports nothing. Provider answers and which findings appear may vary. Rules provide fixed diagnostic
+text and never ask a model to generate messages or fixes.
 
 OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
 calls, and facts rather than serialized syntax trees. Both parsers and decision providers are

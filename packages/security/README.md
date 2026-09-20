@@ -7,9 +7,9 @@ Advisory semantic rules for security-sensitive JavaScript and TypeScript, packag
 pnpm add --save-dev @scruple/security
 ```
 
-The rules inspect selected functions plus explicitly bounded context from the same file. Candidate
-evidence identifies that boundary as a `bounded_file_excerpt` (never the whole current file), lists
-the character/count budgets, and reports truncation and original totals.
+Each rule examines a selected function and a limited excerpt from the same file. It never sends the
+entire file as surrounding context. The request records each size limit and whether any source was
+cut short.
 
 - `security/no-user-controlled-authorization` identifies visible authorization decisions that trust
   client-supplied authority claims such as roles, permissions, scopes, or tenant access.
@@ -42,11 +42,15 @@ not guessed: when a helper contract or the destination is hidden, the rule prese
 
 ## Evidence budgets
 
-Security candidates include at most 4,000 function characters, a 2,000-character same-file excerpt,
-10 imports of 500 characters each, and 20 calls of 1,000 characters each. Candidate state records
-each budget, total count/size, and whether each evidence class was truncated. Function-target source
-used for the diagnostic location remains parser-owned; these limits describe evidence sent for the
-semantic decision.
+A security request can include up to:
+
+- 4,000 characters from the function
+- 2,000 characters of surrounding code from the same file
+- 10 imports of up to 500 characters each
+- 20 calls of up to 1,000 characters each
+
+The request records the original size and whether each section was cut short. These limits apply to
+the evidence sent to the provider, not to the source location used for the diagnostic.
 
 The parser currently does not expose `NewExpression` or variable-initializer facts. Therefore the
 rule can select direct `create`/`update`/assignment flows, but cannot soundly prove the identity chain

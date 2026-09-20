@@ -104,10 +104,10 @@ const filteredRules = computed(() => {
 
     <div class="custom-rule-path">
       <div>
-        <p>Need a check that is specific to your codebase?</p>
+        <p>Does your team repeat a code-review standard that is not listed here?</p>
         <span
-          >Define the evidence, decision criteria, thresholds, and diagnostic in your own
-          plugin.</span
+          >Write a plugin that selects the relevant code, defines the allowed answers and
+          thresholds, and supplies the warning.</span
         >
       </div>
       <a href="/guide/writing-a-plugin">Write a custom rule</a>

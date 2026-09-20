@@ -1,6 +1,6 @@
 # Resources
 
-`@scruple/resources` provides provider-backed semantic checks for resource ownership, cleanup, and retries.
+`@scruple/resources` checks resource ownership, cleanup, and retries.
 
 ```sh
 pnpm add -D @scruple/resources

@@ -4,33 +4,27 @@ Scruple does not ask a model to review an entire repository or produce free-form
 
 ## A complete decision request
 
-For the comment in the [end-to-end example](./how-it-works.md#one-comment-end-to-end), `comments/no-useless-comments` creates this provider request:
+For the function in the [end-to-end example](./how-it-works.md#one-resource-bug-end-to-end), `resources/require-cleanup-on-failure` creates this provider request:
 
 ```json
 {
   "state": {
     "language": "typescript",
-    "comment": {
-      "source": "// Set ready to true",
-      "source_truncated": false,
-      "value": " Set ready to true",
-      "value_truncated": false,
-      "style": "line"
-    },
-    "context": {
-      "enclosing_code": "async function warmCache() {\n  // Set ready to true\n  ready = true;\n}",
-      "enclosing_code_truncated": false
-    }
+    "imports": ["import { open } from \"node:fs/promises\";"],
+    "function": "async function parseReport() {\n  const file = await open(\"report.txt\");\n  const report = parse(await file.readFile(\"utf8\"));\n  await file.close();\n  return report;\n}",
+    "calls": ["open", "parse", "file.readFile", "file.close"],
+    "errorHandlers": []
   },
   "questions": {
-    "comments_no-useless-comments_0": {
+    "resources_require-cleanup-on-failure_0": {
       "type": "choice",
-      "instructions": "Does `comment` add no maintainability value because it merely restates obvious code, uses generic section-heading prose, narrates a straightforward next step, or contains AI-assistant meta commentary? Distinguish genuinely useful rationale from comments owned by another rule. Choose insufficient_context when the bounded evidence does not establish whether the comment adds information.",
+      "instructions": "This rule is about a visible cleanup plan that an abrupt path can bypass, rather than the absence of cleanup in general. Can work or a later acquisition fail after this function acquires an owned resource but before its intended cleanup is guaranteed? Also consider whether one cleanup throwing prevents another owned resource from being cleaned up. Accept `using`/`await using`, disposal stacks, correctly nested `finally`, and clearly scoped management helpers. A returned resource is ownership transfer. Abstain when ownership, failure behavior, or a helper contract is opaque.",
       "criteria": {
-        "redundant": "The comment adds no useful rationale, constraint, warning, domain knowledge, or non-obvious explanation.",
-        "useful": "The comment adds current rationale, a constraint, a warning, domain knowledge, or another non-obvious explanation.",
-        "belongs_to_other_rule": "The comment's primary issue is that it is misleading, disabled code, change history, a deprecation, or another concern owned by a more specific rule.",
-        "insufficient_context": "The bounded evidence does not establish whether the comment adds information beyond the code."
+        "cleanup_not_failure_safe": "The function has intended cleanup, but a visible failure, later acquisition, early exit, or earlier throwing cleanup can bypass it.",
+        "failure_safe": "Cleanup is guaranteed on visible failure paths by `using`, a disposal stack, correctly nested `finally`, or a clearly scoped management helper.",
+        "ownership_transferred": "The acquired resource is returned or visibly transferred, so this function is not responsible for later cleanup.",
+        "no_vulnerable_work": "No potentially failing operation occurs while this function visibly owns the resource before cleanup.",
+        "insufficient_context": "The available function and imports do not establish ownership or whether cleanup is failure-safe."
       }
     }
   }
@@ -43,15 +37,16 @@ The provider returns a named answer with no diagnostic prose:
 {
   "model": "example-model",
   "answers": {
-    "comments_no-useless-comments_0": {
+    "resources_require-cleanup-on-failure_0": {
       "type": "choice",
-      "choice": "redundant",
+      "choice": "cleanup_not_failure_safe",
       "confidence": 0.94,
       "probabilities": {
-        "redundant": 0.96,
-        "useful": 0.01,
-        "belongs_to_other_rule": 0.01,
-        "insufficient_context": 0.02
+        "cleanup_not_failure_safe": 0.96,
+        "failure_safe": 0.01,
+        "ownership_transferred": 0.01,
+        "no_vulnerable_work": 0.01,
+        "insufficient_context": 0.01
       }
     }
   }
@@ -76,16 +71,17 @@ Plugins choose the form that makes competing interpretations explicit.
 
 Provider output alone is not a finding. Rules validate answer shape, compare probabilities and confidence with configured thresholds, and may abstain when evidence is incomplete or ambiguous.
 
-For `comments/no-useless-comments`, the rule-owned decision is equivalent to:
+For `resources/require-cleanup-on-failure`, the rule-owned decision is equivalent to:
 
 ```ts
 const threshold = 0.9;
 const minConfidence = 0.7;
-const probability = answer.type === "choice" ? (answer.probabilities.redundant ?? 0) : 0;
+const probability =
+  answer.type === "choice" ? (answer.probabilities.cleanup_not_failure_safe ?? 0) : 0;
 
 if (
   answer.type !== "choice" ||
-  answer.choice !== "redundant" ||
+  answer.choice !== "cleanup_not_failure_safe" ||
   probability < threshold ||
   answer.confidence < minConfidence
 ) {
@@ -93,13 +89,19 @@ if (
 }
 
 return {
-  message: "This comment appears to add no useful information.",
+  message: "Ensure this resource is cleaned up when work fails.",
   probability,
   confidence: answer.confidence,
 };
 ```
 
-The example produces a diagnostic because the provider chose `redundant`, assigned that label a probability of `0.96`, and returned `0.94` confidence. The CLI displays 96% because that is the provider score for the finding label, not certainty. Confidence is a separate provider score. The rule checks it against the `0.7` minimum, but the stylish CLI diagnostic does not display it. A safe choice, a `redundant` probability below `0.9`, or confidence below `0.7` returns `null`, so Scruple reports nothing for that candidate.
+The rule reports a diagnostic because all three checks pass:
+
+- The provider chose `cleanup_not_failure_safe`.
+- The probability for `cleanup_not_failure_safe` is `0.96`, above the `0.9` threshold.
+- Confidence is `0.94`, above the `0.7` minimum.
+
+The `stylish` formatter displays the 96% label probability. It does not display confidence. This percentage is a provider score, not a claim of certainty. The rule returns `null` if the provider chooses another label or either score falls below its threshold.
 
 Thresholds are provider and model dependent. Calibrate them against representative positive and negative examples before enabling a rule broadly.
 

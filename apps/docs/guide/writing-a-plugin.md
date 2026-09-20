@@ -1,18 +1,24 @@
-# Write your own plugin
+# Write a plugin
 
-A plugin packages related semantic rules behind one factory. Each rule owns the full policy: which normalized targets to review, what bounded evidence to send, the typed decision criteria, confidence thresholds, and the diagnostic shown to users.
+A plugin is a group of related rules. Each rule:
 
-This separation keeps provider output constrained and makes rule behavior testable.
+- chooses which parsed code to check
+- sends only the code needed to answer its question
+- asks one fixed question with named answers
+- decides how strong an answer must be before reporting
+- writes the warning shown to the user
+
+The model answers the question. It does not choose what to inspect or write the warning.
 
 ## Start with a narrow policy
 
-Write one sentence that distinguishes a finding from a safe case. If that distinction needs facts Scruple does not expose, improve the normalized parser contract or make the rule abstain. Do not substitute source-text guesses for missing evidence.
+Before writing code, write one sentence that separates a finding from a safe case. If the rule needs information the parser does not provide, add that information to the parser or report nothing. Do not guess by searching raw source text.
 
-Choose a target already present on `ParsedDocument`, such as comments, functions, tests, error handlers, or API boundaries. Deterministic syntax and type errors belong in ordinary lint or type tooling rather than a semantic rule.
+Choose something already available on `ParsedDocument`, such as a comment, function, test, error handler, or API boundary. If syntax or types alone can answer the question, use a normal linter or type checker instead.
 
 ## Define a rule factory
 
-The following rule reviews TODO comments and emits a stable diagnostic only for a calibrated `vague` decision:
+This rule checks TODO comments. It reports only when the answer is `vague` and both required scores are met:
 
 ```ts
 import type { RuleFactory, SemanticRule } from "@scruple/core";
@@ -98,28 +104,28 @@ export const todoPolicy = () =>
   });
 ```
 
-### Keep collection deterministic
+### Choose candidates without the model
 
-`collect(document)` should select candidates using normalized facts, not model judgment. Preserve source order, cap evidence size, and include only facts needed for this decision. A candidate contains:
+`collect(document)` selects candidates from parsed facts. Do not ask the model which code to inspect. Keep source order, limit the amount of code sent, and include only what the question needs. A candidate contains:
 
-- `target`: the normalized location that owns a possible diagnostic.
-- `state`: JSON evidence shared with the provider.
+- `target`: the parsed location where a warning may appear.
+- `state`: JSON sent to the provider.
 - `question`: one `noul`, `choice`, or `score` question.
-- `data`: optional JSON retained locally for deterministic diagnosis.
+- `data`: optional JSON kept locally for use when deciding whether to report.
 
-### Make ambiguity explicit
+### Allow “not enough information”
 
-Choice questions should include `insufficient_context` whenever hidden callers, callees, middleware, types, configuration, or runtime behavior could change the answer. Say when to choose it in the instructions as well as the criteria. Abstention is part of correctness, not a failure to classify.
+Add `insufficient_context` when the answer could depend on callers, helpers, middleware, types, configuration, or runtime behavior that the rule cannot see. Explain when to choose it in both the instructions and criteria. Reporting nothing is the correct result when the rule lacks enough information.
 
-### Own the diagnostic
+### Write the warning yourself
 
-`diagnose(answer, candidate)` validates the answer and applies thresholds. Return `null` for safe, ambiguous, malformed, or below-threshold answers. Providers never generate diagnostic text or fixes.
+`diagnose(answer, candidate)` checks the answer and required scores. Return `null` when the code is safe, the answer is unclear or invalid, or a score is too low. The provider never writes warning text or fixes.
 
 ## Register the plugin
 
-The `todoPolicy` factory groups related rules under stable kebab-case names. Keep the factory independent of the namespace a consumer will choose.
+The `todoPolicy` factory groups related rules under stable kebab-case names. Do not put the consumer's namespace in the plugin.
 
-The consumer chooses the namespace used in rule IDs. Register the factory inside `defineConfig` so TypeScript can infer valid namespaced IDs and option shapes:
+The consumer chooses the namespace when registering the plugin. Register it inside `defineConfig` so TypeScript can check rule names and options:
 
 ```ts
 import { defineConfig } from "@scruple/core";
@@ -137,9 +143,9 @@ export default defineConfig({
 
 Changing `todos` changes the namespace. The plugin does not hard-code it.
 
-## Test the policy boundary
+## Test the edge cases
 
-Test collection separately from diagnosis. The important cases are not merely examples where the rule obviously reports. They are inputs where a plausible wrong policy would produce a different result.
+Test candidate selection separately from reporting. Include cases near the line between safe and unsafe, not only cases where the rule obviously reports.
 
 ```ts
 import assert from "node:assert/strict";
@@ -189,16 +195,16 @@ test("reports only a calibrated vague decision", () => {
 });
 ```
 
-Cover four layers of behavior:
+Cover four parts:
 
-1. **Selector tests** prove relevant targets are included, unrelated targets are excluded, ordering is stable, and evidence stays bounded.
-2. **Decision tests** cover the finding, safe alternatives, `insufficient_context`, exact threshold boundaries, and malformed or unexpected answers.
-3. **Integration tests** register the plugin and verify the final rule ID, severity, location, and stable message.
-4. **Evaluation fixtures** exercise representative provider behavior across positive, negative, and ambiguous examples.
+1. **Selection tests** include relevant code, exclude unrelated code, preserve order, and limit request size.
+2. **Decision tests** cover findings, safe answers, `insufficient_context`, exact score boundaries, and invalid answers.
+3. **Integration tests** register the plugin and check the final rule ID, severity, location, and message.
+4. **Evaluation fixtures** cover realistic findings, safe cases, and cases with too little information.
 
 ## Add evaluation fixtures
 
-An evaluation fixture records the expected policy outcome independently of the provider. Include a rationale and tags so failures are reviewable rather than just numerical:
+An evaluation fixture records what should happen without consulting the provider. Include a reason and tags so a failure explains more than a changed number:
 
 ```json
 [
@@ -236,6 +242,6 @@ An evaluation fixture records the expected policy outcome independently of the p
 ]
 ```
 
-For a plugin maintained in this repository, add fixtures to `tests/eval-fixtures.json` and register the plugin in the evaluation plugin map. External plugins can use the same fixture shape in their own provider-backed evaluation harness.
+For a plugin in this repository, add fixtures to `tests/eval-fixtures.json` and register the plugin in the evaluation plugin map. Other plugins can use the same fixture format in their own tests.
 
-Pair each likely finding with a nearby safe or ambiguous case. This tests the policy boundary instead of rewarding a provider that always reports.
+Pair each likely finding with a similar safe case and one with too little information. This catches a provider that reports every candidate.

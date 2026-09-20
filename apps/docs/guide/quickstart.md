@@ -2,7 +2,7 @@
 
 Scruple requires Node.js 22.18 or newer. Run it after compilers and linters.
 
-This guide uses the Comments plugin with the [Jev provider](../providers/jev.md).
+This guide uses the Resources plugin with the [Jev provider](../providers/jev.md).
 
 ## 1. Install the packages
 
@@ -12,7 +12,7 @@ pnpm add --save-dev \
   @scruple/core \
   @scruple/parser-oxc \
   @scruple/provider-jev \
-  @scruple/comments
+  @scruple/resources
 ```
 
 ## 2. Create the configuration
@@ -20,10 +20,10 @@ pnpm add --save-dev \
 Create `scruple.config.ts` in the directory where you will run the CLI:
 
 ```ts
-import { comments } from "@scruple/comments";
 import { defineConfig } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
+import { resources } from "@scruple/resources";
 
 const apiKey = process.env["TYPESAFE_API_KEY"];
 if (apiKey === undefined) {
@@ -34,11 +34,11 @@ export default defineConfig({
   parser: oxcParser(),
   provider: jevProvider({ apiKey }),
   plugins: {
-    comments: comments(),
+    resources: resources(),
   },
   rules: {
-    "comments/no-misleading-comments": "error",
-    "comments/no-useless-comments": "warn",
+    "resources/require-cleanup-on-failure": "error",
+    "resources/require-retry-time-budget": "warn",
   },
 });
 ```

@@ -1,58 +1,67 @@
 # How Scruple works
 
-Scruple separates source understanding, policy, and model execution so each can evolve independently.
+Scruple uses a parser to find relevant code, rules to define questions and reporting thresholds, and a provider to answer those questions.
 
-## One comment, end to end
+## One resource bug, end to end
 
-Consider a comment that only narrates the assignment below it:
+Consider a file handle that closes only when every preceding operation succeeds:
 
 ::: code-group
 
 ```ts [1. Source]
-export async function warmCache() {
-  // Set ready to true
-  ready = true;
+import { open } from "node:fs/promises";
+
+export async function parseReport() {
+  const file = await open("report.txt");
+  const report = parse(await file.readFile("utf8"));
+  await file.close();
+  return report;
 }
 ```
 
 ```json [2. Target]
 {
-  "kind": "comment",
-  "filename": "src/cache.ts",
+  "kind": "function",
+  "filename": "src/report.ts",
   "language": "typescript",
   "location": {
-    "start": { "line": 2, "column": 3 },
-    "end": { "line": 2, "column": 23 }
+    "start": { "line": 3, "column": 8 },
+    "end": { "line": 8, "column": 2 }
   },
-  "source": "// Set ready to true",
-  "style": "line",
-  "value": " Set ready to true",
-  "enclosingSource": "async function warmCache() {\n  // Set ready to true\n  ready = true;\n}"
+  "source": "async function parseReport() {\n  const file = await open(\"report.txt\");\n  const report = parse(await file.readFile(\"utf8\"));\n  await file.close();\n  return report;\n}",
+  "async": true,
+  "calls": [
+    { "callee": "open", "source": "open(\"report.txt\")" },
+    { "callee": "parse", "source": "parse(await file.readFile(\"utf8\"))" },
+    { "callee": "file.readFile", "source": "file.readFile(\"utf8\")" },
+    { "callee": "file.close", "source": "file.close()" }
+  ]
 }
 ```
 
 ```json [3. Answer]
 {
   "type": "choice",
-  "choice": "redundant",
+  "choice": "cleanup_not_failure_safe",
   "confidence": 0.94,
   "probabilities": {
-    "redundant": 0.96,
-    "useful": 0.01,
-    "belongs_to_other_rule": 0.01,
-    "insufficient_context": 0.02
+    "cleanup_not_failure_safe": 0.96,
+    "failure_safe": 0.01,
+    "ownership_transferred": 0.01,
+    "no_vulnerable_work": 0.01,
+    "insufficient_context": 0.01
   }
 }
 ```
 
 ```text [4. Diagnostic]
-src/cache.ts
-  2:3       warning This comment appears to add no useful information. (96%)  comments/no-useless-comments
+src/report.ts
+  3:8       warning Ensure this resource is cleaned up when work fails. (96%)  resources/require-cleanup-on-failure
 ```
 
 :::
 
-The parser identifies the comment and its surrounding function. The enabled rule selects bounded evidence and asks the provider to choose `redundant`, `useful`, `belongs_to_other_rule`, or `insufficient_context`. The provider returns only a typed answer. The displayed 96% is the provider's score for the `redundant` finding label, not a statement of certainty. The answer also has `0.94` confidence. Because the choice is `redundant`, its probability meets the rule's `0.9` threshold, and confidence meets the `0.7` minimum, the rule emits its own fixed diagnostic message.
+The parser identifies the function, imports, and calls. The enabled rule asks whether failure can bypass cleanup, cleanup is guaranteed, ownership moves elsewhere, no vulnerable work exists, or the evidence is insufficient. The provider returns only a named answer and scores. The displayed 96% is the score for `cleanup_not_failure_safe`, not a statement of certainty. Because that score meets the rule's `0.9` threshold and confidence meets the `0.7` minimum, the rule emits its own fixed diagnostic message.
 
 ## Parse once
 

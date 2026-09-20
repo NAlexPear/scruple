@@ -1,12 +1,12 @@
 # Providers
 
-A decision provider evaluates the typed requests produced by semantic rules. Scruple ships a Jev adapter for hosted typed decisions.
+Rules send fixed questions and JSON evidence to a decision provider. Scruple includes an adapter for the hosted Jev service.
 
 Scruple is MIT licensed. Jev receives the selected code evidence over HTTPS, and its model usage is billed separately.
 
-| Provider        | Best for                                          | Runtime   |
-| --------------- | ------------------------------------------------- | --------- |
-| [Jev](./jev.md) | Hosted typed decisions with token usage reporting | HTTPS API |
+| Provider        | Best for                                    | Runtime   |
+| --------------- | ------------------------------------------- | --------- |
+| [Jev](./jev.md) | Hosted decisions with token usage reporting | HTTPS API |
 
 Model choice affects calibration. Use representative fixtures to choose thresholds rather than copying thresholds blindly between models.
 

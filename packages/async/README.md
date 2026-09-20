@@ -6,12 +6,14 @@ Conservative semantic rules for asynchronous code, packaged as plugins for [Scru
 pnpm add --save-dev @scruple/async
 ```
 
-The rules use bounded function-local evidence to review concurrency fan-out, independent serial
-work, cancellation propagation, race-loser cleanup, and abort-listener lifetime. They intentionally
-abstain when dependencies, ownership, cleanup, cancellation support, or required ordering are not
-visible in the selected function and imports. The same function, import, and call budgets apply to
-call-level findings. Unobserved-work analysis includes local promise assignments that have no later
-visible use, while abort-listener analysis requires a visibly typed `AbortSignal` parameter and does
-not treat `{ once: true }` as cleanup for normal operation completion.
+The rules inspect a limited amount of code from each function. They check concurrency fan-out,
+independent serial work, cancellation, race cleanup, abort-listener lifetime, and unobserved
+promises. The same function, import, and call limits apply to call-level findings.
+
+A rule reports nothing when the selected function and its imports do not establish ownership,
+cleanup, cancellation support, dependency order, or required sequencing. The unobserved-work rule
+also checks local promise assignments with no later use. The abort-listener rule requires a visibly
+typed `AbortSignal` parameter and does not treat `{ once: true }` as cleanup when an operation
+completes normally.
 
 Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).

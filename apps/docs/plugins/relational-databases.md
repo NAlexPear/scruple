@@ -1,6 +1,6 @@
 # Relational Databases
 
-`@scruple/relational-databases` provides provider-backed semantic checks for relational queries, transactions, joins, and pagination.
+`@scruple/relational-databases` checks relational queries, transactions, joins, and pagination.
 
 ```sh
 pnpm add -D @scruple/relational-databases

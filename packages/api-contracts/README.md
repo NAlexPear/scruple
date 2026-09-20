@@ -31,12 +31,12 @@ The initial rules are deliberately evidence-bounded:
 - `no-misleading-http-status` compares explicit status exits with visible outcomes while allowing
   deliberate protocol and privacy policies.
 
-Candidates contain bounded local evidence with explicit completeness metadata. Imports and calls
-are capped deterministically, and oversized functions or route handlers are skipped; the same
-limits apply to call-level `no-ignored-significant-results` candidates. Re-exports, mounted
-routers, class visibility, call graphs, global middleware, and behavior in unresolved helpers are
-not inferred from a single file. By default, functions and handlers over 12,000 characters are
-skipped. These limits keep selection deterministic and make missing evidence an explicit
-`insufficient_context` decision rather than a guessed diagnostic.
+Each rule examines a limited amount of code from one file. It records when imports, calls, or source
+excerpts were cut short. The same limits apply to call-level `no-ignored-significant-results`
+checks. By default, Scruple skips functions and route handlers longer than 12,000 characters.
+
+These rules do not infer behavior from re-exports, mounted routers, global middleware, call graphs,
+unresolved helpers, or class visibility in other files. When the available code is not enough to
+decide, the provider can return `insufficient_context` instead of reporting a finding.
 
 Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).

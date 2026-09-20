@@ -1,6 +1,6 @@
 # @scruple/tests
 
-Checks for automated tests with vacuous oracles, broad error assertions, uncontrolled nondeterminism, or fixed delays used for synchronization.
+Checks for tests that do not verify behavior, accept any error, depend on uncontrolled inputs, or use fixed delays for synchronization.
 
 ```sh
 pnpm add --save-dev @scruple/tests

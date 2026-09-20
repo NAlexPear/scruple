@@ -33,11 +33,14 @@ Warnings are reported but do not produce exit code 1. Error-severity findings do
 
 ## Inline suppressions
 
-Use a `scruple-disable` comment when a configured rule is correct in general but should not evaluate a specific target. Place the comment relative to the line Scruple reports and use the full `plugin/rule` ID.
+Use a `scruple-disable` comment when a rule is generally useful but should skip one target. Put `scruple-disable-next-line` immediately above the reported line, or put `scruple-disable-line` on that line. Include the full `plugin/rule` ID.
 
 ```ts
-// scruple-disable-next-line comments/no-useless-comments -- Required.
-const status = deriveStatus();
+// scruple-disable-next-line resources/require-cleanup-on-failure -- Framework closes it.
+export async function loadRecord() {
+  const connection = await pool.connect();
+  return connection.findFirst();
+}
 
 smoke(); // scruple-disable-line tests/no-vacuous-tests -- Intentional.
 ```
