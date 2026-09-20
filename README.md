@@ -1,8 +1,24 @@
 # Scruple
 
-Scruple is a pluggable semantic code checker that turns focused source evidence and Jev or local Laya decisions into deterministic diagnostics.
+**Make good taste enforceable.**
 
-Read the [documentation](https://scruple.alexpear.workers.dev/).
+Scruple catches problems linters miss. Use its built-in rules or write your own to turn your team's engineering judgment into checks that run on every change.
+
+[Get started](https://scruple.alexpear.workers.dev/guide/quickstart) · [Read the docs](https://scruple.alexpear.workers.dev/) · [Browse the rules](https://scruple.alexpear.workers.dev/plugins/)
+
+## Where Scruple fits
+
+Static tools check facts. Scruple checks judgment.
+
+Keep fast checks close to your editor. Run Scruple after them in CI, before review, for questions that need more context than a syntax pattern can provide.
+
+| Stage       | Product             | Best for                                                                |
+| ----------- | ------------------- | ----------------------------------------------------------------------- |
+| 01 / Editor | Compiler and linter | Types, syntax, formatting, and known code patterns.                     |
+| 02 / CI     | Scruple             | Tests, errors, retries, contracts, comments, and your own standards.    |
+| 03 / Review | People              | Architecture, product intent, and standards that still need discussion. |
+
+Scruple is MIT licensed. Use hosted Jev and pay for model usage, or run Laya on your own hardware. It complements linters and security scanners rather than replacing them.
 
 ## Use Scruple
 
@@ -113,6 +129,17 @@ each provider and model.
 ## Plugins and rules
 
 Scruple has no core policy. Plugins provide independently publishable rule packs, and consumers choose which rules to enable. Browse the [plugin and rule registry](https://scruple.alexpear.workers.dev/plugins/) for every available plugin, rule, option, and default.
+
+### Put your team's taste in the repository
+
+Every team has standards that live in review comments. Scruple turns those repeated comments into named, tested rules that run the same way on every change:
+
+- "We preserve the original error here."
+- "This test does not prove the behavior."
+- "Retries need a deadline."
+- "Explain why, not what."
+
+If a review comment starts with "we usually," it may belong in a Scruple rule. [Write your own rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).
 
 A plugin registers named rules. Semantic rules collect normalized source targets and create typed
 decision questions, then deterministically turn provider answers into diagnostics or abstain. Rules
