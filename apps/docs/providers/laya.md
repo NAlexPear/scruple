@@ -4,7 +4,8 @@
 
 ```sh
 pnpm add --save-dev @scruple/provider-laya
-pip install laya
+uv venv
+uv pip install laya
 ```
 
 ```ts
@@ -12,16 +13,18 @@ import { layaProvider } from "@scruple/provider-laya";
 
 const provider = layaProvider({
   model: "typed-decisions",
-  python: "python3",
+  python: ".venv/bin/python",
   preload: true,
 });
 ```
+
+On Windows, use `python: ".venv\\Scripts\\python.exe"`.
 
 ## Options
 
 | Option      | Default      | Purpose                                                 |
 | ----------- | ------------ | ------------------------------------------------------- |
-| `python`    | `"python3"`  | Python executable                                       |
+| `python`    | `"python3"`  | Python executable; set this to your uv environment      |
 | `model`     | `"auto"`     | `auto`, `english`, `multilingual`, or `typed-decisions` |
 | `device`    | Laya default | Device passed to the Laya router                        |
 | `preload`   | `true`       | Preload models when the bridge starts                   |

@@ -147,7 +147,8 @@ Install the Laya provider and Laya itself:
 
 ```sh
 pnpm add --save-dev @scruple/provider-laya
-pip install laya
+uv venv
+uv pip install laya
 ```
 
 Replace the provider in `scruple.config.ts`:
@@ -157,10 +158,12 @@ import { layaProvider } from "@scruple/provider-laya";
 
 provider: layaProvider({
   model: "typed-decisions",
-  python: "python3",
+  python: ".venv/bin/python",
   preload: true,
 }),
 ```
+
+On Windows, use `python: ".venv\\Scripts\\python.exe"`.
 
 Scruple keeps one Python process and preloaded router alive for the run. `model: "auto"` uses Laya's
 language router. Laya has a smaller context budget than Jev, so calibrate thresholds separately for
