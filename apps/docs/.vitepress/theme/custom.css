@@ -186,9 +186,10 @@
 
 .landing-primary span {
   color: currentcolor;
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 500;
   line-height: 1;
+  transform: translateY(-2px);
 }
 
 .landing-actions .landing-secondary {
