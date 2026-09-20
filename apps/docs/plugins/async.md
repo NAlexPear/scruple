@@ -30,15 +30,15 @@ export default defineConfig({
 
 ## `async/no-unbounded-concurrency`
 
-Reviews native `Promise.all` and `Promise.allSettled` fan-out with visible operation creation and boundary evidence. Fixed tuples and visible batching or limits are accepted. Options: `threshold` `0.9`, `minConfidence` `0.7`.
+Reviews native `Promise.all` and `Promise.allSettled` fan-out with visible operation creation and boundary evidence. Fixed tuples and visible batching or limits are accepted. Options: `threshold` `{ warning: 0.9, error: 0.97 }`, `minConfidence` `0.7`.
 
 ## `async/no-serial-independent-work`
 
-Reviews async functions with at least two directly awaited calls. It reports only when local evidence shows the operations can start together without changing data, side-effect, error, transaction, lock, rate-limit, or ordering behavior. Options: `threshold` `0.9`, `minConfidence` `0.7`.
+Reviews async functions with at least two directly awaited calls. It reports only when local evidence shows the operations can start together without changing data, side-effect, error, transaction, lock, rate-limit, or ordering behavior. Options: `threshold` `{ warning: 0.9, error: 0.97 }`, `minConfidence` `0.7`.
 
 ## `async/require-cancellation-propagation`
 
-Reviews explicit `AbortSignal` contracts that call recognized platform `fetch`. It checks whether the caller's signal is forwarded, including when signals are composed. Options: `threshold` `0.9`, `minConfidence` `0.7`.
+Reviews explicit `AbortSignal` contracts that call recognized platform `fetch`. It checks whether the caller's signal is forwarded, including when signals are composed. Options: `threshold` `{ warning: 0.9, error: 0.97 }`, `minConfidence` `0.7`.
 
 ## `async/require-race-loser-cleanup`
 
@@ -57,5 +57,10 @@ Reviews conservatively selected promise-producing calls whose result is discarde
 Reviews constructors that visibly start asynchronous work before an explicit lifecycle boundary can observe readiness or failure. Explicit startup factories and readiness contracts are accepted. It abstains when framework bootstrapping, generated code, or an opaque helper owns initialization.
 
 ```ts
-rules: { "async/require-cancellation-propagation": ["warn", { threshold: 0.95 }] }
+rules: {
+  "async/require-cancellation-propagation": [
+    "warn",
+    { threshold: { warning: 0.95, error: 0.99 } },
+  ],
+}
 ```

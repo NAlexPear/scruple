@@ -120,12 +120,22 @@ plugins: {
   comments: comments(),
 },
 rules: {
-  "comments/no-misleading-comments": ["error", { threshold: 0.9 }],
+  "comments/no-misleading-comments": [
+    "error",
+    { threshold: { warning: 0.9, error: 0.97 } },
+  ],
 },
 ```
 
 The key in `plugins` supplies the namespace used by its rule IDs. Unknown rules and rules whose
 plugin is not registered are configuration errors.
+
+`threshold` always has separate `warning` and `error` probabilities. A number is not accepted, and
+`warning` cannot exceed `error`. The provider must choose the
+finding label and meet `minConfidence` first. A score at the warning threshold but below the error
+threshold produces a non-blocking warning. A score at or above the error threshold produces a
+blocking error. A rule configured as `"warn"` caps either result at warning, while `"error"` permits
+both tiers.
 
 ### Suppress a finding
 
@@ -159,7 +169,7 @@ If a review comment starts with "we usually," it may belong in a Scruple rule. [
 A rule starts from bounded targets found by the parser. It can select candidates from syntax alone or
 ask the provider a small classification question when names and spelling are ambiguous. Each selected
 candidate then receives the rule's fixed decision question. The rule compares that answer with fixed
-thresholds and reports its own diagnostic or nothing. Provider answers and which findings appear may
+thresholds and reports its own diagnostic or nothing. Provider answers, severity, and which findings appear may
 vary. Rules provide fixed diagnostic text and never ask a model to generate messages or fixes.
 
 OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,

@@ -8,7 +8,13 @@ Scruple plugins package named, tested rules. They can check common engineering p
 
 Rules start from bounded parser targets. They can use the configured provider to classify ambiguous
 possible candidates, then send selected candidates for the final rule decision. A finding appears only
-when that final answer clears the rule's probability and confidence thresholds.
+when the provider chooses the finding label and its final answer clears the rule's probability and confidence thresholds.
+
+Every `threshold` option is an object with `warning` and `error` probabilities. The numeric form is
+not accepted, and `warning` cannot exceed `error`. Scores from warning up to error produce
+non-blocking warnings. Scores at or above error produce blocking errors. The rule
+must also meet `minConfidence`. Configuring a rule as `"warn"` caps output at warning; `"error"`
+allows either tier.
 
 | Plugin                                            | Choose it for                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------------- |
@@ -27,7 +33,10 @@ Rule configuration follows the ESLint/Oxlint shape: use a severity alone, or `[s
 ```ts
 plugins: { comments: comments() },
 rules: {
-  "comments/no-misleading-comments": ["warn", { threshold: 0.9 }],
+  "comments/no-misleading-comments": [
+    "warn",
+    { threshold: { warning: 0.9, error: 0.97 } },
+  ],
 },
 ```
 

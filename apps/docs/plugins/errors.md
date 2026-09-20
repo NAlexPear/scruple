@@ -29,7 +29,7 @@ export default defineConfig({
 
 Reviews each catch handler with bounded source, imports, surrounding context, calls, and exits. It accepts propagation, observable reporting, cleanup followed by propagation, and visibly intentional recovery or expected-exception fallback. It abstains when an unseen helper may report, propagate, or establish the fallback contract.
 
-Options: `threshold` defaults to `0.9`; `minConfidence` defaults to `0.7`. Both must be finite values from `0` through `1`.
+Options: `threshold` defaults to `{ warning: 0.9, error: 0.97 }`; `minConfidence` defaults to `0.7`. All three values must be finite values from `0` through `1`.
 
 ## `errors/no-lossy-error-wrapping`
 
@@ -44,5 +44,10 @@ Reviews direct reads of a catch binding's `message` for branching or classificat
 Reviews catch handlers that only rethrow the same error without adding recovery, cleanup, reporting, translation, or context. The candidate scope is limited to catches whose behavior is visible; conditional handling and calls to helpers with unresolved effects cause abstention.
 
 ```ts
-rules: { "errors/no-swallowed-errors": ["warn", { threshold: 0.95 }] }
+rules: {
+  "errors/no-swallowed-errors": [
+    "warn",
+    { threshold: { warning: 0.95, error: 0.99 } },
+  ],
+}
 ```

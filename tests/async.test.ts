@@ -363,14 +363,17 @@ export async function run(items: Item[]) {
 
 await test("async rule options reject invalid probabilities and evidence bounds", () => {
   const factory = asyncRules().rules["require-race-loser-cleanup"];
-  assert.throws(() => factory({ threshold: -0.01 }), /threshold/u);
+  assert.throws(
+    () => Reflect.apply(factory, undefined, [{ threshold: -0.01 }]),
+    /threshold must be an object/u,
+  );
   assert.throws(() => factory({ minConfidence: Number.NaN }), /minConfidence/u);
   assert.throws(() => factory({ maxFunctionCharacters: 0 }), /maxFunctionCharacters/u);
   assert.throws(() => factory({ maxImportCharacters: -1 }), /maxImportCharacters/u);
   assert.throws(() => factory({ maxCallSites: 1.5 }), /maxCallSites/u);
   assert.doesNotThrow(() =>
     factory({
-      threshold: 0,
+      threshold: { warning: 0, error: 1 },
       minConfidence: 1,
       maxFunctionCharacters: 1,
       maxImportCharacters: 0,
@@ -415,6 +418,7 @@ await test("async rules diagnose only calibrated finding answers and otherwise a
     assert.equal(rule.diagnose(answer("insufficient_context", 0.99, 0.99), candidate), null);
     const diagnostic = rule.diagnose(answer(finding, 0.9, 0.7), candidate);
     assert.ok(diagnostic);
+    assert.equal(diagnostic.severity, "warning");
     assert.equal(diagnostic.filename, "async.ts");
     assert.equal(diagnostic.probability, 0.9);
     assert.equal(diagnostic.confidence, 0.7);

@@ -3,9 +3,9 @@
 ## Focused tests
 
 1. **Selection:** include relevant targets, exclude near-miss targets, preserve order, and assert an explicit request-size bound.
-2. **Diagnosis:** test a finding, a safe answer, insufficient context, wrong answer type, exact threshold, just below threshold, and non-finite values when they can cross the boundary.
+2. **Diagnosis:** test a warning, an error, a safe answer, insufficient context, wrong answer type, exact warning and error thresholds, values just below both thresholds, and non-finite values when they can cross a boundary.
 3. **Integration:** register the plugin and assert final rule ID, severity, filename, location, message, provider model, and request statistics that matter.
-4. **Options:** test defaults and invalid values at factory construction.
+4. **Options:** test defaults, rejection of the old numeric `threshold`, values outside `[0, 1]`, non-finite values, and `warning > error` at factory construction.
 5. **Async collection:** test selected and rejected classifications, suppression returning `null`, cancellation propagation, and collection request accounting.
 
 Derive expected values from the written policy and source location, not from implementation helpers.

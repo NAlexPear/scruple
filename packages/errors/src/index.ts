@@ -1,7 +1,7 @@
 import type {
   ChoiceAnswer,
-  DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
   ErrorHandlerTarget,
   JsonValue,
   ParsedDocument,
@@ -10,7 +10,7 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export type NoSwallowedErrorsOptions = DecisionRuleOptions;
 
@@ -45,7 +45,7 @@ const noUselessCatchBoundaries = (options: NoSwallowedErrorsOptions = {}): Seman
   return errorHandlerChoiceRule({
     description: "Catch boundaries should add meaningful error handling.",
     options,
-    defaultThreshold: 0.9,
+    defaultThreshold: { warning: 0.9, error: 0.97 },
     select: (handlers) => handlers.filter((handler) => isDirectRethrowOnly(handler)),
     instructions:
       "Does this catch handler only rethrow the same caught error without cleanup, reporting, context, translation, recovery, or another observable purpose? A finally-equivalent cleanup action, contextual mutation, structured wrapping, boundary translation, or meaningful reporting makes the boundary useful. Choose insufficient_context when a helper's effect or conditional path is unresolved.",
@@ -96,7 +96,7 @@ const noSwallowedErrors = (options: NoSwallowedErrorsOptions = {}): SemanticRule
   return errorHandlerChoiceRule({
     description: "Caught errors should be propagated or handled intentionally.",
     options,
-    defaultThreshold: 0.9,
+    defaultThreshold: { warning: 0.9, error: 0.97 },
     select: (handlers) => handlers,
     instructions:
       "Classify this catch handler using only the supplied source evidence. An error is swallowed when an unexpected failure is suppressed without preserving failure, returning a distinguishable failure, or establishing a visibly intentional recovery contract. Logging, telemetry, or cleanup alone does not handle an error when execution then returns success-like/default behavior or continues as though the operation succeeded. Reporting counts as handling only when the visible code also exposes a distinguishable failure outcome; an expected fallback counts only when its recovery contract is visible. If a helper might report, propagate, or recover but that behavior is not visible, choose insufficient_context rather than guessing from its name. Judge every visible path conservatively because the supplied exits are syntactic, not a path-complete control-flow graph.",
@@ -122,7 +122,7 @@ const noLossyErrorWrapping = (options: NoLossyErrorWrappingOptions = {}): Semant
     description:
       "Replacement errors should preserve the original failure as structured cause data.",
     options,
-    defaultThreshold: 0.9,
+    defaultThreshold: { warning: 0.9, error: 0.97 },
     select: (handlers) => handlers.filter((handler) => hasReplacementThrow(handler)),
     instructions:
       "Classify the replacement throw in this catch handler using only the supplied source evidence. Wrapping is lossy when an escaping replacement error discards the caught failure as structured cause data, even if its message interpolates or copies the original message. Direct rethrows and built-in Error or AggregateError construction with a visible cause preserve the failure. A custom error constructed with an explicit cause property may be treated as preserving it. If preservation depends on an opaque wrapper function, custom constructor internals, or a path relationship not established by the evidence, choose insufficient_context. Intentional public sanitization is not established merely by omitting the cause; it requires a visible boundary contract and a visible internal reporting or correlation path.",
@@ -147,7 +147,7 @@ const noMessageBasedErrorDispatch = (
   return errorHandlerChoiceRule({
     description: "Error handling should use stable discriminators instead of message text.",
     options,
-    defaultThreshold: 0.85,
+    defaultThreshold: { warning: 0.85, error: 0.95 },
     select: (handlers, document) =>
       handlers.filter((handler) => hasMessageDispatchEvidence(handler, document)),
     instructions:
@@ -170,7 +170,7 @@ const noMessageBasedErrorDispatch = (
 interface ErrorHandlerChoiceRuleDefinition {
   description: string;
   options: NoSwallowedErrorsOptions;
-  defaultThreshold: number;
+  defaultThreshold: DecisionThreshold;
   select(handlers: ErrorHandlerTarget[], document: ParsedDocument): ErrorHandlerTarget[];
   instructions: string;
   criteria: Record<string, JsonValue>;
@@ -197,10 +197,17 @@ const errorHandlerChoiceRule = (definition: ErrorHandlerChoiceRuleDefinition): S
       }));
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, threshold, minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
         return null;
       }
-      return diagnostic(candidate, answer, definition.finding, definition.message);
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, {
+        threshold,
+        minConfidence,
+      });
+      return severity === null
+        ? null
+        : diagnostic(candidate, answer, definition.finding, definition.message, severity);
     },
   };
 };
@@ -307,25 +314,12 @@ const bounded = (value: string, maximumCharacters: number): string => {
   return `${value.slice(0, half)}\n/* … bounded evidence omitted … */\n${value.slice(-half)}`;
 };
 
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
-};
-
 const diagnostic = (
   candidate: RuleCandidate,
   answer: ChoiceAnswer,
   finding: string,
   message: string,
+  severity: "warning" | "error",
 ) => {
   return {
     message,
@@ -333,5 +327,6 @@ const diagnostic = (
     location: candidate.target.location,
     probability: answer.probabilities[finding] ?? 0,
     confidence: answer.confidence,
+    severity,
   };
 };

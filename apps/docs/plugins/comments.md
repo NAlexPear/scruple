@@ -33,23 +33,23 @@ Tool directives, generated-code notices, licenses, preservation comments, and si
 
 ## `comments/no-useless-comments`
 
-Checks ordinary non-TODO comments of at least eight trimmed characters for restatement, generic headings, straightforward narration, or assistant meta commentary. Defaults: `threshold: 0.9`, `minConfidence: 0.7`.
+Checks ordinary non-TODO comments of at least eight trimmed characters for restatement, generic headings, straightforward narration, or assistant meta commentary. Defaults: `threshold: { warning: 0.9, error: 0.97 }`, `minConfidence: 0.7`.
 
 ## `comments/no-misleading-comments`
 
-Checks whether a concrete comment claim materially contradicts visible current code. Defaults: `threshold: 0.85`, `minConfidence: 0.7`.
+Checks whether a concrete comment claim materially contradicts visible current code. Defaults: `threshold: { warning: 0.85, error: 0.95 }`, `minConfidence: 0.7`.
 
 ## `comments/no-commented-out-code`
 
-Distinguishes disabled executable implementation from examples, pseudocode, patterns, and data. Defaults: `threshold: 0.95`, `minConfidence: 0.7`.
+Distinguishes disabled executable implementation from examples, pseudocode, patterns, and data. Defaults: `threshold: { warning: 0.95, error: 0.99 }`, `minConfidence: 0.7`.
 
 ## `comments/no-change-history-comments`
 
-Checks history-like candidates for completed-change narration that no longer explains a current constraint or active compatibility behavior. Defaults: `threshold: 0.95`, `minConfidence: 0.7`.
+Checks history-like candidates for completed-change narration that no longer explains a current constraint or active compatibility behavior. Defaults: `threshold: { warning: 0.95, error: 0.99 }`, `minConfidence: 0.7`.
 
 ## `comments/prefer-concise-comments`
 
-Checks ordinary comments whose trimmed value is at least `minCharacters` for substantially reducible prose. Defaults: `threshold: 0.9`, `minConfidence: 0.65`, `minCharacters: 100`. `minCharacters` must be a non-negative safe integer.
+Checks ordinary comments whose trimmed value is at least `minCharacters` for substantially reducible prose. Defaults: `threshold: { warning: 0.9, error: 0.97 }`, `minConfidence: 0.65`, `minCharacters: 100`. `minCharacters` must be a non-negative safe integer.
 
 ```ts
 rules: { "comments/prefer-concise-comments": ["warn", { minCharacters: 160 }] }
@@ -61,14 +61,14 @@ The provider first classifies each bounded, non-directive comment as a future-wo
 prose. This recognizes variants such as `todo:`, `to-do:`, FIXME, and HACK without treating “to-do
 list” as a marker. Selected comments are then checked for enough context to identify work, rationale, a
 removal condition, or a relevant issue. The rule does not require an owner, date, or ticket. Defaults:
-`threshold: 0.8`, `minConfidence: 0.7`.
+`threshold: { warning: 0.8, error: 0.95 }`, `minConfidence: 0.7`.
 
 ## `comments/require-justified-suppressions`
 
-Reviews explicit Scruple, lint, TypeScript, coverage, formatter, and Semgrep suppression directives. Generated code and deliberate negative fixtures are accepted. Defaults: `threshold: 0.85`, `minConfidence: 0.7`.
+Reviews explicit Scruple, lint, TypeScript, coverage, formatter, and Semgrep suppression directives. Generated code and deliberate negative fixtures are accepted. Defaults: `threshold: { warning: 0.85, error: 0.95 }`, `minConfidence: 0.7`.
 
 ## `comments/require-actionable-deprecations`
 
-Reviews `@deprecated` comments for a named replacement, concrete migration steps, or a useful explanation that no replacement exists. Defaults: `threshold: 0.85`, `minConfidence: 0.7`.
+Reviews `@deprecated` comments for a named replacement, concrete migration steps, or a useful explanation that no replacement exists. Defaults: `threshold: { warning: 0.85, error: 0.95 }`, `minConfidence: 0.7`.
 
 Probability options in this package must be finite values from `0` through `1`.

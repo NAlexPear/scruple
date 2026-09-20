@@ -99,6 +99,7 @@ const reportingRule = (id: string): SemanticRule => {
     },
     diagnose(_answer, candidate) {
       return {
+        severity: "error",
         message: id,
         filename: candidate.target.filename,
         location: candidate.target.location,
@@ -337,7 +338,7 @@ async function joinedUsers() {
       "relational-databases/prefer-database-join",
     ],
   );
-  assert.equal(result.diagnostics[1]?.severity, "error");
+  assert.equal(result.diagnostics[1]?.severity, "warning");
   assert.equal(result.diagnostics[1]?.probability, 0.96);
   assert.deepEqual(result.stats, {
     files: 1,
@@ -346,6 +347,49 @@ async function joinedUsers() {
     inputTokens: 30,
     outputTokens: 0,
   });
+});
+
+await test("engine caps rule diagnostic severity without promoting warning-tier findings", async () => {
+  const source = "export function value() {\n  // Return the value.\n  return value;\n}";
+  const plugin = comments();
+
+  const run = (severity: "warn" | "error", probability: number) =>
+    runScruple(
+      {
+        parser: oxcParser(),
+        provider: {
+          id: "severity-fixture",
+          evaluate(request) {
+            return Promise.resolve({
+              model: "severity-fixture",
+              answers: Object.fromEntries(
+                Object.keys(request.questions).map((id) => [
+                  id,
+                  {
+                    type: "choice" as const,
+                    choice: "redundant",
+                    confidence: 0.99,
+                    probabilities: { redundant: probability },
+                  },
+                ]),
+              ),
+            });
+          },
+        },
+        plugins: { comments: plugin },
+        rules: { "comments/no-useless-comments": severity },
+      },
+      [{ filename: "severity.ts", source }],
+    );
+
+  const [warnCap, errorTier, warningTier] = await Promise.all([
+    run("warn", 0.99),
+    run("error", 0.99),
+    run("error", 0.9),
+  ]);
+  assert.equal(warnCap.diagnostics[0]?.severity, "warning");
+  assert.equal(errorTier.diagnostics[0]?.severity, "error");
+  assert.equal(warningTier.diagnostics[0]?.severity, "warning");
 });
 
 await test("engine optionally preserves accepted and abstained provider decisions", async () => {
@@ -680,8 +724,11 @@ await test("comments rules reject invalid probability and length options", () =>
   const plugin = comments();
 
   assert.throws(
-    () => plugin.rules["no-useless-comments"]({ threshold: Number.NaN }),
-    /threshold must be a finite number between 0 and 1/u,
+    () =>
+      plugin.rules["no-useless-comments"]({
+        threshold: { warning: Number.NaN, error: 1 },
+      }),
+    /threshold.warning must be a finite number between 0 and 1/u,
   );
   assert.throws(
     () => plugin.rules["no-misleading-comments"]({ minConfidence: 1.1 }),

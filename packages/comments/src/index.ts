@@ -1,10 +1,9 @@
 import type {
   AsyncSemanticRule,
-  ChoiceAnswer,
   CollectionContext,
   CommentTarget,
-  DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
   JsonValue,
   ParsedDocument,
   RuleCandidate,
@@ -12,7 +11,7 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export type ProbabilityRuleOptions = DecisionRuleOptions;
 
@@ -51,7 +50,11 @@ export const comments = (): CommentsPlugin => {
 };
 
 const noUselessComments = (options: NoUselessCommentsOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.9, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.9, error: 0.97 },
+    0.7,
+  );
   return choiceRule({
     description: "Comments should add information that the code does not already express.",
     select: ordinaryComments,
@@ -77,7 +80,11 @@ const noUselessComments = (options: NoUselessCommentsOptions = {}): SemanticRule
 };
 
 const noMisleadingComments = (options: ProbabilityRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.85, error: 0.95 },
+    0.7,
+  );
   return choiceRule({
     description: "Comments should accurately describe the code they accompany.",
     select: reviewableComments,
@@ -100,7 +107,11 @@ const noMisleadingComments = (options: ProbabilityRuleOptions = {}): SemanticRul
 };
 
 const noCommentedOutCode = (options: ProbabilityRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.95, error: 0.99 },
+    0.7,
+  );
   return choiceRule({
     description: "Comments should not preserve disabled implementation code.",
     select: reviewableComments,
@@ -125,7 +136,11 @@ const noCommentedOutCode = (options: ProbabilityRuleOptions = {}): SemanticRule 
 };
 
 const noChangeHistoryComments = (options: ProbabilityRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.95, error: 0.99 },
+    0.7,
+  );
   return choiceRule({
     description:
       "Comments should explain current constraints instead of narrating completed changes.",
@@ -154,7 +169,11 @@ const noChangeHistoryComments = (options: ProbabilityRuleOptions = {}): Semantic
 };
 
 const preferConciseComments = (options: PreferConciseCommentsOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.9, 0.65);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.9, error: 0.97 },
+    0.65,
+  );
   const minCharacters = options.minCharacters ?? 100;
   if (!Number.isSafeInteger(minCharacters) || minCharacters < 0) {
     throw new TypeError("minCharacters must be a non-negative integer");
@@ -182,7 +201,11 @@ const preferConciseComments = (options: PreferConciseCommentsOptions = {}): Sema
 };
 
 const requireActionableTodos = (options: ProbabilityRuleOptions = {}): AsyncSemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.8, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.8, error: 0.95 },
+    0.7,
+  );
   return asyncChoiceRule({
     description: "TODO comments should give a maintainer enough context to act.",
     select: classifyTodoComments,
@@ -206,7 +229,11 @@ const requireActionableTodos = (options: ProbabilityRuleOptions = {}): AsyncSema
 };
 
 const requireJustifiedSuppressions = (options: ProbabilityRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.85, error: 0.95 },
+    0.7,
+  );
   return choiceRule({
     description: "Suppression directives should state a concrete, code-specific reason.",
     select: (document) => document.comments.filter(isSuppressionCandidate),
@@ -232,7 +259,11 @@ const requireJustifiedSuppressions = (options: ProbabilityRuleOptions = {}): Sem
 };
 
 const requireActionableDeprecations = (options: ProbabilityRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(
+    options,
+    { warning: 0.85, error: 0.95 },
+    0.7,
+  );
   return choiceRule({
     description: "Deprecation comments should give consumers clear migration guidance.",
     select: (document) => document.comments.filter(isDeprecationCandidate),
@@ -265,7 +296,7 @@ interface ChoiceRuleDefinition {
     criteria: Record<string, JsonValue>;
   };
   finding: string;
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
   message: string;
 }
@@ -289,12 +320,18 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
       }));
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, definition.threshold, definition.minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
+        return null;
+      }
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, definition);
+      if (severity === null) {
         return null;
       }
       return diagnostic(candidate, definition.message, {
-        probability: answer.probabilities[definition.finding] ?? 0,
+        probability,
         confidence: answer.confidence,
+        severity,
       });
     },
   };
@@ -308,12 +345,18 @@ const asyncChoiceRule = (definition: AsyncChoiceRuleDefinition): AsyncSemanticRu
       return selectedComments.map((comment) => commentCandidate(comment, document, definition));
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, definition.threshold, definition.minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
+        return null;
+      }
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, definition);
+      if (severity === null) {
         return null;
       }
       return diagnostic(candidate, definition.message, {
-        probability: answer.probabilities[definition.finding] ?? 0,
+        probability,
         confidence: answer.confidence,
+        severity,
       });
     },
   };
@@ -512,33 +555,19 @@ const nearbySource = (source: string, start: number, end: number): string => {
 
 const probabilityOptions = (
   options: ProbabilityRuleOptions,
-  defaultThreshold: number,
+  defaultThreshold: DecisionThreshold,
   defaultMinConfidence: number,
-): { threshold: number; minConfidence: number } => {
+): { threshold: DecisionThreshold; minConfidence: number } => {
   return resolveDecisionOptions(options, {
     threshold: defaultThreshold,
     minConfidence: defaultMinConfidence,
   });
 };
 
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
-};
-
 const diagnostic = (
   candidate: RuleCandidate,
   message: string,
-  scores: { probability?: number; confidence?: number },
+  scores: { probability: number; confidence: number; severity: "warning" | "error" },
 ) => {
   return {
     message,

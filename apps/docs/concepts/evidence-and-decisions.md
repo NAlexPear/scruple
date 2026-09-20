@@ -10,7 +10,8 @@ classify a bounded possible target when relevance depends on meaning rather than
 collection answer only decides whether the target becomes a candidate. It is not a finding.
 
 Every selected candidate then receives the rule's decision question. Only this final answer can be
-turned into a diagnostic, and the rule—not the provider—owns the message and reporting thresholds.
+turned into a diagnostic. The provider must choose the finding label, while the rule owns the message
+and reporting thresholds.
 
 ## A complete decision request
 
@@ -80,12 +81,15 @@ Plugins choose the form that makes competing interpretations explicit.
 
 ## Thresholds and abstention
 
-Provider output alone is not a finding. Rules validate answer shape, compare probabilities and confidence with configured thresholds, and may abstain when evidence is incomplete or ambiguous.
+Provider output alone is not a finding. The provider must choose the rule's finding label and meet
+`minConfidence`. The chosen label's probability then determines the tier. At or above `warning` but
+below `error` is a non-blocking warning. At or above `error` is a blocking error. A rule configured as
+`"warn"` caps output at warning, while `"error"` permits either tier.
 
 For `resources/require-cleanup-on-failure`, the rule-owned decision is equivalent to:
 
 ```ts
-const threshold = 0.9;
+const threshold = { warning: 0.9, error: 0.97 };
 const minConfidence = 0.7;
 const probability =
   answer.type === "choice" ? (answer.probabilities.cleanup_not_failure_safe ?? 0) : 0;
@@ -93,14 +97,16 @@ const probability =
 if (
   answer.type !== "choice" ||
   answer.choice !== "cleanup_not_failure_safe" ||
-  probability < threshold ||
+  probability < threshold.warning ||
   answer.confidence < minConfidence
 ) {
   return null;
 }
 
+const severity = probability >= threshold.error ? "error" : "warning";
 return {
   message: "Ensure this resource is cleaned up when work fails.",
+  severity,
   probability,
   confidence: answer.confidence,
 };
@@ -109,13 +115,13 @@ return {
 The rule reports a diagnostic because all three checks pass:
 
 - The provider chose `cleanup_not_failure_safe`.
-- The probability for `cleanup_not_failure_safe` is `0.96`, above the `0.9` threshold.
+- The probability for `cleanup_not_failure_safe` is `0.96`, above the `0.9` warning threshold and below the `0.97` error threshold.
 - Confidence is `0.94`, above the `0.7` minimum.
 
-The `stylish` formatter displays the 96% label probability. It does not display confidence. This percentage is a provider score, not a claim of certainty. The rule returns `null` if the provider chooses another label or either score falls below its threshold.
+The result is therefore a warning. The `stylish` formatter displays the 96% label probability. It does not display confidence. This percentage is a provider score, not a claim of certainty. The rule returns `null` if the provider chooses another label, confidence is too low, or probability is below the warning threshold.
 
 Thresholds are provider and model dependent. Calibrate them against representative positive and negative examples before enabling a rule broadly.
 
 ## Rule-owned output
 
-Rules own messages, locations, severity mapping, and fixed thresholds. Providers cannot generate text that appears as a diagnostic. The same provider answer therefore produces the same rule output, but provider answers and the set of findings can vary by model, provider, or run.
+Rules own messages, locations, and fixed thresholds. Providers cannot generate text that appears as a diagnostic. The same provider answer therefore produces the same rule output, but provider answers, severity, and the set of findings can vary by model, provider, or run.

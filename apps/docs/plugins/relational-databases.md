@@ -29,7 +29,7 @@ export default defineConfig({
 
 Selects implementation functions with at least two relational database calls and a recognized collection operation, then asks whether a join, relation include, aggregation, subquery, or filtered query could reasonably replace the in-memory combination. Legitimate post-query transformations, separate database systems, and application-only semantics are accepted.
 
-Options: `threshold` defaults to `0.85`; `minConfidence` defaults to `0.7`; `databaseCallPatterns` and `collectionOperationPatterns` each default to the package's built-in patterns. Supplying either pattern array replaces that corresponding default. Built-in import-aware relational recognition excludes document databases such as Mongoose.
+Options: `threshold` defaults to `{ warning: 0.85, error: 0.95 }`; `minConfidence` defaults to `0.7`; `databaseCallPatterns` and `collectionOperationPatterns` each default to the package's built-in patterns. Supplying either pattern array replaces that corresponding default. Built-in import-aware relational recognition excludes document databases such as Mongoose.
 
 ## `relational-databases/no-query-in-loop`
 

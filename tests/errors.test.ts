@@ -251,23 +251,36 @@ try { fifth(); } catch (error) { logger.info("Do not parse error.message here");
   assert.match(JSON.stringify(candidates[2]?.question), /opaque classifier/u);
 });
 
-await test("no-swallowed-errors applies typed margins and abstains on other decisions", () => {
+await test("no-swallowed-errors applies warning and error boundaries", () => {
   const factory = errors().rules["no-swallowed-errors"];
-  const candidate = factory().collect(
+  const rule = factory({ threshold: { warning: 0.8, error: 0.95 } });
+  const candidate = rule.collect(
     oxcParser().parse("one.ts", "try { work(); } catch (error) {}"),
   )[0];
   assert.ok(candidate);
 
-  assert.ok(factory().diagnose(choice("swallowed", { swallowed: 0.9 }, 0.7), candidate));
+  assert.equal(rule.diagnose(choice("swallowed", { swallowed: 0.79 }, 0.99), candidate), null);
   assert.equal(
-    factory().diagnose(
-      choice("insufficient_context", { insufficient_context: 0.99 }, 0.99),
-      candidate,
-    ),
+    rule.diagnose(choice("swallowed", { swallowed: 0.8 }, 0.7), candidate)?.severity,
+    "warning",
+  );
+  assert.equal(
+    rule.diagnose(choice("swallowed", { swallowed: 0.9 }, 0.7), candidate)?.severity,
+    "warning",
+  );
+  assert.equal(
+    rule.diagnose(choice("swallowed", { swallowed: 0.95 }, 0.7), candidate)?.severity,
+    "error",
+  );
+  assert.equal(rule.diagnose(choice("swallowed", { swallowed: 0.99 }, 0.69), candidate), null);
+  assert.equal(
+    rule.diagnose(choice("insufficient_context", { insufficient_context: 0.99 }, 0.99), candidate),
     null,
   );
-  assert.equal(factory().diagnose(choice("swallowed", { swallowed: 0.89 }, 0.99), candidate), null);
-  assert.throws(() => factory({ threshold: 1.1 }), /threshold must be a finite number/u);
+  assert.throws(
+    () => Reflect.apply(factory, undefined, [{ threshold: 1.1 }]),
+    /threshold must be an object/u,
+  );
   assert.throws(() => factory({ minConfidence: Number.NaN }), /minConfidence must be/u);
 });
 
@@ -316,6 +329,7 @@ await test("new error rules apply calibrated margins and stable diagnostics", ()
     assert.deepEqual(
       rule.diagnose(choice(entry.finding, { [entry.finding]: entry.threshold }, 0.7), candidate),
       {
+        severity: "warning",
         message: entry.message,
         filename: "errors.ts",
         location: candidate.target.location,

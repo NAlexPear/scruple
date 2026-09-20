@@ -194,6 +194,7 @@ const makeTestPlugin = (): ScruplePlugin => {
         diagnose(answer, candidate) {
           return answer.type === "choice" && answer.choice === "bad"
             ? {
+                severity: "error",
                 message: "Bad fixture",
                 filename: candidate.target.filename,
                 location: candidate.target.location,
@@ -255,6 +256,7 @@ const makeChoicePlugin = (): ScruplePlugin => {
             (answer.probabilities["finding"] ?? 0) >= 0.9 &&
             answer.confidence >= 0.7
             ? {
+                severity: "error",
                 message: "Choice finding",
                 filename: candidate.target.filename,
                 location: candidate.target.location,

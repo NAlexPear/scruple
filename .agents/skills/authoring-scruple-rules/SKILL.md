@@ -20,13 +20,13 @@ closest `packages/*/src/index.ts`. Read `apps/docs/guide/writing-a-plugin.md` be
 
 ## Implement the rule
 
-1. Define an options type. Reuse `DecisionRuleOptions` and `resolveDecisionOptions` for probability thresholds when appropriate.
+1. Define an options type. Reuse `DecisionRuleOptions` and `resolveDecisionOptions` for probability thresholds when appropriate. `threshold` is always `{ warning: number; error: number }`, with `warning <= error`; never accept the old numeric form.
 2. Implement a `RuleFactory<Options>` that validates options when instantiated.
 3. In `collect`, select possible targets deterministically, preserve source order, and send only bounded evidence needed by the question.
 4. When candidate recognition itself requires judgment, return an asynchronous rule and call `context.provider.evaluate(target, request, context.signal)`. Do not call a provider directly or bypass engine suppression and accounting.
 5. Give each candidate exactly one fixed `noul`, `choice`, or `score` question. Use named, mutually distinguishable criteria.
 6. Include `insufficient_context` whenever hidden callers, helpers, configuration, middleware, types, or runtime behavior could change the answer.
-7. In `diagnose`, reject wrong answer types, safe or abstaining answers, non-finite scores, and values below thresholds. Return fixed author-written diagnostic text; never ask the provider to write warnings or fixes.
+7. In `diagnose`, reject wrong answer types, safe or abstaining answers, non-finite scores, and values below `threshold.warning`. Every diagnostic must include `severity`: use `"warning"` below `threshold.error` and `"error"` at or above it. Return fixed author-written diagnostic text; never ask the provider to write warnings or fixes.
 
 Read [rule design](reference/rule-design.md) for the implementation checklist.
 

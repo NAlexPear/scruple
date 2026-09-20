@@ -1,7 +1,7 @@
 import type {
   ChoiceAnswer,
-  DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -10,7 +10,7 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export type SecurityRuleOptions = DecisionRuleOptions;
 
@@ -224,7 +224,7 @@ interface ChoiceRuleDefinition {
     criteria: Record<string, JsonValue>;
   };
   finding: string;
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
   message: string;
 }
@@ -244,10 +244,14 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
       }));
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, definition.threshold, definition.minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
         return null;
       }
-      return diagnostic(candidate, definition.message, answer, definition.finding);
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, definition);
+      return severity === null
+        ? null
+        : diagnostic(candidate, definition.message, answer, definition.finding, severity);
     },
   };
 };
@@ -371,24 +375,13 @@ const matchesAny = (value: string, patterns: readonly RegExp[]): boolean => {
 const decisionOptions = (
   options: SecurityRuleOptions,
 ): {
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
 } => {
-  return resolveDecisionOptions(options, { threshold: 0.9, minConfidence: 0.75 });
-};
-
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
+  return resolveDecisionOptions(options, {
+    threshold: { warning: 0.9, error: 0.97 },
+    minConfidence: 0.75,
+  });
 };
 
 const diagnostic = (
@@ -396,6 +389,7 @@ const diagnostic = (
   message: string,
   answer: ChoiceAnswer,
   finding: string,
+  severity: "warning" | "error",
 ) => {
   return {
     message,
@@ -403,5 +397,6 @@ const diagnostic = (
     location: candidate.target.location,
     probability: answer.probabilities[finding] ?? 0,
     confidence: answer.confidence,
+    severity,
   };
 };

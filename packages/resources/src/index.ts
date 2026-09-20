@@ -1,7 +1,6 @@
 import type {
-  ChoiceAnswer,
-  DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -10,7 +9,7 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export interface ResourceLifecycleRuleOptions extends DecisionRuleOptions {
   lifecycleCallPatterns?: RegExp[];
@@ -60,7 +59,7 @@ export const resources = (): ResourcesPlugin => {
 };
 
 const noLeakedResources = (options: ResourceLifecycleRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.65, 0.5);
+  const { threshold, minConfidence } = decisionOptions(options, { warning: 0.65, error: 0.9 }, 0.5);
   const lifecyclePatterns = lifecyclePatternsFor(options);
   return functionChoiceRule({
     description: "Resources acquired in a function should not be leaked.",
@@ -87,7 +86,7 @@ const noLeakedResources = (options: ResourceLifecycleRuleOptions = {}): Semantic
 };
 
 const requireCleanupOnFailure = (options: ResourceLifecycleRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const { threshold, minConfidence } = decisionOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   const lifecyclePatterns = lifecyclePatternsFor(options);
   return functionChoiceRule({
     description: "Resource cleanup should run when work fails.",
@@ -114,7 +113,7 @@ const requireCleanupOnFailure = (options: ResourceLifecycleRuleOptions = {}): Se
 };
 
 const requireBoundedRetries = (options: RequireBoundedRetriesOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const { threshold, minConfidence } = decisionOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   const retryPatterns = retryPatternsFor(options);
   return functionChoiceRule({
     description: "Retry behavior should have an enforced finite bound.",
@@ -140,7 +139,7 @@ const requireBoundedRetries = (options: RequireBoundedRetriesOptions = {}): Sema
 const requireCompleteResourceCleanup = (
   options: ResourceLifecycleRuleOptions = {},
 ): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const { threshold, minConfidence } = decisionOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   const lifecyclePatterns = acquisitionPatternsFor(options);
   return functionChoiceRule({
     description:
@@ -170,7 +169,7 @@ const requireCompleteResourceCleanup = (
 const requireRetryBackoffWithJitter = (
   options: RequireBoundedRetriesOptions = {},
 ): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const { threshold, minConfidence } = decisionOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   const retryPatterns = retryPatternsFor(options);
   return functionChoiceRule({
     description: "Retries should use backoff with jitter to avoid synchronized retry pressure.",
@@ -197,7 +196,7 @@ const requireRetryBackoffWithJitter = (
 };
 
 const requireRetryTimeBudget = (options: RequireBoundedRetriesOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const { threshold, minConfidence } = decisionOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   const retryPatterns = retryPatternsFor(options);
   return functionChoiceRule({
     description: "Retried operations should have a total elapsed-time budget.",
@@ -228,7 +227,7 @@ interface FunctionChoiceRuleDefinition {
   instructions: JsonValue;
   criteria: Record<string, JsonValue>;
   finding: string;
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
   message: string;
 }
@@ -248,12 +247,18 @@ const functionChoiceRule = (definition: FunctionChoiceRuleDefinition): SemanticR
       }));
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, definition.threshold, definition.minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
+        return null;
+      }
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, definition);
+      if (severity === null) {
         return null;
       }
       return diagnostic(candidate, definition.message, {
-        probability: answer.probabilities[definition.finding] ?? 0,
+        probability,
         confidence: answer.confidence,
+        severity,
       });
     },
   };
@@ -419,34 +424,20 @@ const retryPatternsFor = (options: RequireBoundedRetriesOptions): RegExp[] => {
 };
 
 const decisionOptions = (
-  options: { threshold?: number; minConfidence?: number },
-  defaultThreshold: number,
+  options: DecisionRuleOptions,
+  defaultThreshold: DecisionThreshold,
   defaultMinConfidence: number,
-): { threshold: number; minConfidence: number } => {
+): { threshold: DecisionThreshold; minConfidence: number } => {
   return resolveDecisionOptions(options, {
     threshold: defaultThreshold,
     minConfidence: defaultMinConfidence,
   });
 };
 
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
-};
-
 const diagnostic = (
   candidate: RuleCandidate,
   message: string,
-  scores: { probability: number; confidence: number },
+  scores: { probability: number; confidence: number; severity: "warning" | "error" },
 ) => {
   return {
     message,

@@ -29,7 +29,7 @@ export default defineConfig({
 
 Reviews parsed test functions and reachable named same-file helper bodies. Effective checks include framework assertions, assertion helpers, properly observed expected throws or rejections, snapshots, and mock interaction verification when causally connected to the behavior under test. Clearly named completion or no-crash smoke contracts can also be intentional. Merely executing code, setting up mocks, unobserved async expectations, tautologies, and unrelated assertions do not count. Unknown helper semantics cause abstention.
 
-Options: `threshold` defaults to `0.9`; `minConfidence` defaults to `0.7`.
+Options: `threshold` defaults to `{ warning: 0.9, error: 0.97 }`; `minConfidence` defaults to `0.7`.
 
 ## `tests/require-specific-error-assertions`
 
@@ -44,5 +44,10 @@ Reviews sleeps, pauses, `waitForTimeout`, and direct timers used to wait for rea
 Reviews test bodies with direct calls to common randomness and wall-clock sources. Seeded randomness, fake clocks, and tests explicitly asserting nondeterministic properties are accepted. Candidate selection is conservative, and opaque helpers or externally controlled inputs cause abstention.
 
 ```ts
-rules: { "tests/no-vacuous-tests": ["warn", { threshold: 0.95, minConfidence: 0.8 }] }
+rules: {
+  "tests/no-vacuous-tests": [
+    "warn",
+    { threshold: { warning: 0.95, error: 0.99 }, minConfidence: 0.8 },
+  ],
+}
 ```

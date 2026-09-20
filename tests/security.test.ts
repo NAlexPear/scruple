@@ -314,6 +314,7 @@ await test("security diagnostics require the configured finding, probability, an
   assert.equal(rule.diagnose(answer("sensitive_data_exposure", 0.89, 0.99), candidate), null);
   assert.equal(rule.diagnose(answer("sensitive_data_exposure", 0.99, 0.74), candidate), null);
   assert.deepEqual(rule.diagnose(answer("sensitive_data_exposure", 0.9, 0.75), candidate), {
+    severity: "warning",
     message: "This function appears to expose sensitive data in a response or rendered output.",
     filename: "account.ts",
     location: candidate.target.location,
@@ -336,6 +337,7 @@ await test("authorization findings use a stable advisory diagnostic", () => {
   assert.ok(candidate);
 
   assert.deepEqual(rule.diagnose(answer("user_controlled_authorization", 0.95, 0.9), candidate), {
+    severity: "warning",
     message: "This function appears to trust user-controlled data for an authorization decision.",
     filename: "report.ts",
     location: candidate.target.location,

@@ -382,13 +382,20 @@ await test("new test diagnostics use conservative margins and stable messages", 
       entry.rule.diagnose(choice(entry.finding, 0.9, 0.7), candidate)?.message,
       entry.message,
     );
+    assert.equal(
+      entry.rule.diagnose(choice(entry.finding, 0.9, 0.7), candidate)?.severity,
+      "warning",
+    );
     assert.equal(entry.rule.diagnose(choice(entry.finding, 0.89, 0.99), candidate), null);
     assert.equal(entry.rule.diagnose(choice(entry.finding, 0.99, 0.69), candidate), null);
   }
 
   assert.throws(
-    () => plugin.rules["require-specific-error-assertions"]({ threshold: 1.1 }),
-    /threshold must be a finite number/u,
+    () =>
+      Reflect.apply(plugin.rules["require-specific-error-assertions"], undefined, [
+        { threshold: 1.1 },
+      ]),
+    /threshold must be an object/u,
   );
   assert.throws(
     () => plugin.rules["no-fixed-delay-synchronization"]({ minConfidence: Number.NaN }),

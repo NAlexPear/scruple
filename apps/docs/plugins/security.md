@@ -26,7 +26,7 @@ export default defineConfig({
 | [`security/no-untrusted-mass-assignment`](#securityno-untrusted-mass-assignment)         | Request objects assigned or persisted wholesale             |
 | [`security/no-unsafe-redirect`](#securityno-unsafe-redirect)                             | Request-controlled redirect targets                         |
 
-All rules accept `threshold`, defaulting to `0.9`, and `minConfidence`, defaulting to `0.75`.
+All rules accept `threshold`, defaulting to `{ warning: 0.9, error: 0.97 }`, and `minConfidence`, defaulting to `0.75`.
 
 ## `security/no-user-controlled-authorization`
 

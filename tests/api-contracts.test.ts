@@ -197,6 +197,7 @@ await test("API contract rules abstain unless the configured decision margin is 
   assert.equal(rule.diagnose(answer("misleading_name", 0.89, 0.99), candidate), null);
   assert.equal(rule.diagnose(answer("misleading_name", 0.99, 0.69), candidate), null);
   assert.deepEqual(rule.diagnose(answer("misleading_name", 0.9, 0.7), candidate), {
+    severity: "warning",
     message: "This function name appears to contradict its visible behavior.",
     filename: "contracts.ts",
     location: candidate.target.location,
@@ -248,7 +249,10 @@ await test("each API contract rule emits only its stable diagnostic", () => {
   ];
 
   for (const entry of cases) {
-    const rule = plugin.rules[entry.ruleName]({ threshold: 0.8, minConfidence: 0.6 });
+    const rule = plugin.rules[entry.ruleName]({
+      threshold: { warning: 0.8, error: 0.95 },
+      minConfidence: 0.6,
+    });
     const candidate = rule.collect(document)[0];
     assert.ok(candidate);
     assert.equal(rule.diagnose(answer(entry.finding, 0.8, 0.6), candidate)?.message, entry.message);
@@ -287,5 +291,6 @@ app.get("/users/:id/delete", (req, res) => res.status(200).json(users.delete(req
       rule.diagnose(answer(entry.finding, 0.9, 0.75), candidate)?.message,
       entry.message,
     );
+    assert.equal(rule.diagnose(answer(entry.finding, 0.9, 0.75), candidate)?.severity, "warning");
   }
 });

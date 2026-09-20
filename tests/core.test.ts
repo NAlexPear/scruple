@@ -1,25 +1,55 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveDecisionOptions } from "@scruple/core";
+import { resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
 
 await test("resolves and validates shared decision rule options", () => {
-  const defaults = { threshold: 0.9, minConfidence: 0.7 };
+  const defaults = { threshold: { warning: 0.9, error: 0.97 }, minConfidence: 0.7 };
 
   assert.deepEqual(resolveDecisionOptions({}, defaults), defaults);
-  assert.deepEqual(resolveDecisionOptions({ threshold: 0, minConfidence: 1 }, defaults), {
-    threshold: 0,
-    minConfidence: 1,
-  });
+  assert.deepEqual(
+    resolveDecisionOptions({ threshold: { warning: 0, error: 1 }, minConfidence: 1 }, defaults),
+    {
+      threshold: { warning: 0, error: 1 },
+      minConfidence: 1,
+    },
+  );
   assert.throws(
-    () => resolveDecisionOptions({ threshold: Number.NaN }, defaults),
-    /threshold must be a finite number between 0 and 1/u,
+    () => Reflect.apply(resolveDecisionOptions, undefined, [{ threshold: 0.9 }, defaults]),
+    /threshold must be an object/u,
+  );
+  assert.throws(
+    () => resolveDecisionOptions({ threshold: { warning: Number.NaN, error: 1 } }, defaults),
+    /threshold.warning must be a finite number between 0 and 1/u,
+  );
+  assert.throws(
+    () => resolveDecisionOptions({ threshold: { warning: 0, error: 1.01 } }, defaults),
+    /threshold.error must be a finite number between 0 and 1/u,
+  );
+  assert.throws(
+    () => resolveDecisionOptions({ threshold: { warning: 0.91, error: 0.9 } }, defaults),
+    /threshold.warning must be less than or equal to threshold.error/u,
   );
   assert.throws(
     () => resolveDecisionOptions({ minConfidence: 1.01 }, defaults),
     /minConfidence must be a finite number between 0 and 1/u,
   );
+});
+
+await test("resolves warning and error severity at exact boundaries", () => {
+  const thresholds = {
+    threshold: { warning: 0.8, error: 0.95 },
+    minConfidence: 0.7,
+  };
+
+  assert.equal(resolveDiagnosticSeverity(0.79, 0.99, thresholds), null);
+  assert.equal(resolveDiagnosticSeverity(0.8, 0.7, thresholds), "warning");
+  assert.equal(resolveDiagnosticSeverity(0.949, 0.99, thresholds), "warning");
+  assert.equal(resolveDiagnosticSeverity(0.95, 0.99, thresholds), "error");
+  assert.equal(resolveDiagnosticSeverity(0.99, 0.69, thresholds), null);
+  assert.equal(resolveDiagnosticSeverity(Number.NaN, 0.99, thresholds), null);
+  assert.equal(resolveDiagnosticSeverity(0.99, Number.POSITIVE_INFINITY, thresholds), null);
 });
 
 await test("normalizes using declarations and standalone control regions without reading prose", () => {

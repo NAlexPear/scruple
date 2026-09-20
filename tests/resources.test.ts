@@ -444,6 +444,7 @@ await test("resource diagnostics require the configured finding, probability, an
       probabilities: { [entry.finding]: entry.threshold },
     };
     assert.deepEqual(rule.diagnose(finding, candidate), {
+      severity: "warning",
       message: entry.message,
       filename: "resource.ts",
       location: candidate.target.location,

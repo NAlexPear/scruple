@@ -4,7 +4,7 @@
     {
       "id": "bounded-choice-rule",
       "prompt": "Create a Scruple plugin with a rule that reports TODO comments only when they fail to identify concrete follow-up work. Include configurable probability and confidence thresholds and tests.",
-      "expected_output": "Defines a typed RuleFactory and definePlugin export; selects normalized comment targets in source order; sends bounded evidence; asks one choice question with specific, vague, and insufficient_context criteria; validates options; diagnose reports only calibrated vague answers with a fixed message; tests selection, safe and insufficient answers, exact and below-threshold values, integration, and bounded request size.",
+      "expected_output": "Defines a typed RuleFactory and definePlugin export; selects normalized comment targets in source order; sends bounded evidence; asks one choice question with specific, vague, and insufficient_context criteria; validates threshold as a { warning, error } object with warning no greater than error and rejects numeric thresholds; diagnose reports only calibrated vague answers with a fixed message and required warning or error severity; tests selection, safe and insufficient answers, exact and below-warning values, exact and below-error severity boundaries, integration, and bounded request size.",
       "files": []
     },
     {

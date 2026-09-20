@@ -1,5 +1,6 @@
 import type {
   DecisionRuleOptions,
+  DecisionThreshold,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -7,7 +8,7 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export interface NoVacuousTestsOptions extends DecisionRuleOptions {
   /** Test callbacks larger than this are skipped rather than partially evaluated. */
@@ -215,10 +216,12 @@ const testChoiceRule = (definition: TestChoiceRuleDefinition): SemanticRule => {
         return null;
       }
       const probability = answer.probabilities[definition.finding] ?? 0;
-      if (
-        probability < definition.options.threshold ||
-        answer.confidence < definition.options.minConfidence
-      ) {
+      const severity = resolveDiagnosticSeverity(
+        probability,
+        answer.confidence,
+        definition.options,
+      );
+      if (severity === null) {
         return null;
       }
       return {
@@ -227,13 +230,14 @@ const testChoiceRule = (definition: TestChoiceRuleDefinition): SemanticRule => {
         location: candidate.target.location,
         probability,
         confidence: answer.confidence,
+        severity,
       };
     },
   };
 };
 
 interface ResolvedOptions {
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
   maxFunctionCharacters: number;
   maxImportCharacters: number;
@@ -415,7 +419,10 @@ const boundedHelpers = (
 };
 
 const resolveOptions = (options: NoVacuousTestsOptions): ResolvedOptions => {
-  const decision = resolveDecisionOptions(options, { threshold: 0.9, minConfidence: 0.7 });
+  const decision = resolveDecisionOptions(options, {
+    threshold: { warning: 0.9, error: 0.97 },
+    minConfidence: 0.7,
+  });
   return {
     ...decision,
     maxFunctionCharacters: integerOption(

@@ -332,6 +332,11 @@ export type DiagnosticSeverity = "warning" | "error";
 export type RuleSeverity = "off" | "warn" | "error";
 export type RuleConfiguration = RuleSeverity | readonly [RuleSeverity, unknown];
 
+export interface DecisionThreshold {
+  warning: number;
+  error: number;
+}
+
 export interface Diagnostic {
   ruleId: string;
   severity: DiagnosticSeverity;
@@ -351,7 +356,7 @@ export interface SemanticRule<Result extends CollectionResult = RuleCandidate[]>
   diagnose(
     answer: DecisionAnswer,
     candidate: RuleCandidate,
-  ): Omit<Diagnostic, "ruleId" | "severity" | "model"> | null;
+  ): Omit<Diagnostic, "ruleId" | "model"> | null;
 }
 
 export type AnySemanticRule = SemanticRule<CollectionResult>;
@@ -363,12 +368,12 @@ export type RuleFactory<Options = never, Result extends AnySemanticRule = Semant
 export type RuleFactories = Record<string, RuleFactory<never, AnySemanticRule>>;
 
 export interface DecisionRuleOptions {
-  threshold?: number;
+  threshold?: DecisionThreshold;
   minConfidence?: number;
 }
 
 export interface DecisionThresholds {
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
 }
 
@@ -378,9 +383,35 @@ export const resolveDecisionOptions = (
 ): DecisionThresholds => {
   const threshold = options.threshold ?? defaults.threshold;
   const minConfidence = options.minConfidence ?? defaults.minConfidence;
-  validateProbability("threshold", threshold);
+  if (!isRecord(threshold)) {
+    throw new TypeError("threshold must be an object with warning and error probabilities");
+  }
+  validateProbability("threshold.warning", threshold["warning"]);
+  validateProbability("threshold.error", threshold["error"]);
+  if (threshold["warning"] > threshold["error"]) {
+    throw new RangeError("threshold.warning must be less than or equal to threshold.error");
+  }
   validateProbability("minConfidence", minConfidence);
-  return { threshold, minConfidence };
+  return {
+    threshold: { warning: threshold["warning"], error: threshold["error"] },
+    minConfidence,
+  };
+};
+
+export const resolveDiagnosticSeverity = (
+  probability: number,
+  confidence: number,
+  thresholds: DecisionThresholds,
+): DiagnosticSeverity | null => {
+  if (
+    !Number.isFinite(probability) ||
+    !Number.isFinite(confidence) ||
+    confidence < thresholds.minConfidence ||
+    probability < thresholds.threshold.warning
+  ) {
+    return null;
+  }
+  return probability >= thresholds.threshold.error ? "error" : "warning";
 };
 
 const validateProbability = (name: string, value: number): void => {
@@ -636,7 +667,7 @@ export const runScruple = async (
           diagnostics.push({
             ...diagnostic,
             ruleId: activeRule.id,
-            severity: activeRule.severity,
+            severity: activeRule.severity === "warning" ? "warning" : diagnostic.severity,
             model: response.model,
           });
         }

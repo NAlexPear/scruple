@@ -47,13 +47,15 @@ import type {
 import { definePlugin, resolveDecisionOptions } from "@scruple/core";
 
 export interface RequireSpecificTodoOptions {
-  threshold?: number;
+  threshold?: { warning: number; error: number };
   minConfidence?: number;
 }
 ```
 
 ::: info What the settings mean
-`threshold` controls how likely “vague” must be. `minConfidence` controls how sure the model must be.
+`threshold.warning` is the minimum probability for a warning, and `threshold.error` is the minimum
+for an error. Both fields are required, the numeric form is not accepted, and `warning` cannot exceed
+`error`. `minConfidence` must be met before either tier applies.
 :::
 
 ## 3. Limit the text sent to the model
@@ -221,7 +223,7 @@ const requireSpecificTodo = (
   options: RequireSpecificTodoOptions = {},
 ): AsyncSemanticRule => {
   const { threshold, minConfidence } = resolveDecisionOptions(options, {
-    threshold: 0.85,
+    threshold: { warning: 0.85, error: 0.95 },
     minConfidence: 0.7,
   });
 
@@ -236,7 +238,7 @@ const requireSpecificTodo = (
       if (
         probability === undefined ||
         !Number.isFinite(probability) ||
-        probability < threshold ||
+        probability < threshold.warning ||
         answer.confidence < minConfidence
       ) {
         return null;
@@ -244,6 +246,7 @@ const requireSpecificTodo = (
 
       return {
         message: "Make this TODO identify the work or removal condition.",
+        severity: probability >= threshold.error ? "error" : "warning",
         filename: candidate.target.filename,
         location: candidate.target.location,
         probability,
@@ -255,8 +258,9 @@ const requireSpecificTodo = (
 ```
 
 ::: info When the rule stays quiet
-It returns `null` for clear TODOs, missing information, and weak answers. The model never writes the
-warning.
+It returns `null` for clear TODOs, missing information, and weak answers. The provider must choose
+`vague` and meet `minConfidence` before probability selects warning or error. The model never writes
+the diagnostic.
 :::
 
 ## 9. Export the plugin
@@ -289,13 +293,16 @@ export default defineConfig({
   provider,
   plugins: { todos: todoPolicy() },
   rules: {
-    "todos/require-specific-todo": ["warn", { threshold: 0.9 }],
+    "todos/require-specific-todo": [
+      "warn",
+      { threshold: { warning: 0.9, error: 0.97 } },
+    ],
   },
 });
 ```
 
 ::: tip At this point
-Scruple can run the rule. The project controls whether it is off, a warning, or an error.
+Scruple can run the rule. `"warn"` caps its output at warning. `"error"` permits both probability tiers.
 :::
 
 ## 11. Test both paths

@@ -26,19 +26,19 @@ export default defineConfig({
 | [`observability/require-stable-telemetry-names`](#observabilityrequire-stable-telemetry-names) | Dynamic event, span, or metric names               |
 | [`observability/no-duplicate-error-reporting`](#observabilityno-duplicate-error-reporting)     | The same caught failure reported twice             |
 
-All rules accept `threshold`, `minConfidence`, and custom call-pattern options. Custom patterns extend the built-in patterns. `minConfidence` defaults to `0.7`.
+All rules accept `threshold`, `minConfidence`, and custom call-pattern options. `threshold` is always a `{ warning, error }` object. Custom patterns extend the built-in patterns. `minConfidence` defaults to `0.7`.
 
 ## `observability/no-sensitive-logs`
 
-Reviews detected log and telemetry calls for visibly sensitive emitted values without effective masking, allowlisting, hashing for disclosure control, or redaction. `threshold` defaults to `0.9`.
+Reviews detected log and telemetry calls for visibly sensitive emitted values without effective masking, allowlisting, hashing for disclosure control, or redaction. `threshold` defaults to `{ warning: 0.9, error: 0.97 }`.
 
 ## `observability/no-unactionable-errors`
 
-Reviews only error/fatal logs and exception telemetry. An actionable event identifies the failed operation and preserves useful failure evidence. `threshold` defaults to `0.85`.
+Reviews only error/fatal logs and exception telemetry. An actionable event identifies the failed operation and preserves useful failure evidence. `threshold` defaults to `{ warning: 0.85, error: 0.95 }`.
 
 ## `observability/require-operation-context`
 
-Checks log and telemetry events other than `setAttribute` and `setAttributes` for a specific message or structured field naming the operation. IDs and status alone do not identify it. `threshold` defaults to `0.8`.
+Checks log and telemetry events other than `setAttribute` and `setAttributes` for a specific message or structured field naming the operation. IDs and status alone do not identify it. `threshold` defaults to `{ warning: 0.8, error: 0.95 }`.
 
 ## `observability/require-stable-telemetry-names`
 

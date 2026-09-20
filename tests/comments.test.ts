@@ -53,6 +53,7 @@ await test("no-useless-comments uses explicit choices and abstains on uncertain 
   assert.equal(rule.diagnose(answer("redundant", 0.89, 0.99), candidate), null);
   assert.equal(rule.diagnose(answer("redundant", 0.99, 0.69), candidate), null);
   assert.deepEqual(rule.diagnose(answer("redundant", 0.9, 0.7), candidate), {
+    severity: "warning",
     message: "This comment appears to add no useful information.",
     filename: "comments.ts",
     location: candidate.target.location,
@@ -116,6 +117,7 @@ await test("suppression diagnostics require an unjustified high-confidence decis
   assert.equal(rule.diagnose(answer("unjustified_suppression", 0.84, 0.99), candidate), null);
   assert.equal(rule.diagnose(answer("unjustified_suppression", 0.99, 0.69), candidate), null);
   assert.deepEqual(rule.diagnose(answer("unjustified_suppression", 0.85, 0.7), candidate), {
+    severity: "warning",
     message: "Explain why this suppression is necessary and keep its scope as narrow as possible.",
     filename: "suppression.ts",
     location: candidate.target.location,
@@ -231,6 +233,7 @@ export function connectOld() {}
   assert.equal(rule.diagnose(answer("justified_no_replacement", 0.99, 0.99), candidate), null);
   assert.equal(rule.diagnose(answer("insufficient_context", 0.99, 0.99), candidate), null);
   assert.deepEqual(rule.diagnose(answer("unactionable_deprecation", 0.85, 0.7), candidate), {
+    severity: "warning",
     message: "Add a replacement, migration steps, or a clear reason that no replacement exists.",
     filename: "deprecations.ts",
     location: candidate.target.location,

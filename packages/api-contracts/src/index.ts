@@ -1,8 +1,9 @@
 import type {
   ApiBoundaryTarget,
-  ChoiceAnswer,
   DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
+  DecisionThresholds,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -11,7 +12,7 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export interface ApiContractRuleOptions extends DecisionRuleOptions {
   /** Functions or route handlers larger than this are skipped. */
@@ -50,7 +51,10 @@ const significantResultCallee =
   /(?:^|\.)(?:compareAndSet|create|delete|insert|parse|remove|safeParse|save|try[A-Z]\w*|update|validate)$/u;
 
 const noIgnoredSignificantResults = (options: ApiContractRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, { threshold: 0.9, minConfidence: 0.7 });
+  const resolved = resolveOptions(options, {
+    threshold: { warning: 0.9, error: 0.97 },
+    minConfidence: 0.7,
+  });
   const { threshold, minConfidence } = resolved;
   const finding = "ignored_significant_result";
   return {
@@ -139,7 +143,7 @@ const noMisleadingFunctionNames = (options: ApiContractRuleOptions = {}): Semant
   return choiceRule({
     description: "Function names should accurately describe behavior visible in their bodies.",
     options,
-    defaults: { threshold: 0.9, minConfidence: 0.7 },
+    defaults: { threshold: { warning: 0.9, error: 0.97 }, minConfidence: 0.7 },
     select: namedFunctions,
     question: {
       instructions:
@@ -164,7 +168,7 @@ const noAmbiguousFailureContracts = (options: ApiContractRuleOptions = {}): Sema
   return choiceRule({
     description: "Public functions should expose a coherent, distinguishable failure contract.",
     options,
-    defaults: { threshold: 0.8, minConfidence: 0.7 },
+    defaults: { threshold: { warning: 0.8, error: 0.95 }, minConfidence: 0.7 },
     select: directlyExportedFunctions,
     question: {
       instructions:
@@ -184,7 +188,10 @@ const noAmbiguousFailureContracts = (options: ApiContractRuleOptions = {}): Sema
 };
 
 const requireInputValidation = (options: ApiContractRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, { threshold: 0.85, minConfidence: 0.7 });
+  const resolved = resolveOptions(options, {
+    threshold: { warning: 0.85, error: 0.95 },
+    minConfidence: 0.7,
+  });
   const { threshold, minConfidence } = resolved;
   const question = {
     type: "choice" as const,
@@ -247,7 +254,7 @@ const noSideEffectsInSafeHttpMethods = (options: ApiContractRuleOptions = {}): S
   return boundaryChoiceRule({
     description: "Safe HTTP methods should not implement requested state-changing behavior.",
     options,
-    defaults: { threshold: 0.9, minConfidence: 0.75 },
+    defaults: { threshold: { warning: 0.9, error: 0.97 }, minConfidence: 0.75 },
     select: (document) =>
       (document.apiBoundaries ?? []).filter(
         (boundary) => safeHttpMethods.has(boundary.method) && hasPossibleStateChange(boundary),
@@ -272,7 +279,7 @@ const noMisleadingHttpStatus = (options: ApiContractRuleOptions = {}): SemanticR
   return boundaryChoiceRule({
     description: "Explicit HTTP status codes should match the visible operation outcome.",
     options,
-    defaults: { threshold: 0.9, minConfidence: 0.75 },
+    defaults: { threshold: { warning: 0.9, error: 0.97 }, minConfidence: 0.75 },
     select: (document) =>
       (document.apiBoundaries ?? []).filter((boundary) =>
         boundary.responseExits.some((exit) => exit.status !== undefined),
@@ -297,7 +304,7 @@ const noMisleadingHttpStatus = (options: ApiContractRuleOptions = {}): SemanticR
 interface ChoiceRuleDefinition {
   description: string;
   options: ApiContractRuleOptions;
-  defaults: { threshold: number; minConfidence: number };
+  defaults: DecisionThresholds;
   select(document: ParsedDocument, options: ResolvedOptions): SelectedFunction[];
   question: {
     instructions: JsonValue;
@@ -310,7 +317,7 @@ interface ChoiceRuleDefinition {
 interface BoundaryChoiceRuleDefinition {
   description: string;
   options: ApiContractRuleOptions;
-  defaults: { threshold: number; minConfidence: number };
+  defaults: DecisionThresholds;
   select(document: ParsedDocument, options: ResolvedOptions): ApiBoundaryTarget[];
   instructions: JsonValue;
   criteria: Record<string, JsonValue>;
@@ -324,7 +331,7 @@ interface SelectedFunction {
 }
 
 interface ResolvedOptions {
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
   maxFunctionCharacters: number;
   maxImportCharacters: number;
@@ -333,7 +340,6 @@ interface ResolvedOptions {
 
 const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
   const resolved = resolveOptions(definition.options, definition.defaults);
-  const { threshold, minConfidence } = resolved;
   return {
     description: definition.description,
     collect(document) {
@@ -354,22 +360,21 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
       });
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, threshold, minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
         return null;
       }
-      return diagnostic(
-        candidate,
-        definition.message,
-        answer.probabilities[definition.finding] ?? 0,
-        answer.confidence,
-      );
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, resolved);
+      if (severity === null) {
+        return null;
+      }
+      return diagnostic(candidate, definition.message, probability, answer.confidence, severity);
     },
   };
 };
 
 const boundaryChoiceRule = (definition: BoundaryChoiceRuleDefinition): SemanticRule => {
   const resolved = resolveOptions(definition.options, definition.defaults);
-  const { threshold, minConfidence } = resolved;
   return {
     description: definition.description,
     collect(document) {
@@ -388,15 +393,15 @@ const boundaryChoiceRule = (definition: BoundaryChoiceRuleDefinition): SemanticR
         }));
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, threshold, minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
         return null;
       }
-      return diagnostic(
-        candidate,
-        definition.message,
-        answer.probabilities[definition.finding] ?? 0,
-        answer.confidence,
-      );
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, resolved);
+      if (severity === null) {
+        return null;
+      }
+      return diagnostic(candidate, definition.message, probability, answer.confidence, severity);
     },
   };
 };
@@ -405,14 +410,21 @@ const findingDiagnostic = (
   answer: DecisionAnswer,
   candidate: RuleCandidate,
   finding: string,
-  threshold: number,
+  threshold: DecisionThreshold,
   minConfidence: number,
   message: string,
 ) => {
-  if (!isFinding(answer, finding, threshold, minConfidence)) {
+  if (answer.type !== "choice" || answer.choice !== finding) {
     return null;
   }
-  return diagnostic(candidate, message, answer.probabilities[finding] ?? 0, answer.confidence);
+  const probability = answer.probabilities[finding] ?? 0;
+  const severity = resolveDiagnosticSeverity(probability, answer.confidence, {
+    threshold,
+    minConfidence,
+  });
+  return severity === null
+    ? null
+    : diagnostic(candidate, message, probability, answer.confidence, severity);
 };
 
 const safeHttpMethods = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
@@ -596,7 +608,7 @@ const boundedImports = (
 
 const resolveOptions = (
   options: ApiContractRuleOptions,
-  defaults: { threshold: number; minConfidence: number },
+  defaults: DecisionThresholds,
 ): ResolvedOptions => {
   return {
     ...resolveDecisionOptions(options, defaults),
@@ -637,25 +649,12 @@ const sourceLocation = (source: string, range: { start: number; end: number }) =
   return { start: position(range.start), end: position(range.end) };
 };
 
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
-};
-
 const diagnostic = (
   candidate: RuleCandidate,
   message: string,
   probability: number,
   confidence: number,
+  severity: "warning" | "error",
 ) => {
   return {
     message,
@@ -663,5 +662,6 @@ const diagnostic = (
     location: candidate.target.location,
     probability,
     confidence,
+    severity,
   };
 };

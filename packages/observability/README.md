@@ -26,8 +26,10 @@ support a decision. Custom patterns are additive to the built-in sink set.
 
 ## Options and rule effects
 
-All rules accept `threshold` and `minConfidence`; these affect only whether that rule emits a
-diagnostic after classification. Sink options affect rules as follows:
+All rules accept `threshold: { warning, error }` and `minConfidence`. The provider must choose the
+finding label and meet `minConfidence`. A score at or above `warning` but below `error` produces a
+non-blocking warning, while a score at or above `error` produces a blocking error. A `"warn"` rule
+caps output at warning; an `"error"` rule permits either tier. Sink options affect rules as follows:
 
 | Option                                | Semantic kind                                     | Rules affected                                                                                             |
 | ------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |

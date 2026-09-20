@@ -63,7 +63,7 @@ src/report.ts
 
 :::
 
-The parser identifies the function, imports, and calls. The enabled rule asks whether failure can bypass cleanup, cleanup is guaranteed, ownership moves elsewhere, no vulnerable work exists, or the evidence is insufficient. The provider returns only a named answer and scores. The displayed 96% is the score for `cleanup_not_failure_safe`, not a statement of certainty. Because that score meets the rule's `0.9` threshold and confidence meets the `0.7` minimum, the rule emits its own fixed diagnostic message.
+The parser identifies the function, imports, and calls. The enabled rule asks whether failure can bypass cleanup, cleanup is guaranteed, ownership moves elsewhere, no vulnerable work exists, or the evidence is insufficient. The provider returns only a named answer and scores. The displayed 96% is the score for `cleanup_not_failure_safe`, not a statement of certainty. The provider chose that finding label, confidence meets the `0.7` minimum, and 96% is at least the `0.9` warning threshold but below the `0.97` error threshold. The rule therefore emits its own fixed warning.
 
 ## Parse once
 
@@ -91,6 +91,6 @@ Suppressed targets are discarded before either request is sent.
 
 ## Apply rule-owned policy
 
-After the provider responds, each semantic rule applies fixed probability and confidence thresholds to that answer. For a given answer, the rule returns its own fixed diagnostic or `null`. Provider answers can vary, so which findings appear can also vary between runs or providers.
+After the provider responds, each semantic rule checks the chosen label and minimum confidence, then applies fixed warning and error probability thresholds. A score from warning up to error is non-blocking. A score at or above error is blocking. The configured rule level may cap the result at warning. Provider answers can vary, so severity and which findings appear can also vary between runs or providers.
 
 Operational failures are reported separately from diagnostics and produce exit code 2.

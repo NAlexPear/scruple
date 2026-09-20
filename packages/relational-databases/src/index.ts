@@ -1,8 +1,8 @@
 import type {
   CallCapture,
-  ChoiceAnswer,
   DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -11,7 +11,7 @@ import type {
   ScruplePlugin,
   SemanticRule,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export interface DatabaseRuleOptions extends DecisionRuleOptions {
   databaseCallPatterns?: RegExp[];
@@ -64,7 +64,11 @@ export const relationalDatabases = (): RelationalDatabasesPlugin => {
 };
 
 const preferDatabaseJoin = (options: PreferDatabaseJoinOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.85, 0.7);
+  const { threshold, minConfidence } = decisionOptions(
+    options,
+    { warning: 0.85, error: 0.95 },
+    0.7,
+  );
   const databasePatterns = databasePatternsFor(options);
   const collectionPatterns =
     options.collectionOperationPatterns ?? defaultCollectionOperationPatterns;
@@ -116,7 +120,7 @@ const preferDatabaseJoin = (options: PreferDatabaseJoinOptions = {}): SemanticRu
 };
 
 const noQueryInLoop = (options: DatabaseRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.7);
+  const { threshold, minConfidence } = decisionOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   const databasePatterns = databasePatternsFor(options);
 
   return {
@@ -186,7 +190,11 @@ const noQueryInLoop = (options: DatabaseRuleOptions = {}): SemanticRule => {
 };
 
 const requireTransactionScopedClient = (options: DatabaseRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.75);
+  const { threshold, minConfidence } = decisionOptions(
+    options,
+    { warning: 0.9, error: 0.97 },
+    0.75,
+  );
   const databasePatterns = databasePatternsFor(options);
 
   return {
@@ -256,7 +264,11 @@ const requireTransactionScopedClient = (options: DatabaseRuleOptions = {}): Sema
 };
 
 const requireDeterministicPaginationOrder = (options: DatabaseRuleOptions = {}): SemanticRule => {
-  const { threshold, minConfidence } = decisionOptions(options, 0.9, 0.75);
+  const { threshold, minConfidence } = decisionOptions(
+    options,
+    { warning: 0.9, error: 0.97 },
+    0.75,
+  );
   const databasePatterns = databasePatternsFor(options);
 
   return {
@@ -335,22 +347,28 @@ const functionCandidate = (definition: FunctionCandidateDefinition): RuleCandida
 
 interface DiagnosticDefinition {
   finding: string;
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
   message: string;
 }
 
 const choiceDiagnostic = (definition: DiagnosticDefinition) => {
   return (answer: DecisionAnswer, candidate: RuleCandidate) => {
-    if (!isFinding(answer, definition.finding, definition.threshold, definition.minConfidence)) {
+    if (answer.type !== "choice" || answer.choice !== definition.finding) {
+      return null;
+    }
+    const probability = answer.probabilities[definition.finding] ?? 0;
+    const severity = resolveDiagnosticSeverity(probability, answer.confidence, definition);
+    if (severity === null) {
       return null;
     }
     return {
       message: definition.message,
       filename: candidate.target.filename,
       location: candidate.target.location,
-      probability: answer.probabilities[definition.finding] ?? 0,
+      probability,
       confidence: answer.confidence,
+      severity,
     };
   };
 };
@@ -633,10 +651,10 @@ const implementationFunctions = (document: ParsedDocument): FunctionTarget[] => 
 };
 
 const decisionOptions = (
-  options: { threshold?: number; minConfidence?: number },
-  defaultThreshold: number,
+  options: DatabaseRuleOptions,
+  defaultThreshold: DecisionThreshold,
   defaultMinConfidence: number,
-): { threshold: number; minConfidence: number } => {
+): { threshold: DecisionThreshold; minConfidence: number } => {
   return resolveDecisionOptions(options, {
     threshold: defaultThreshold,
     minConfidence: defaultMinConfidence,
@@ -654,18 +672,4 @@ const matchesAny = (value: string, patterns: readonly RegExp[]): boolean => {
     pattern.lastIndex = 0;
     return pattern.test(value);
   });
-};
-
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
 };

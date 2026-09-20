@@ -20,7 +20,9 @@
 
 - Narrow the answer by `answer.type` before reading type-specific fields.
 - Report only the intended finding category or range.
-- Apply both probability and confidence thresholds when the answer supplies both.
+- Require `threshold: { warning, error }`, validate both probabilities, and require `warning <= error`.
+- Apply the minimum confidence first. Below `threshold.warning`, return no diagnostic. From the warning threshold up to the error threshold, return a warning. At or above the error threshold, return an error.
+- Include `severity` in every returned diagnostic.
 - Treat missing, non-finite, malformed, safe, and insufficient-context answers as no diagnostic.
 - Use the candidate target's filename and location.
 - Keep the message stable, actionable, and independent of provider prose.

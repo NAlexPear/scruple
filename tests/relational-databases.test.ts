@@ -379,7 +379,7 @@ export async function page(skip: number) {
     const candidate = entry.rule.collect(parse(entry.candidateSource))[0];
     assert.ok(candidate, entry.finding);
     const answer = choiceAnswer(entry.finding, entry.threshold, entry.minConfidence);
-    assert.ok(entry.rule.diagnose(answer, candidate), entry.finding);
+    assert.equal(entry.rule.diagnose(answer, candidate)?.severity, "warning", entry.finding);
     assert.equal(
       entry.rule.diagnose(
         choiceAnswer(entry.finding, entry.threshold - 0.01, entry.minConfidence),
@@ -402,8 +402,8 @@ await test("relational rules validate probability and pattern options", () => {
   const plugin = relationalDatabases();
 
   assert.throws(
-    () => plugin.rules["no-query-in-loop"]({ threshold: Number.NaN }),
-    /threshold must be a finite number between 0 and 1/u,
+    () => plugin.rules["no-query-in-loop"]({ threshold: { warning: Number.NaN, error: 1 } }),
+    /threshold.warning must be a finite number between 0 and 1/u,
   );
   assert.throws(
     () => plugin.rules["require-transaction-scoped-client"]({ minConfidence: 1.1 }),

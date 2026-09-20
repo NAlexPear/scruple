@@ -2,8 +2,8 @@ import type {
   CallCapture,
   ChoiceAnswer,
   CodeTarget,
-  DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
   ErrorHandlerTarget,
   FunctionTarget,
   JsonValue,
@@ -14,7 +14,7 @@ import type {
   SemanticRule,
   SourceLocation,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export interface ObservabilityRuleOptions extends DecisionRuleOptions {
   loggingCallPatterns?: RegExp[];
@@ -54,7 +54,7 @@ interface ChoiceRuleDefinition {
   criteria: Record<string, JsonValue>;
   finding: string;
   message: string;
-  defaultThreshold: number;
+  defaultThreshold: DecisionThreshold;
 }
 
 const defaultLoggingCallPatterns = [
@@ -118,7 +118,7 @@ const noSensitiveLogs = (options: ObservabilityRuleOptions = {}): SemanticRule =
     },
     finding: "exposed_sensitive_value",
     message: "This observability call appears to expose a sensitive value without redaction.",
-    defaultThreshold: 0.9,
+    defaultThreshold: { warning: 0.9, error: 0.97 },
   });
 };
 
@@ -139,7 +139,7 @@ const noUnactionableErrors = (options: ObservabilityRuleOptions = {}): SemanticR
     },
     finding: "unactionable",
     message: "This error event lacks actionable operation or failure context.",
-    defaultThreshold: 0.85,
+    defaultThreshold: { warning: 0.85, error: 0.95 },
   });
 };
 
@@ -159,7 +159,7 @@ const requireOperationContext = (options: ObservabilityRuleOptions = {}): Semant
     },
     finding: "operation_missing",
     message: "This observability event does not identify the operation it describes.",
-    defaultThreshold: 0.8,
+    defaultThreshold: { warning: 0.8, error: 0.95 },
   });
 };
 
@@ -179,13 +179,13 @@ const requireStableTelemetryNames = (options: ObservabilityRuleOptions = {}): Se
     },
     finding: "dynamic_unbounded",
     message: "This telemetry name appears to contain an unbounded dynamic value.",
-    defaultThreshold: 0.9,
+    defaultThreshold: { warning: 0.9, error: 0.97 },
   });
 };
 
 const noDuplicateErrorReporting = (options: ObservabilityRuleOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = resolveDecisionOptions(options, {
-    threshold: 0.9,
+    threshold: { warning: 0.9, error: 0.97 },
     minConfidence: 0.7,
   });
   return {
@@ -223,7 +223,15 @@ const noDuplicateErrorReporting = (options: ObservabilityRuleOptions = {}): Sema
       });
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, "duplicate_same_exception", threshold, minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== "duplicate_same_exception") {
+        return null;
+      }
+      const probability = answer.probabilities["duplicate_same_exception"] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, {
+        threshold,
+        minConfidence,
+      });
+      if (severity === null) {
         return null;
       }
       return diagnostic(
@@ -231,6 +239,7 @@ const noDuplicateErrorReporting = (options: ObservabilityRuleOptions = {}): Sema
         "This exception appears to be reported more than once in the same error boundary.",
         answer,
         "duplicate_same_exception",
+        severity,
       );
     },
   };
@@ -259,10 +268,17 @@ const makeChoiceRule = (
       }));
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, threshold, minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
         return null;
       }
-      return diagnostic(candidate, definition.message, answer, definition.finding);
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, {
+        threshold,
+        minConfidence,
+      });
+      return severity === null
+        ? null
+        : diagnostic(candidate, definition.message, answer, definition.finding, severity);
     },
   };
 };
@@ -536,25 +552,12 @@ const isAttributeCall = (callee: string): boolean => {
   return /(?:^|\.)(?:setAttribute|setAttributes)$/u.test(callee);
 };
 
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
-};
-
 const diagnostic = (
   candidate: RuleCandidate,
   message: string,
   answer: ChoiceAnswer,
   finding: string,
+  severity: "warning" | "error",
 ) => {
   return {
     message,
@@ -562,5 +565,6 @@ const diagnostic = (
     location: candidate.target.location,
     probability: answer.probabilities[finding] ?? 0,
     confidence: answer.confidence,
+    severity,
   };
 };

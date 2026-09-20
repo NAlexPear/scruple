@@ -1,8 +1,7 @@
 import type {
   CallCapture,
-  ChoiceAnswer,
-  DecisionAnswer,
   DecisionRuleOptions,
+  DecisionThreshold,
   FunctionTarget,
   JsonValue,
   ParsedDocument,
@@ -12,7 +11,7 @@ import type {
   SemanticRule,
   StructuredCallFact,
 } from "@scruple/core";
-import { definePlugin, resolveDecisionOptions } from "@scruple/core";
+import { definePlugin, resolveDecisionOptions, resolveDiagnosticSeverity } from "@scruple/core";
 
 export interface AsyncRuleOptions extends DecisionRuleOptions {
   /** Functions larger than this are skipped rather than evaluated with incomplete source. */
@@ -54,7 +53,7 @@ export const asyncRules = (): AsyncPlugin => {
 const asyncLookingCallee = /(?:^|\.)(?:fetch|readFile|writeFile)$|(?:Async|Promise)$/u;
 
 const noUnobservedAsyncWork = (options: AsyncRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, 0.9, 0.7);
+  const resolved = resolveOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   return callChoiceRule(resolved, {
     description: "Asynchronous work should have its completion observed.",
     select: (document) =>
@@ -83,7 +82,7 @@ const noUnobservedAsyncWork = (options: AsyncRuleOptions = {}): SemanticRule => 
 };
 
 const noAsyncInitialization = (options: AsyncRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, 0.9, 0.7);
+  const resolved = resolveOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   return choiceRule(resolved, {
     description: "Constructors should not hide asynchronous initialization.",
     select: (document) =>
@@ -111,7 +110,7 @@ const noAsyncInitialization = (options: AsyncRuleOptions = {}): SemanticRule => 
 };
 
 const noUnboundedConcurrency = (options: AsyncRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, 0.9, 0.7);
+  const resolved = resolveOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   return choiceRule(resolved, {
     description: "Concurrent work should have a bound when its input size is not bounded.",
     select: (document) =>
@@ -136,7 +135,7 @@ const noUnboundedConcurrency = (options: AsyncRuleOptions = {}): SemanticRule =>
 };
 
 const noSerialIndependentWork = (options: AsyncRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, 0.9, 0.7);
+  const resolved = resolveOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   return choiceRule(resolved, {
     description: "Independent asynchronous work should not wait in series.",
     select: (document) =>
@@ -162,7 +161,7 @@ const noSerialIndependentWork = (options: AsyncRuleOptions = {}): SemanticRule =
 };
 
 const requireCancellationPropagation = (options: AsyncRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, 0.9, 0.7);
+  const resolved = resolveOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   return choiceRule(resolved, {
     description: "Functions accepting cancellation should propagate it to cancellable work.",
     select: (document) =>
@@ -189,7 +188,7 @@ const requireCancellationPropagation = (options: AsyncRuleOptions = {}): Semanti
 };
 
 const requireRaceLoserCleanup = (options: AsyncRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, 0.9, 0.7);
+  const resolved = resolveOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   return choiceRule(resolved, {
     description:
       "Locally started race losers should be canceled or cleaned up when they retain work.",
@@ -217,7 +216,7 @@ const requireRaceLoserCleanup = (options: AsyncRuleOptions = {}): SemanticRule =
 };
 
 const requireAbortListenerCleanup = (options: AsyncRuleOptions = {}): SemanticRule => {
-  const resolved = resolveOptions(options, 0.9, 0.7);
+  const resolved = resolveOptions(options, { warning: 0.9, error: 0.97 }, 0.7);
   return choiceRule(resolved, {
     description: "Abort listeners should not outlive the operation that registered them.",
     select: (document) =>
@@ -264,7 +263,7 @@ interface CallChoiceRuleDefinition {
 }
 
 interface ResolvedOptions {
-  threshold: number;
+  threshold: DecisionThreshold;
   minConfidence: number;
   maxFunctionCharacters: number;
   maxImportCharacters: number;
@@ -311,12 +310,18 @@ const choiceRule = (options: ResolvedOptions, definition: ChoiceRuleDefinition):
       });
     },
     diagnose(answer, candidate) {
-      if (!isFinding(answer, definition.finding, options.threshold, options.minConfidence)) {
+      if (answer.type !== "choice" || answer.choice !== definition.finding) {
+        return null;
+      }
+      const probability = answer.probabilities[definition.finding] ?? 0;
+      const severity = resolveDiagnosticSeverity(probability, answer.confidence, options);
+      if (severity === null) {
         return null;
       }
       return diagnostic(candidate, definition.message, {
-        probability: answer.probabilities[definition.finding] ?? 0,
+        probability,
         confidence: answer.confidence,
+        severity,
       });
     },
   };
@@ -379,12 +384,18 @@ const callChoiceRule = (
     });
   },
   diagnose(answer, candidate) {
-    if (!isFinding(answer, definition.finding, options.threshold, options.minConfidence)) {
+    if (answer.type !== "choice" || answer.choice !== definition.finding) {
+      return null;
+    }
+    const probability = answer.probabilities[definition.finding] ?? 0;
+    const severity = resolveDiagnosticSeverity(probability, answer.confidence, options);
+    if (severity === null) {
       return null;
     }
     return diagnostic(candidate, definition.message, {
-      probability: answer.probabilities[definition.finding] ?? 0,
+      probability,
       confidence: answer.confidence,
+      severity,
     });
   },
 });
@@ -575,7 +586,7 @@ const boundedImports = (imports: readonly string[], maximum: number): BoundedImp
 
 const resolveOptions = (
   options: AsyncRuleOptions,
-  defaultThreshold: number,
+  defaultThreshold: DecisionThreshold,
   defaultMinConfidence: number,
 ): ResolvedOptions => {
   const { threshold, minConfidence } = resolveDecisionOptions(options, {
@@ -621,24 +632,10 @@ const escapeRegExp = (value: string): string => {
   return value.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 };
 
-const isFinding = (
-  answer: DecisionAnswer,
-  finding: string,
-  threshold: number,
-  minConfidence: number,
-): answer is ChoiceAnswer => {
-  return (
-    answer.type === "choice" &&
-    answer.choice === finding &&
-    (answer.probabilities[finding] ?? 0) >= threshold &&
-    answer.confidence >= minConfidence
-  );
-};
-
 const diagnostic = (
   candidate: RuleCandidate,
   message: string,
-  scores: { probability: number; confidence: number },
+  scores: { probability: number; confidence: number; severity: "warning" | "error" },
 ) => {
   return {
     message,
