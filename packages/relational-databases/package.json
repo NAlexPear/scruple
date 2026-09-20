@@ -1,6 +1,6 @@
 {
   "name": "@scruple/relational-databases",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Semantic rules for relational database access.",
   "keywords": [
     "code-quality",
