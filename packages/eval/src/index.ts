@@ -52,6 +52,19 @@ export interface EvalCaseResult {
   };
 }
 
+/** Detection quality for a set of cases, derived from the finding expectations fixtures already carry. */
+export interface DetectionMetrics {
+  cases: number;
+  truePositives: number;
+  falsePositives: number;
+  trueNegatives: number;
+  falseNegatives: number;
+  /** Null rather than zero when nothing was predicted. */
+  precision: number | null;
+  recall: number | null;
+  f1: number | null;
+}
+
 export interface EvalRunReport {
   provider: string;
   requestedModel: string;
@@ -62,6 +75,14 @@ export interface EvalRunReport {
     total: number;
     passed: number;
     failed: number;
+  };
+  detection: DetectionMetrics;
+  /** Per rule, so severity can be chosen per rule rather than globally. */
+  detectionByRule: Record<string, DetectionMetrics>;
+  /** Expected-abstention cases, counted apart because the matrix cannot express them. */
+  abstention: {
+    expected: number;
+    correct: number;
   };
   latencyMs: {
     p50: number;
@@ -333,6 +354,58 @@ export const runEvalCase = async (
   };
 };
 
+const ratio = (numerator: number, denominator: number): number | null =>
+  denominator === 0 ? null : numerator / denominator;
+
+const detectionMetrics = (cases: readonly EvalCaseResult[]): DetectionMetrics => {
+  const scored = cases.filter((result) => result.expectedAbstention !== true);
+  let truePositives = 0;
+  let falsePositives = 0;
+  let trueNegatives = 0;
+  let falseNegatives = 0;
+  for (const result of scored) {
+    if (result.expectedFinding && result.actualFinding) {
+      truePositives += 1;
+    } else if (!result.expectedFinding && result.actualFinding) {
+      falsePositives += 1;
+    } else if (result.expectedFinding && !result.actualFinding) {
+      falseNegatives += 1;
+    } else {
+      trueNegatives += 1;
+    }
+  }
+  const precision = ratio(truePositives, truePositives + falsePositives);
+  const recall = ratio(truePositives, truePositives + falseNegatives);
+  const f1 =
+    precision === null || recall === null || precision + recall === 0
+      ? null
+      : (2 * precision * recall) / (precision + recall);
+  return {
+    cases: scored.length,
+    truePositives,
+    falsePositives,
+    trueNegatives,
+    falseNegatives,
+    precision,
+    recall,
+    f1,
+  };
+};
+
+const detectionByRuleId = (cases: readonly EvalCaseResult[]): Record<string, DetectionMetrics> => {
+  const grouped = new Map<string, EvalCaseResult[]>();
+  for (const result of cases) {
+    const bucket = grouped.get(result.ruleId) ?? [];
+    bucket.push(result);
+    grouped.set(result.ruleId, bucket);
+  }
+  const byRule: Record<string, DetectionMetrics> = {};
+  for (const ruleId of [...grouped.keys()].toSorted()) {
+    byRule[ruleId] = detectionMetrics(grouped.get(ruleId) ?? []);
+  }
+  return byRule;
+};
+
 export const runEvaluation = async (options: RunEvaluationOptions): Promise<EvalRunReport> => {
   const cases = await Promise.all(
     options.fixtures.map((fixture) =>
@@ -357,6 +430,14 @@ export const runEvaluation = async (options: RunEvaluationOptions): Promise<Eval
       total: cases.length,
       passed: cases.length - failures.length,
       failed: failures.length,
+    },
+    detection: detectionMetrics(cases),
+    detectionByRule: detectionByRuleId(cases),
+    abstention: {
+      expected: cases.filter((result) => result.expectedAbstention === true).length,
+      correct: cases.filter(
+        (result) => result.expectedAbstention === true && result.actualAbstention,
+      ).length,
     },
     latencyMs: {
       p50: percentile(latencies, 0.5),

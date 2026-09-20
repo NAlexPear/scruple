@@ -551,3 +551,80 @@ await test("evaluation keeps missing and unexpected provider answer IDs visible"
   assert.ok(error !== undefined);
   assert.match(error, /missing: test_choice-rule_0; unexpected: unexpected/u);
 });
+
+const makeDetectionFixture = (
+  id: string,
+  source: string,
+  expectedFinding: boolean,
+  expectedChoices: string[],
+): EvalFixture => ({
+  id,
+  filename: `${id}.ts`,
+  source,
+  ruleId: "test/bad-rule",
+  expectedFinding,
+  expectedCandidates: 1,
+  expectedChoices,
+  rationale: `Detection fixture ${id}.`,
+  tags: ["detection"],
+});
+
+await test("evaluation runner reports detection metrics per rule", async () => {
+  // The provider reports a finding when the source contains "bad", so the function names pick the cell.
+  const report = await runEvaluation({
+    fixtures: [
+      makeDetectionFixture("tp", "function bad() { return 1; }", true, ["bad"]),
+      makeDetectionFixture("fn", "function quiet() { return 1; }", true, ["bad"]),
+      makeDetectionFixture("fp", "function bad2() { return 1; }", false, ["good"]),
+      makeDetectionFixture("tn", "function good() { return 1; }", false, ["good"]),
+    ],
+    parser: oxcParser(),
+    plugins: { test: makeTestPlugin() },
+    provider: makeScoringProvider(),
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.deepEqual(report.detection, {
+    cases: 4,
+    truePositives: 1,
+    falsePositives: 1,
+    trueNegatives: 1,
+    falseNegatives: 1,
+    precision: 0.5,
+    recall: 0.5,
+    f1: 0.5,
+  });
+  assert.deepEqual(report.detectionByRule["test/bad-rule"], report.detection);
+  assert.deepEqual(report.abstention, { expected: 0, correct: 0 });
+});
+
+await test("detection metrics are null rather than zero when nothing is predicted", async () => {
+  const report = await runEvaluation({
+    fixtures: [
+      {
+        id: "quiet",
+        filename: "quiet.ts",
+        source: "function quiet() { return 1; }",
+        ruleId: "test/bad-rule",
+        expectedFinding: false,
+        expectedCandidates: 1,
+        expectedChoices: ["good"],
+        rationale: "No positive predictions at all.",
+        tags: ["detection"],
+      },
+    ],
+    parser: oxcParser(),
+    plugins: { test: makeTestPlugin() },
+    provider: makeScoringProvider(),
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.equal(report.detection.precision, null);
+  assert.equal(report.detection.recall, null);
+  assert.equal(report.detection.f1, null);
+  assert.equal(report.detection.trueNegatives, 1);
+});
