@@ -47,7 +47,7 @@ export function comments(): CommentsPlugin {
 }
 
 function noUselessComments(options: NoUselessCommentsOptions = {}): SemanticRule {
-  const threshold = options.threshold ?? 0.95;
+  const threshold = options.threshold ?? 0.9;
   return {
     description: "Comments should add information that the code does not already express.",
     collect(document) {
@@ -78,7 +78,7 @@ function noUselessComments(options: NoUselessCommentsOptions = {}): SemanticRule
 }
 
 function noMisleadingComments(options: ProbabilityRuleOptions = {}): SemanticRule {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
   return choiceRule({
     description: "Comments should accurately describe the code they accompany.",
     select: ordinaryComments,
@@ -180,7 +180,7 @@ function preferConciseComments(options: PreferConciseCommentsOptions = {}): Sema
 }
 
 function requireActionableTodos(options: ProbabilityRuleOptions = {}): SemanticRule {
-  const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
+  const { threshold, minConfidence } = probabilityOptions(options, 0.8, 0.7);
   return choiceRule({
     description: "TODO comments should give a maintainer enough context to act.",
     select: (document) => document.comments.filter(isTodoCandidate),

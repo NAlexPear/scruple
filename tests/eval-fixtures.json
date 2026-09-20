@@ -27,6 +27,24 @@
     "tags": ["negative", "security", "invariant"]
   },
   {
+    "id": "useless-generic-section-heading",
+    "filename": "comments.ts",
+    "source": "export function activeUsers(users: User[]) {\n  // Process the results\n  return users.filter((user) => user.active);\n}\n",
+    "rule_id": "comments/no-useless-comments",
+    "expected_finding": true,
+    "rationale": "The generic heading adds no information about what processing occurs or why.",
+    "tags": ["positive", "section-heading", "generic-prose"]
+  },
+  {
+    "id": "useful-documents-domain-sentinel",
+    "filename": "comments.ts",
+    "source": "export function effectiveLimit(limit: number) {\n  // A zero limit means unlimited in the billing protocol.\n  return limit === 0 ? Number.POSITIVE_INFINITY : limit;\n}\n",
+    "rule_id": "comments/no-useless-comments",
+    "expected_finding": false,
+    "rationale": "The comment explains the external domain meaning of a sentinel value.",
+    "tags": ["negative", "domain-knowledge", "sentinel"]
+  },
+  {
     "id": "misleading-wrong-return-unit",
     "filename": "comments.ts",
     "source": "export function timeoutSeconds() {\n  // Return the timeout in milliseconds.\n  return 30;\n}\n",
@@ -52,6 +70,24 @@
     "expected_finding": false,
     "rationale": "The visible code cannot establish or contradict behavior inside the storage client.",
     "tags": ["negative", "insufficient-context", "external-call"]
+  },
+  {
+    "id": "misleading-reversed-access-condition",
+    "filename": "comments.ts",
+    "source": "export function canEdit(user: User) {\n  // Only administrators can edit records.\n  return user.role !== \"admin\";\n}\n",
+    "rule_id": "comments/no-misleading-comments",
+    "expected_finding": true,
+    "rationale": "The implementation grants editing to every role except administrators.",
+    "tags": ["positive", "condition", "contradiction"]
+  },
+  {
+    "id": "accurate-side-effect-warning",
+    "filename": "comments.ts",
+    "source": "export async function removeUser(id: string) {\n  // Deleting a user also removes their active sessions.\n  await sessions.deleteForUser(id);\n  await users.delete(id);\n}\n",
+    "rule_id": "comments/no-misleading-comments",
+    "expected_finding": false,
+    "rationale": "The visible calls support the comment's side-effect warning.",
+    "tags": ["negative", "side-effect", "accurate"]
   },
   {
     "id": "commented-out-executable-code",
@@ -81,6 +117,24 @@
     "tags": ["negative", "grammar", "format"]
   },
   {
+    "id": "commented-out-multiline-branch",
+    "filename": "comments.ts",
+    "source": "export function loadAccount(id: string) {\n  /*\n  if (useLegacyApi) {\n    return legacyClient.account(id);\n  }\n  */\n  return client.account(id);\n}\n",
+    "rule_id": "comments/no-commented-out-code",
+    "expected_finding": true,
+    "rationale": "The block preserves a complete disabled conditional branch.",
+    "tags": ["positive", "disabled-code", "block-comment"]
+  },
+  {
+    "id": "commented-pseudocode-algorithm",
+    "filename": "comments.ts",
+    "source": "export function assign(work: Work[]) {\n  // Algorithm: sort by priority, then repeatedly choose the least-loaded worker.\n  return scheduler.assign(work);\n}\n",
+    "rule_id": "comments/no-commented-out-code",
+    "expected_finding": false,
+    "rationale": "The prose describes an algorithm rather than preserving executable syntax.",
+    "tags": ["negative", "pseudocode", "algorithm"]
+  },
+  {
     "id": "history-narrates-replaced-client",
     "filename": "comments.ts",
     "source": "export function fetchUsers() {\n  // Previously this used the legacy REST client.\n  return graphql.users();\n}\n",
@@ -106,6 +160,24 @@
     "expected_finding": false,
     "rationale": "The comment explains compatibility behavior that remains active in the code.",
     "tags": ["negative", "compatibility", "migration"]
+  },
+  {
+    "id": "history-announces-removed-validation",
+    "filename": "comments.ts",
+    "source": "export function displayName(user: User) {\n  // Removed the old length validation when profiles were redesigned.\n  return user.displayName.trim();\n}\n",
+    "rule_id": "comments/no-change-history-comments",
+    "expected_finding": true,
+    "rationale": "The note only announces a completed removal and gives no current constraint.",
+    "tags": ["positive", "change-history", "removal"]
+  },
+  {
+    "id": "history-warns-against-restoring-eager-fetch",
+    "filename": "comments.ts",
+    "source": "export function avatar(user: User) {\n  // This used to fetch eagerly; keep it lazy because the provider charges per image request.\n  return () => images.fetch(user.avatarId);\n}\n",
+    "rule_id": "comments/no-change-history-comments",
+    "expected_finding": false,
+    "rationale": "The history explains a current cost constraint and prevents a harmful regression.",
+    "tags": ["negative", "current-rationale", "cost"]
   },
   {
     "id": "verbose-repeats-retry-cap",
@@ -135,6 +207,24 @@
     "tags": ["negative", "procedure", "migration"]
   },
   {
+    "id": "verbose-llm-style-summary",
+    "filename": "comments.ts",
+    "source": "export function normalize(name: string) {\n  // This function is responsible for taking the provided name value and then trimming any whitespace from the beginning and the end. It is worth noting that this helps ensure the resulting name is normalized before it is returned to the caller.\n  return name.trim();\n}\n",
+    "rule_id": "comments/prefer-concise-comments",
+    "expected_finding": true,
+    "rationale": "The comment uses repetitive framing and a closing summary to describe one trim operation.",
+    "tags": ["positive", "wordslop", "summary"]
+  },
+  {
+    "id": "long-bitfield-invariant-justified",
+    "filename": "comments.ts",
+    "source": "export function permissions(mask: number) {\n  // Bits 0 through 2 mirror the wire protocol's read, write, and administer flags. Preserve the unused fourth bit when updating the mask because older clients store a vendor extension there and reject responses that clear it.\n  return mask & 0b1111;\n}\n",
+    "rule_id": "comments/prefer-concise-comments",
+    "expected_finding": false,
+    "rationale": "The detail documents both a bit layout and a compatibility invariant that the expression cannot convey.",
+    "tags": ["negative", "protocol", "complexity-justified"]
+  },
+  {
     "id": "todo-vague-fix-later",
     "filename": "comments.ts",
     "source": "export function convert(value: string) {\n  // TODO: fix this later\n  return legacyConvert(value);\n}\n",
@@ -160,6 +250,24 @@
     "expected_finding": false,
     "rationale": "The FIXME identifies the current defect and the intended behavior.",
     "tags": ["negative", "fixme", "concrete-action"]
+  },
+  {
+    "id": "fixme-vague-edge-cases",
+    "filename": "comments.ts",
+    "source": "export function parse(input: string) {\n  // FIXME: handle edge cases\n  return parser.parse(input);\n}\n",
+    "rule_id": "comments/require-actionable-todos",
+    "expected_finding": true,
+    "rationale": "The marker does not identify which inputs fail or what behavior is required.",
+    "tags": ["positive", "fixme", "vague"]
+  },
+  {
+    "id": "hack-concrete-removal-condition",
+    "filename": "comments.ts",
+    "source": "export function stream(client: Client) {\n  // HACK: remove this buffering branch when upstream supports streaming responses.\n  return client.supportsStreaming ? client.stream() : buffer(client.response());\n}\n",
+    "rule_id": "comments/require-actionable-todos",
+    "expected_finding": false,
+    "rationale": "The marker identifies the temporary behavior and a concrete removal condition.",
+    "tags": ["negative", "hack", "removal-condition"]
   },
   {
     "id": "vacuous-test-tautology",

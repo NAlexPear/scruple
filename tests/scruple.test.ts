@@ -126,6 +126,45 @@ await test("plugins register rules without enabling them", async () => {
   assert.equal(result.stats.requests, 0);
 });
 
+await test("comments rules preserve calibrated default decision margins", () => {
+  const plugin = comments();
+  const parser = oxcParser();
+  const document = parser.parse(
+    "comments.ts",
+    "// Set active to true\nuser.active = true;\n// TODO: fix this later\n",
+  );
+  const ordinaryCandidate = plugin.rules["no-useless-comments"]().collect(document)[0];
+  const todoCandidate = plugin.rules["require-actionable-todos"]().collect(document)[0];
+  assert.ok(ordinaryCandidate);
+  assert.ok(todoCandidate);
+
+  assert.ok(
+    plugin.rules["no-useless-comments"]().diagnose({ type: "noul", noul: 0.9 }, ordinaryCandidate),
+  );
+  assert.ok(
+    plugin.rules["no-misleading-comments"]().diagnose(
+      {
+        type: "choice",
+        choice: "misleading",
+        confidence: 0.7,
+        probabilities: { misleading: 0.85 },
+      },
+      ordinaryCandidate,
+    ),
+  );
+  assert.ok(
+    plugin.rules["require-actionable-todos"]().diagnose(
+      {
+        type: "choice",
+        choice: "unactionable",
+        confidence: 0.7,
+        probabilities: { unactionable: 0.8 },
+      },
+      todoCandidate,
+    ),
+  );
+});
+
 await test("engine batches independent questions sharing identical evidence", async () => {
   let requests = 0;
   const provider: DecisionProvider = {
