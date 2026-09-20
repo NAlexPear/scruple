@@ -30,3 +30,7 @@ const provider = jevProvider({ apiKey });
 The provider reports input and output token usage in Scruple's run statistics.
 
 Review the Jev service's current data handling and billing terms before sending repository code. Scruple does not make claims here about service retention or model training.
+
+## Performance
+
+See the [benchmark results](../reference/benchmarks.md) for measured latency and throughput across concurrency levels. The current results support the default concurrency of `64` for sustained workloads.

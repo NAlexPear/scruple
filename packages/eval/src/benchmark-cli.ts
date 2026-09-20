@@ -6,6 +6,7 @@ import {
   parseBenchmarkFixtureIds,
   runBenchmark,
   selectBenchmarkFixtures,
+  sizeBenchmarkWorkload,
   type BenchmarkReport,
 } from "@scruple/eval/benchmark";
 import { BENCHMARK_HELP, parseBenchmarkOptions } from "@scruple/eval/benchmark-options";
@@ -86,9 +87,13 @@ const main = async (): Promise<void> => {
   const selectedIds =
     options.fixtureIds.length === 0 ? await loadBenchmarkFixtureIds() : options.fixtureIds;
   const selectedFixtures = selectBenchmarkFixtures(fixtures, selectedIds);
+  const workload =
+    options.workloadSize === undefined
+      ? selectedFixtures
+      : sizeBenchmarkWorkload(selectedFixtures, options.workloadSize);
   const runs = await runModels(
     options.models,
-    selectedFixtures,
+    workload,
     options.warmups,
     options.repetitions,
     options.concurrency,

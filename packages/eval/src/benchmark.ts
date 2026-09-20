@@ -99,6 +99,17 @@ export const selectBenchmarkFixtures = (
   });
 };
 
+export const sizeBenchmarkWorkload = (
+  fixtures: readonly EvalFixture[],
+  size: number,
+): EvalFixture[] => {
+  validatePositiveInteger(size, "workload size");
+  if (fixtures.length === 0) {
+    throw new Error("Cannot size an empty benchmark workload");
+  }
+  return Array.from({ length: size }, (_, index) => fixtures[index % fixtures.length]!);
+};
+
 export const runBenchmark = async (options: RunBenchmarkOptions): Promise<BenchmarkReport> => {
   validatePositiveInteger(options.concurrency, "concurrency");
   validatePositiveInteger(options.repetitions, "repetitions");

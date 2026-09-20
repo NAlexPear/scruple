@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-20",
+  "commit": "02bd7b7eb055eb1b059b19961b767f37c767e0af",
+  "provider": "jev",
+  "requestedModel": "jev-1.13.0",
+  "resolvedModel": "jev-1.13.0",
+  "environment": {
+    "node": "v26.8.2",
+    "platform": "linux",
+    "architecture": "x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+    "logicalCpuCount": 2,
+    "totalMemoryBytes": 4122030080
+  },
+  "workload": {
+    "baseFixtureCount": 10,
+    "fixtureCount": 128,
+    "warmups": 2,
+    "repetitions": 20,
+    "measuredCasesPerConcurrency": 2560
+  },
+  "results": [
+    {
+      "concurrency": 10,
+      "durationMs": { "mean": 1992.451, "p50": 1984.383, "p95": 2150.435 },
+      "caseLatencyMs": { "mean": 147.232, "p50": 134.652, "p95": 252.994 },
+      "throughputCasesPerSecond": 64.242,
+      "acceptedCases": 1933,
+      "rejectedCases": 627,
+      "inputTokens": 2013880,
+      "outputTokens": 174999,
+      "rawReport": "raw/concurrency-10.json.gz"
+    },
+    {
+      "concurrency": 16,
+      "durationMs": { "mean": 1428.258, "p50": 1433.083, "p95": 1532.606 },
+      "caseLatencyMs": { "mean": 158.841, "p50": 147.522, "p95": 273.261 },
+      "throughputCasesPerSecond": 89.62,
+      "acceptedCases": 1933,
+      "rejectedCases": 627,
+      "inputTokens": 2013880,
+      "outputTokens": 174997,
+      "rawReport": "raw/concurrency-16.json.gz"
+    },
+    {
+      "concurrency": 32,
+      "durationMs": { "mean": 800.292, "p50": 785.405, "p95": 891.11 },
+      "caseLatencyMs": { "mean": 158.385, "p50": 146.104, "p95": 275.065 },
+      "throughputCasesPerSecond": 159.942,
+      "acceptedCases": 1943,
+      "rejectedCases": 617,
+      "inputTokens": 2013880,
+      "outputTokens": 174995,
+      "rawReport": "raw/concurrency-32.json.gz"
+    },
+    {
+      "concurrency": 64,
+      "durationMs": { "mean": 557.754, "p50": 549.214, "p95": 694.438 },
+      "caseLatencyMs": { "mean": 170.112, "p50": 161.084, "p95": 279.176 },
+      "throughputCasesPerSecond": 229.492,
+      "acceptedCases": 1945,
+      "rejectedCases": 615,
+      "inputTokens": 2013880,
+      "outputTokens": 174999,
+      "rawReport": "raw/concurrency-64.json.gz"
+    },
+    {
+      "concurrency": 128,
+      "durationMs": { "mean": 515.321, "p50": 492.162, "p95": 622.068 },
+      "caseLatencyMs": { "mean": 252.131, "p50": 240.375, "p95": 381.273 },
+      "throughputCasesPerSecond": 248.389,
+      "acceptedCases": 1930,
+      "rejectedCases": 630,
+      "inputTokens": 2013880,
+      "outputTokens": 175000,
+      "rawReport": "raw/concurrency-128.json.gz"
+    }
+  ]
+}

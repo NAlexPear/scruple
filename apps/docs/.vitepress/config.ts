@@ -53,6 +53,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: "CLI", link: "/reference/cli" },
       { text: "Configuration API", link: "/reference/configuration" },
+      { text: "Benchmarks", link: "/reference/benchmarks" },
     ],
   },
 ];

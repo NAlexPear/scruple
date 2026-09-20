@@ -21,6 +21,14 @@ TYPESAFE_API_KEY=your-key pnpm benchmark \
 
 Models run one after another. Each model gets one unmeasured warmup and three measured repetitions by default. Cases run one at a time unless `--concurrency` is set.
 
+Use `--workload-size` to cycle the selected fixtures into a larger sustained workload:
+
+```sh
+TYPESAFE_API_KEY=your-key pnpm benchmark \
+  --workload-size 128 --warmups 2 --repetitions 20 --concurrency 64 \
+  > jev-sustained.json
+```
+
 The JSON report includes:
 
 - Runtime, operating system, CPU, memory, and workload IDs

@@ -9,6 +9,7 @@ export interface BenchmarkOptions {
   models: string[];
   repetitions: number;
   warmups: number;
+  workloadSize?: number;
 }
 
 export const BENCHMARK_HELP = `Benchmark Scruple with Jev
@@ -19,6 +20,7 @@ Usage:
 Options:
   --model <model>        Jev model to benchmark; repeat to compare models
   --fixture <id>         Benchmark only this fixture; repeat to select several
+  --workload-size <n>    Cycle selected fixtures to create exactly n cases
   --warmups <count>      Unmeasured runs per model (default: 1)
   --repetitions <count>  Measured runs per model (default: 3)
   --concurrency <count>  Maximum cases in flight (default: 1)
@@ -39,6 +41,7 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
     options: {
       model: { type: "string", multiple: true },
       fixture: { type: "string", multiple: true },
+      "workload-size": { type: "string" },
       warmups: { type: "string", default: "1" },
       repetitions: { type: "string", default: "3" },
       concurrency: { type: "string", default: "1" },
@@ -48,6 +51,10 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
   const warmups = parseCount(values.warmups, "--warmups", true);
   const repetitions = parseCount(values.repetitions, "--repetitions", false);
   const concurrency = parseCount(values.concurrency, "--concurrency", false);
+  const workloadSize =
+    values["workload-size"] === undefined
+      ? undefined
+      : parseCount(values["workload-size"], "--workload-size", false);
   return {
     concurrency,
     fixtureIds: values.fixture ?? [],
@@ -55,6 +62,7 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
     models: values.model ?? [DEFAULT_EVAL_MODEL],
     repetitions,
     warmups,
+    ...(workloadSize === undefined ? {} : { workloadSize }),
   };
 };
 

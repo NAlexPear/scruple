@@ -15,6 +15,7 @@ import {
   parseBenchmarkFixtureIds,
   runBenchmark,
   selectBenchmarkFixtures,
+  sizeBenchmarkWorkload,
 } from "@scruple/eval/benchmark";
 import { parseBenchmarkOptions } from "@scruple/eval/benchmark-options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
@@ -37,6 +38,8 @@ await test("benchmark options support repeated Jev models and run settings", () 
       "4",
       "--concurrency",
       "2",
+      "--workload-size",
+      "5",
     ]),
     {
       concurrency: 2,
@@ -45,10 +48,12 @@ await test("benchmark options support repeated Jev models and run settings", () 
       models: ["jev-stable", "jev-candidate"],
       repetitions: 4,
       warmups: 0,
+      workloadSize: 5,
     },
   );
   assert.deepEqual(parseBenchmarkOptions([]).models, ["jev-1.13.0"]);
   assert.throws(() => parseBenchmarkOptions(["--repetitions", "0"]), /positive integer/u);
+  assert.throws(() => parseBenchmarkOptions(["--workload-size", "0"]), /positive integer/u);
 });
 
 await test("benchmark workload is stable, unique, and covers every plugin", async () => {
@@ -71,6 +76,11 @@ await test("benchmark workload is stable, unique, and covers every plugin", asyn
     () => selectBenchmarkFixtures(fixtures, ["missing-fixture"]),
     /Unknown benchmark fixture/u,
   );
+  assert.deepEqual(
+    sizeBenchmarkWorkload(fixtures.slice(0, 2), 5).map((fixture) => fixture.id),
+    [fixtures[0]?.id, fixtures[1]?.id, fixtures[0]?.id, fixtures[1]?.id, fixtures[0]?.id],
+  );
+  assert.throws(() => sizeBenchmarkWorkload([], 5), /empty benchmark workload/u);
 });
 
 const makeBenchmarkPlugin = (): ScruplePlugin => {
