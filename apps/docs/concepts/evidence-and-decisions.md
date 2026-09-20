@@ -12,20 +12,25 @@ For the comment in the [end-to-end example](./how-it-works.md#one-comment-end-to
     "language": "typescript",
     "comment": {
       "source": "// Set ready to true",
+      "source_truncated": false,
       "value": " Set ready to true",
+      "value_truncated": false,
       "style": "line"
     },
     "context": {
-      "enclosing_code": "async function warmCache() {\n  // Set ready to true\n  ready = true;\n}"
+      "enclosing_code": "async function warmCache() {\n  // Set ready to true\n  ready = true;\n}",
+      "enclosing_code_truncated": false
     }
   },
   "questions": {
     "comments_no-useless-comments_0": {
-      "type": "noul",
-      "instructions": "Does `comment` add no maintainability value because it merely restates obvious code, uses generic section-heading prose, narrates a straightforward next step, or contains AI-assistant meta commentary? A misleading claim, disabled code, change-history note, or TODO belongs to a different rule and is not useless for this question.",
+      "type": "choice",
+      "instructions": "Does `comment` add no maintainability value because it merely restates obvious code, uses generic section-heading prose, narrates a straightforward next step, or contains AI-assistant meta commentary? Distinguish genuinely useful rationale from comments owned by another rule. Choose insufficient_context when the bounded evidence does not establish whether the comment adds information.",
       "criteria": {
-        "true": "The comment adds no useful rationale, constraint, warning, domain knowledge, or non-obvious explanation.",
-        "false": "The comment adds useful current information, or it has a distinct problem owned by another comments rule."
+        "redundant": "The comment adds no useful rationale, constraint, warning, domain knowledge, or non-obvious explanation.",
+        "useful": "The comment adds current rationale, a constraint, a warning, domain knowledge, or another non-obvious explanation.",
+        "belongs_to_other_rule": "The comment's primary issue is that it is misleading, disabled code, change history, a deprecation, or another concern owned by a more specific rule.",
+        "insufficient_context": "The bounded evidence does not establish whether the comment adds information beyond the code."
       }
     }
   }
@@ -39,8 +44,15 @@ The provider returns a named answer with no diagnostic prose:
   "model": "example-model",
   "answers": {
     "comments_no-useless-comments_0": {
-      "type": "noul",
-      "noul": 0.96
+      "type": "choice",
+      "choice": "redundant",
+      "confidence": 0.94,
+      "probabilities": {
+        "redundant": 0.96,
+        "useful": 0.01,
+        "belongs_to_other_rule": 0.01,
+        "insufficient_context": 0.02
+      }
     }
   }
 }
@@ -68,21 +80,29 @@ For `comments/no-useless-comments`, the rule-owned decision is equivalent to:
 
 ```ts
 const threshold = 0.9;
+const minConfidence = 0.7;
+const probability = answer.type === "choice" ? (answer.probabilities.redundant ?? 0) : 0;
 
-if (answer.type !== "noul" || answer.noul < threshold) {
+if (
+  answer.type !== "choice" ||
+  answer.choice !== "redundant" ||
+  probability < threshold ||
+  answer.confidence < minConfidence
+) {
   return null;
 }
 
 return {
   message: "This comment appears to add no useful information.",
-  probability: answer.noul,
+  probability,
+  confidence: answer.confidence,
 };
 ```
 
-An answer of `0.96` produces the diagnostic. An answer of `0.72` returns `null`, so Scruple reports nothing for that candidate.
+The example produces a diagnostic because the provider chose `redundant`, assigned that label a probability of `0.96`, and returned `0.94` confidence. The CLI displays 96% because that is the provider score for the finding label, not certainty. Confidence is a separate provider score. The rule checks it against the `0.7` minimum, but the stylish CLI diagnostic does not display it. A safe choice, a `redundant` probability below `0.9`, or confidence below `0.7` returns `null`, so Scruple reports nothing for that candidate.
 
 Thresholds are provider and model dependent. Calibrate them against representative positive and negative examples before enabling a rule broadly.
 
-## Stable output
+## Rule-owned output
 
-Rules own messages, locations, and severity mapping. Providers cannot generate text that appears as a diagnostic. This keeps CI output stable when provider implementations change.
+Rules own messages, locations, severity mapping, and fixed thresholds. Providers cannot generate text that appears as a diagnostic. The same provider answer therefore produces the same rule output, but provider answers and the set of findings can vary by model, provider, or run.

@@ -2,7 +2,7 @@
 
 A decision provider evaluates the typed requests produced by semantic rules. Scruple ships a Jev adapter for hosted typed decisions.
 
-Scruple is MIT licensed. Jev model usage is billed separately by its provider.
+Scruple is MIT licensed. Jev receives the selected code evidence over HTTPS, and its model usage is billed separately.
 
 | Provider        | Best for                                          | Runtime   |
 | --------------- | ------------------------------------------------- | --------- |

@@ -1,6 +1,6 @@
 # Jev provider
 
-`@scruple/provider-jev` sends typed decision requests to Jev through `@typesafe-ai/sdk`.
+`@scruple/provider-jev` sends typed decision requests to Jev through `@typesafe-ai/sdk`. Each request contains the selected bounded code evidence and rule-defined questions. It travels to the hosted service over HTTPS. Hosted use may cost money according to the Jev service terms.
 
 ```sh
 pnpm add --save-dev @scruple/provider-jev
@@ -28,3 +28,5 @@ const provider = jevProvider({ apiKey });
 | `fetch`       | Runtime fetch  | Custom fetch implementation            |
 
 The provider reports input and output token usage in Scruple's run statistics.
+
+Review the Jev service's current data handling and billing terms before sending repository code. Scruple does not make claims here about service retention or model training.

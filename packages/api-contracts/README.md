@@ -38,3 +38,5 @@ routers, class visibility, call graphs, global middleware, and behavior in unres
 not inferred from a single file. By default, functions and handlers over 12,000 characters are
 skipped. These limits keep selection deterministic and make missing evidence an explicit
 `insufficient_context` decision rather than a guessed diagnostic.
+
+Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).

@@ -14,5 +14,4 @@ call-level findings. Unobserved-work analysis includes local promise assignments
 visible use, while abort-listener analysis requires a visibly typed `AbortSignal` parameter and does
 not treat `{ once: true }` as cleanup for normal operation completion.
 
-See the [Scruple documentation](https://github.com/NAlexPear/scruple#readme) for configuration and
-the current exported rules.
+Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).

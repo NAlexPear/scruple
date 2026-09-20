@@ -57,3 +57,5 @@ prove runtime values, redaction behavior inside helpers, logger configuration, o
 handling. Top-level calls, computed callees, and unconfigured wrapper names are outside the initial
 selection boundary. Use runtime redaction, access controls, retention policies, and secret scanning
 as appropriate.
+
+Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).

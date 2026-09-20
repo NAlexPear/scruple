@@ -98,7 +98,19 @@ const filteredRules = computed(() => {
       <div v-else class="empty-rules">
         <p>No rules match “{{ query }}”.</p>
         <button type="button" @click="((query = ''), (plugin = 'all'))">Clear filters</button>
+        <a href="/guide/writing-a-plugin">Write a custom rule</a>
       </div>
+    </div>
+
+    <div class="custom-rule-path">
+      <div>
+        <p>Need a check that is specific to your codebase?</p>
+        <span
+          >Define the evidence, decision criteria, thresholds, and diagnostic in your own
+          plugin.</span
+        >
+      </div>
+      <a href="/guide/writing-a-plugin">Write a custom rule</a>
     </div>
   </section>
 </template>
@@ -315,6 +327,46 @@ const filteredRules = computed(() => {
   cursor: pointer;
 }
 
+.empty-rules a {
+  display: block;
+  width: fit-content;
+  margin: 14px auto 0;
+  color: var(--vp-c-text-1);
+  font-size: 13px;
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
+.custom-rule-path {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28px;
+  padding: 22px 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 5px;
+}
+
+.custom-rule-path p {
+  margin: 0 0 5px;
+  color: var(--vp-c-text-1);
+  font-weight: 700;
+}
+
+.custom-rule-path span {
+  color: var(--vp-c-text-2);
+  font-size: 13px;
+}
+
+.custom-rule-path a {
+  flex: none;
+  color: var(--vp-c-brand-1);
+  font-size: 13px;
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -339,6 +391,15 @@ const filteredRules = computed(() => {
 
   .rule-grid {
     grid-template-columns: 1fr;
+  }
+
+  .custom-rule-path {
+    display: block;
+  }
+
+  .custom-rule-path a {
+    display: inline-block;
+    margin-top: 16px;
   }
 }
 </style>

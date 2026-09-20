@@ -13,3 +13,5 @@ const provider = jevProvider({ apiKey });
 ```
 
 The caller supplies the API key and decides how to obtain it.
+
+Follow the published [quickstart](https://scruple.alexpear.workers.dev/guide/quickstart), browse the [rule registry](https://scruple.alexpear.workers.dev/plugins/), compare [providers](https://scruple.alexpear.workers.dev/providers/), or [write a custom rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).

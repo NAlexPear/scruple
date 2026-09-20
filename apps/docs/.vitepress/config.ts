@@ -61,6 +61,11 @@ export default defineConfig({
   title: "Scruple",
   description: "Make good taste enforceable with named, tested code checks.",
   cleanUrls: true,
+  vite: {
+    server: {
+      allowedHosts: [".onamp.dev"],
+    },
+  },
   transformPageData(pageData) {
     const ruleId: unknown = pageData.params?.["rule"];
     if (typeof ruleId !== "string") {

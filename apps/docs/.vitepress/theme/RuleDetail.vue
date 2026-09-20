@@ -7,6 +7,20 @@ const props = defineProps<{ ruleId: string }>();
 const selectedExample = ref<"incorrect" | "correct">("incorrect");
 const copied = ref(false);
 const rule = computed(() => getRule(props.ruleId));
+const pluginFactories: Record<string, string> = {
+  "api-contracts": "apiContracts",
+  async: "asyncRules",
+  comments: "comments",
+  errors: "errors",
+  observability: "observability",
+  "relational-databases": "relationalDatabases",
+  resources: "resources",
+  security: "security",
+  tests: "tests",
+};
+const pluginFactory = computed(() =>
+  rule.value === undefined ? undefined : pluginFactories[rule.value.plugin],
+);
 
 const copyConfiguration = async () => {
   if (rule.value === undefined) {
@@ -70,8 +84,25 @@ const copyConfiguration = async () => {
     <section class="rule-section rule-setup">
       <div class="section-label"><span>02</span> Enable it</div>
       <div>
-        <h2>Configuration</h2>
-        <p>Add the plugin and enable the rule at the severity appropriate for your project.</p>
+        <h2>Setup</h2>
+        <p>Install the package, register its plugin factory, then enable the rule.</p>
+        <h3>Install the package</h3>
+        <pre class="setup-code"><code>pnpm add -D {{ rule.packageName }}</code></pre>
+        <template v-if="pluginFactory">
+          <h3>Register the plugin</h3>
+          <p>
+            In <code>scruple.config.ts</code>, register the factory under the
+            <code>{{ rule.plugin }}</code> namespace used by the rule ID.
+          </p>
+          <pre
+            class="setup-code"
+          ><code>import { {{ pluginFactory }} } from "{{ rule.packageName }}";
+
+plugins: {
+  "{{ rule.plugin }}": {{ pluginFactory }}(),
+},</code></pre>
+        </template>
+        <h3>Enable the rule</h3>
         <div class="config-code">
           <code>"{{ rule.id }}": "warn"</code>
           <button type="button" @click="copyConfiguration">{{ copied ? "Copied" : "Copy" }}</button>
@@ -299,6 +330,26 @@ const copyConfiguration = async () => {
 
 .rule-setup p {
   color: var(--vp-c-text-2);
+}
+
+.rule-setup h3 {
+  margin: 24px 0 8px;
+  font-size: 14px;
+}
+
+.setup-code {
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  background: var(--vp-c-bg-elv);
+}
+
+.setup-code code {
+  color: var(--vp-c-text-1);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .config-code {

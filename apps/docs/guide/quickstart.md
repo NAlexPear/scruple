@@ -1,6 +1,6 @@
 # Quickstart
 
-Scruple requires Node.js 22.18 or newer. Run it in CI after fast compiler and linter checks and before human review.
+Scruple requires Node.js 22.18 or newer. Run it after compilers and linters.
 
 This guide uses the Comments plugin with the [Jev provider](../providers/jev.md).
 
@@ -48,7 +48,8 @@ The key in `plugins` supplies the namespace used by each rule ID. Registering a 
 ## 3. Run Scruple
 
 ```sh
-TYPESAFE_API_KEY=your-key pnpm exec scruple "src/**/*.{ts,tsx}"
+export TYPESAFE_API_KEY=your-key
+pnpm exec scruple "src/**/*.{ts,tsx}"
 ```
 
 Use JSON output in automation:

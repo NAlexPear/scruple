@@ -27,13 +27,12 @@
 
 ## Where Scruple fits
 
-| Check             | Speed                         | Scope                                                 | Cost    | Examples                     |
-| ----------------- | ----------------------------- | ----------------------------------------------------- | ------- | ---------------------------- |
-| Static checks     | Usually fastest               | Syntax, types, formatting, and known patterns         | `$`     | TypeScript, Oxlint, ESLint   |
-| Codebase analysis | Codebase and cache dependent  | Cross-file data flow and codebase-wide known patterns | `$-$$$` | SonarQube, CodeQL            |
-| Semantic checks   | Target and provider dependent | Named standards that require interpretation           | `$-$$`  | Scruple                      |
-| AI review         | Diff and provider dependent   | Open-ended review comments and suggested changes      | `$$`    | CodeRabbit, GitHub Copilot   |
-| Human review      | Minutes or longer             | Architecture, product intent, and new tradeoffs       | `$$$`   | Teammates and domain experts |
+| Check                          | Typical performance             | Scope                                                                                  | Cost                                                     |
+| ------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Compiler and linter            | Usually fastest                 | Syntax, types, formatting, and known patterns                                          | Varies by tool and local or CI compute                   |
+| Security and codebase analysis | Depends on codebase and caching | Cross-file data flow, dependencies, and codebase-wide patterns                         | Varies by tool and deployment                            |
+| Scruple                        | Depends on targets and provider | Named, focused standards that require interpretation                                   | MIT plus hosted model usage or local storage and compute |
+| Reviewers                      | Depends on change and reviewer  | Human reviewers and AI review bots can use broader repository and organization context | People time or review-tool fees                          |
 
 ## Use Scruple
 
@@ -126,7 +125,7 @@ Scruple has no core policy. Plugins provide independently publishable rule packs
 
 ### Put your team's taste in the repository
 
-Every team has standards that live in review comments. Scruple turns those repeated comments into named, tested rules that run the same way on every change:
+Every team has standards that live in review comments. Scruple turns those repeated comments into named, tested rules with fixed evidence selection and decision thresholds:
 
 - "We preserve the original error here."
 - "This test does not prove the behavior."
@@ -136,8 +135,9 @@ Every team has standards that live in review comments. Scruple turns those repea
 If a review comment starts with "we usually," it may belong in a Scruple rule. [Write your own rule](https://scruple.alexpear.workers.dev/guide/writing-a-plugin).
 
 A plugin registers named rules. Semantic rules collect normalized source targets and create typed
-decision questions, then deterministically turn provider answers into diagnostics or abstain. Rules
-provide stable diagnostic text and never ask a model to generate messages or fixes.
+decision questions, then apply fixed thresholds to a provider answer. For a given answer, the rule
+produces its own diagnostic or abstains. Provider answers and which findings appear may vary. Rules
+provide fixed diagnostic text and never ask a model to generate messages or fixes.
 
 OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
 calls, and facts rather than serialized syntax trees. Both parsers and decision providers are

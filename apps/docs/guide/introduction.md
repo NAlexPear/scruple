@@ -1,45 +1,39 @@
 # Introduction
 
-## Make good taste enforceable
-
-Scruple turns engineering judgment into named, tested code checks. Start with built-in rules for common problems, or write custom rules for standards your team repeats in review.
-
-Keep fast compilers and linters close to your editor. Run Scruple after them in CI and before review, where it can check questions that need more context than a syntax pattern can provide. People can then spend review time on architecture, product intent, and standards that still need discussion.
-
-Scruple complements linters and security scanners rather than replacing them. It is MIT licensed; its Jev provider uses paid model tokens for typed decisions.
+Scruple turns engineering judgment into named, tested code checks.
 
 ## What Scruple checks
 
-Scruple finds likely mistakes, unclear code, and policy violations by combining focused source evidence with typed decisions. For example, a rule can check whether a comment contradicts nearby code, whether a test verifies the behavior it claims to cover, or whether a retry loop has a deadline.
+Scruple checks code that already compiles for problems that need judgment. A rule can check whether a comment contradicts nearby code, whether a test proves what it claims, or whether a retry loop has a deadline.
 
-Traditional static analysis is strongest when syntax and types are enough to prove a result. Scruple is for questions that require interpretation, such as whether a queue handler is safe under redelivery. When the visible evidence cannot support an answer, the rule abstains.
+Compilers and linters work best when syntax or types can prove the answer. Scruple handles written standards that need more context. If a rule cannot see enough code to decide, it reports nothing.
 
 ## What Scruple controls
 
-Scruple keeps the decision provider inside a narrow contract:
+Scruple limits what the model can do:
 
-1. A parser normalizes source files into comments, functions, tests, imports, calls, and other targets.
-2. Enabled plugin rules select bounded evidence and define typed questions.
-3. A provider answers those questions.
-4. The rule applies its own thresholds and emits a stable diagnostic, or abstains.
+1. The parser finds comments, functions, tests, calls, and other parts of the code.
+2. Each rule chooses the code it needs and asks one fixed question.
+3. Jev answers that question.
+4. The rule decides whether the answer is strong enough to report.
 
-The provider never writes diagnostic messages or fixes. Rules own the message, severity, source location, and threshold. Policy stays in versioned plugin code, and a rule abstains when the available evidence is insufficient.
+The model never writes warnings or fixes. Each rule controls the warning, severity, location, and required score. Your standards stay in code and can be reviewed with the rest of the project.
 
 ## What you choose
 
 Every part is explicit in `scruple.config.ts`:
 
-- **Parser:** how source becomes normalized targets.
-- **Provider:** where typed decisions run.
-- **Plugins:** which rule libraries are available.
-- **Rules:** which policies are enabled and at what severity.
+- **Parser:** how Scruple reads source files.
+- **Provider:** how Scruple sends questions to Jev.
+- **Plugins:** which sets of rules are available.
+- **Rules:** which checks are enabled and how serious their findings are.
 - **Scope:** which files are included or ignored.
 
-Start with one plugin and a small set of rules. Review the findings, calibrate thresholds for your provider and codebase, and expand only when the signal is useful.
+Start with one plugin and a few rules. Review the findings, adjust the required scores for your project, and add more rules when the results are useful.
 
 ## Next steps
 
 - Follow the [quickstart](./quickstart.md) to run your first check.
-- [Write your own plugin](./writing-a-plugin.md) to add project-specific semantic policy.
-- Learn how [evidence and decisions](../concepts/evidence-and-decisions.md) stay bounded.
+- [Write your own plugin](./writing-a-plugin.md) to check your team's standards.
+- Learn how Scruple limits [what each rule can see and ask](../concepts/evidence-and-decisions.md).
 - Browse the [plugin rule libraries](../plugins/index.md).
