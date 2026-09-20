@@ -5,3 +5,4 @@ packages:
 allowBuilds:
   esbuild: true
   oxc-parser: true
+  workerd: true
