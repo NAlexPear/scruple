@@ -29,7 +29,7 @@
     "@scruple/parser-oxc": "workspace:*",
     "@scruple/provider-jev": "workspace:*",
     "@scruple/provider-laya": "workspace:*",
-    "@types/node": "^24.5.2",
+    "@types/node": "^26.6.1",
     "@types/picomatch": "^4.0.3",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
