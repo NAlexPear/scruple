@@ -22,6 +22,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: "Introduction", link: "/guide/introduction" },
       { text: "Quickstart", link: "/guide/quickstart" },
       { text: "Configuration", link: "/guide/configuration" },
+      { text: "Agent skills", link: "/guide/agent-skills" },
     ],
   },
   {

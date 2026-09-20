@@ -1,0 +1,23 @@
+{
+  "skill_name": "configuring-scruple",
+  "evals": [
+    {
+      "id": "minimal-typed-configuration",
+      "prompt": "Set up Scruple in a pnpm TypeScript project using OXC, the Jev provider, and the resources plugin. Enable require-cleanup-on-failure as an error and keep the API key out of source control.",
+      "expected_output": "Creates or proposes a defineConfig-based scruple.config.ts, reads TYPESAFE_API_KEY from the environment with a clear missing-value failure, registers resources under a namespace, separately enables resources/require-cleanup-on-failure as error, installs only required packages, and gives a relevant verification command without exposing a credential.",
+      "files": []
+    },
+    {
+      "id": "registration-does-not-enable",
+      "prompt": "I added comments() under plugins in scruple.config.ts, but I want every comments rule to run automatically. Fix the config.",
+      "expected_output": "Explains that plugin registration intentionally does not enable rules, inspects the plugin's current exported rule names, and adds explicit namespaced entries with deliberate severities rather than inventing an all-rules switch.",
+      "files": []
+    },
+    {
+      "id": "diagnose-rule-namespace",
+      "prompt": "Scruple says Rule quality/no-useless-comments requires plugin quality. My plugins object is { comments: comments() }. Diagnose and make the smallest correction.",
+      "expected_output": "Identifies the consumer-owned namespace mismatch and either changes the rule ID to comments/no-useless-comments or deliberately renames the plugin key; makes only one consistent correction and verifies the config.",
+      "files": []
+    }
+  ]
+}

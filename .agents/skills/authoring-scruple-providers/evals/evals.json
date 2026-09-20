@@ -1,0 +1,23 @@
+{
+  "skill_name": "authoring-scruple-providers",
+  "evals": [
+    {
+      "id": "complete-provider-adapter",
+      "prompt": "Create a Scruple provider adapter for a hypothetical API-key-authenticated Acme Decisions SDK with an injectable transport. It supports binary, choice, and scored questions, AbortSignal, resolved model names, and token usage. Include unit tests without network access.",
+      "expected_output": "Implements the current DecisionProvider contract with explicit options and injected or fakeable transport; validates credentials; uses a stable non-secret ID and sensible concurrency; maps noul, choice, and score requests completely; forwards AbortSignal; preserves named answers and resolved model; normalizes asymmetric token usage; and tests exact outbound and inbound values without live credentials.",
+      "files": []
+    },
+    {
+      "id": "review-unsafe-provider",
+      "prompt": "Review a provider that reads process.env.API_KEY inside evaluate(), puts that key in provider.id for debugging, ignores the signal, catches every SDK error, and returns { model: requestedModel, answers: {} }.",
+      "expected_output": "Flags secret exposure, ambient per-request configuration, lost cancellation, swallowed operational failures, fabricated success, omitted answers, and potentially incorrect model reporting. Recommends explicit validated construction options, signal forwarding, rejection of service failures, same-name answer mapping, and resolved model propagation.",
+      "files": []
+    },
+    {
+      "id": "avoid-double-retries",
+      "prompt": "The SDK retries each request three times and my new Scruple provider also wraps evaluate in a three-attempt retry loop. Add timeouts too and make cancellation responsive.",
+      "expected_output": "Recognizes multiplicative retries, chooses one retry-owning layer, forwards AbortSignal into the SDK request, configures one timeout path, avoids retrying authentication or validation failures, and adds deterministic tests for option forwarding and cancellation rather than sleeping or using a live endpoint.",
+      "files": []
+    }
+  ]
+}

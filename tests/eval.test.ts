@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -33,6 +34,20 @@ await test("evaluation options support repeated Jev models", () => {
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
+});
+
+await test("evaluation CLI reaches provider validation", () => {
+  const environment = { ...process.env };
+  delete environment["TYPESAFE_API_KEY"];
+  const result = spawnSync(process.execPath, ["packages/eval/dist/cli.js"], {
+    cwd: new URL("..", import.meta.url),
+    encoding: "utf8",
+    env: environment,
+  });
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /TYPESAFE_API_KEY is required for Jev evaluations/u);
+  assert.doesNotMatch(result.stderr, /before initialization/u);
 });
 
 await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {

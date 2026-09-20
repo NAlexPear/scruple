@@ -1,0 +1,29 @@
+{
+  "skill_name": "authoring-scruple-rules",
+  "evals": [
+    {
+      "id": "bounded-choice-rule",
+      "prompt": "Create a Scruple plugin with a rule that reports TODO comments only when they fail to identify concrete follow-up work. Include configurable probability and confidence thresholds and tests.",
+      "expected_output": "Defines a typed RuleFactory and definePlugin export; selects normalized comment targets in source order; sends bounded evidence; asks one choice question with specific, vague, and insufficient_context criteria; validates options; diagnose reports only calibrated vague answers with a fixed message; tests selection, safe and insufficient answers, exact and below-threshold values, integration, and bounded request size.",
+      "files": []
+    },
+    {
+      "id": "reject-raw-source-guessing",
+      "prompt": "Write a rule that reports functions whose callers fail to hold a distributed lock. ParsedDocument only exposes each function body and does not expose callers or lock state. Search document.source for the function name to infer callers.",
+      "expected_output": "Rejects raw-source name searching as unsound, explains that the required caller and runtime lock evidence is absent, and either scopes the policy to parser-provided evidence, proposes a normalized parser extension, or abstains. It does not implement the requested heuristic as though it were reliable.",
+      "files": []
+    },
+    {
+      "id": "provider-assisted-collection",
+      "prompt": "Add a rule whose possible candidates are all ordinary comments, but where recognizing a future-work marker requires semantic judgment. Ensure suppressions and accounting still work and add evaluation fixtures.",
+      "expected_output": "Uses an AsyncSemanticRule and the engine-provided CollectionContext provider with the target and signal, handles a null suppressed result, keeps classification evidence bounded, asks a separate final rule question for selected candidates, adds collection_choices distinct from expected_choice, and tests suppression/order/request accounting without constructing or calling a provider directly.",
+      "files": []
+    },
+    {
+      "id": "plugin-namespace-ownership",
+      "prompt": "Publish a plugin package named @acme/scruple-reliability containing retry and cleanup rules. Hard-code acme-reliability into each exported rule ID so consumers cannot rename it.",
+      "expected_output": "Uses definePlugin with stable local kebab-case rule keys and does not encode a namespace in the plugin. Explains that the consumer chooses the namespace in defineConfig, while preserving typed options for both factories.",
+      "files": []
+    }
+  ]
+}

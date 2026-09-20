@@ -22,7 +22,8 @@
 <p align="center">
   <a href="https://scruple.dev/guide/quickstart">Get started</a> ·
   <a href="https://scruple.dev/">Read the docs</a> ·
-  <a href="https://scruple.dev/plugins/">Browse the rules</a>
+  <a href="https://scruple.dev/plugins/">Browse the rules</a> ·
+  <a href="https://scruple.dev/guide/agent-skills">Install agent skills</a>
 </p>
 
 ## Where Scruple fits
@@ -90,6 +91,25 @@ node --conditions=source app.ts
 ```
 
 Use this only when the runtime or bundler supports erasable TypeScript syntax and custom conditions.
+
+### Use Scruple with coding agents
+
+This repository includes agent skills for configuring Scruple, authoring rules and plugins, and
+building decision-provider adapters. Install all three globally with Amp:
+
+```sh
+amp skill add NAlexPear/scruple/.agents/skills --global
+amp skill list
+```
+
+Or install them into the current project with the `skills` CLI:
+
+```sh
+npx skills add NAlexPear/scruple --skill '*' --agent amp --yes
+```
+
+See the [agent skills guide](https://scruple.dev/guide/agent-skills) for individual installation,
+verification, example prompts, and other supported coding agents.
 
 ### Configure rules
 

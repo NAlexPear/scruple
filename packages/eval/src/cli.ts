@@ -16,6 +16,31 @@ import { createJevProvider } from "./jev-provider.js";
 
 const plugins = evaluationPlugins();
 
+const runModel = async (
+  model: string,
+  repetitions: number,
+  fixtures: readonly EvalFixture[],
+): Promise<EvalRunReport[]> => {
+  const provider = createJevProvider(model);
+  try {
+    return await Promise.all(
+      Array.from({ length: repetitions }, (_, index) =>
+        runEvaluation({
+          fixtures,
+          parser: oxcParser(),
+          plugins,
+          provider,
+          providerName: "jev",
+          requestedModel: model,
+          repetition: index + 1,
+        }),
+      ),
+    );
+  } finally {
+    await provider.close?.();
+  }
+};
+
 try {
   const options = parseEvalOptions(process.argv.slice(2));
   if (options.help) {
@@ -41,28 +66,3 @@ try {
   process.stderr.write(`scruple eval: ${message}\n`);
   process.exitCode = 2;
 }
-
-const runModel = async (
-  model: string,
-  repetitions: number,
-  fixtures: readonly EvalFixture[],
-): Promise<EvalRunReport[]> => {
-  const provider = createJevProvider(model);
-  try {
-    return await Promise.all(
-      Array.from({ length: repetitions }, (_, index) =>
-        runEvaluation({
-          fixtures,
-          parser: oxcParser(),
-          plugins,
-          provider,
-          providerName: "jev",
-          requestedModel: model,
-          repetition: index + 1,
-        }),
-      ),
-    );
-  } finally {
-    await provider.close?.();
-  }
-};
