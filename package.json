@@ -1,0 +1,44 @@
+{
+  "name": "scruple-workspace",
+  "private": true,
+  "description": "Semantic code rules powered by Jev or local Laya models.",
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --sort build",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --deny-warnings .",
+    "test": "pnpm build && vitest run",
+    "typecheck": "pnpm -r --sort typecheck"
+  },
+  "devDependencies": {
+    "@scruple/core": "workspace:*",
+    "@scruple/parser-oxc": "workspace:*",
+    "@scruple/provider-jev": "workspace:*",
+    "@scruple/provider-laya": "workspace:*",
+    "@scruple/rules": "workspace:*",
+    "@types/node": "^24.5.2",
+    "@types/picomatch": "^4.0.3",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.83.0",
+    "oxlint-tsgolint": "^7.0.2002",
+    "scruple": "workspace:*",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "packageManager": "pnpm@12.0.0"
+}

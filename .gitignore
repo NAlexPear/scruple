@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.scruple/
+coverage/
+*.tsbuildinfo
+.amp/portals/*
