@@ -10,13 +10,11 @@
       </header>
 
       <div class="provider-card-code">
-        <h4>Setup</h4>
-        <pre><code>pnpm add -D @scruple/provider-jev
+        <h4>Configuration</h4>
+        <pre><code><span class="code-keyword">import</span> { <span class="code-function">jevProvider</span> } <span class="code-keyword">from</span> <span class="code-string">"@scruple/provider-jev"</span>;
 
-import { jevProvider } from "@scruple/provider-jev";
-
-const provider = jevProvider({
-  apiKey: process.env["TYPESAFE_API_KEY"]!,
+<span class="code-keyword">const</span> provider = <span class="code-function">jevProvider</span>({
+  <span class="code-property">apiKey</span>: process.env[<span class="code-string">"TYPESAFE_API_KEY"</span>]!,
 });</code></pre>
       </div>
 
@@ -36,14 +34,14 @@ const provider = jevProvider({
 
       <div class="provider-card-code">
         <h4>Provider interface</h4>
-        <pre><code>interface DecisionProvider {
-  readonly id: string;
-  readonly concurrency?: number;
-  evaluate(
-    request: DecisionRequest,
-    signal?: AbortSignal,
-  ): Promise&lt;DecisionResponse&gt;;
-  close?(): Promise&lt;void&gt; | void;
+        <pre><code><span class="code-keyword">interface</span> <span class="code-type">DecisionProvider</span> {
+  <span class="code-keyword">readonly</span> <span class="code-property">id</span>: <span class="code-type">string</span>;
+  <span class="code-keyword">readonly</span> <span class="code-property">concurrency</span>?: <span class="code-type">number</span>;
+  <span class="code-function">evaluate</span>(
+    <span class="code-property">request</span>: <span class="code-type">DecisionRequest</span>,
+    <span class="code-property">signal</span>?: <span class="code-type">AbortSignal</span>,
+  ): <span class="code-type">Promise</span>&lt;<span class="code-type">DecisionResponse</span>&gt;;
+  <span class="code-function">close</span>?(): <span class="code-type">Promise</span>&lt;<span class="code-type">void</span>&gt; | <span class="code-type">void</span>;
 }</code></pre>
       </div>
 
@@ -120,6 +118,26 @@ const provider = jevProvider({
   background: transparent;
   color: #edf0e9;
   font: 400 8px/1.75 var(--vp-font-family-mono);
+}
+
+.code-keyword {
+  color: #c792ea;
+}
+
+.code-function {
+  color: #82aaff;
+}
+
+.code-property {
+  color: #f7a072;
+}
+
+.code-string {
+  color: #c3e88d;
+}
+
+.code-type {
+  color: #89ddff;
 }
 
 .provider-card > a {
