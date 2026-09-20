@@ -1,11 +1,11 @@
 <script setup lang="ts">
-defineProps<{ extended?: boolean; tailOnly?: boolean }>();
+defineProps<{ compact?: boolean; extended?: boolean; tailOnly?: boolean }>();
 </script>
 
 <template>
   <svg
     class="ScrupleMark"
-    viewBox="0 0 448 448"
+    :viewBox="compact ? '154 0 140 448' : '0 0 448 448'"
     :preserveAspectRatio="tailOnly ? 'none' : 'xMidYMid meet'"
     aria-hidden="true"
     focusable="false"

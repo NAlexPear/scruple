@@ -51,11 +51,12 @@
 }
 
 .nav-mark {
-  width: 52px;
+  width: 18px;
   height: 52px;
-  margin-right: 8px;
+  margin-right: 4px;
   color: var(--vp-c-text-1);
-  --scruple-mark-stroke: 17;
+  opacity: 0.65;
+  --scruple-mark-stroke: 9;
 }
 
 .nav-tail {

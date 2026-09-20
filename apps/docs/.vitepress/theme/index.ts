@@ -10,7 +10,7 @@ export default {
   extends: DefaultTheme,
   Layout: () =>
     h(DefaultTheme.Layout, null, {
-      "nav-bar-title-before": () => h(ScrupleMark, { class: "nav-mark" }),
+      "nav-bar-title-before": () => h(ScrupleMark, { class: "nav-mark", compact: true }),
       "nav-bar-content-before": () => h(ScrupleMark, { class: "nav-tail", tailOnly: true }),
     }),
   enhanceApp({ app }) {
