@@ -2,6 +2,8 @@
 
 Scruple is a pluggable semantic code checker that turns focused source evidence and Jev or local Laya decisions into deterministic diagnostics.
 
+Read the [documentation](https://scruple.alexpear.workers.dev/).
+
 ## Use Scruple
 
 Scruple requires Node.js 22.18 or newer. Install the CLI, core, OXC parser, a provider, and the example
