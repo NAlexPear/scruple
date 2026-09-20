@@ -36,6 +36,11 @@ The JSON report includes:
 - Mean, p50, and p95 wall time and case latency
 - End-to-end cases per second
 - Model calls and input/output token totals
-- Correctness failures and resolved model names
+- Label agreement before thresholds
+- User-visible diagnostic agreement after thresholds
+- Expected and actual abstentions
+- Strict agreement across labels, diagnostics, candidate selection, and abstentions
+- Full provider answers, including probabilities and confidence, for each case
+- Strict failures and resolved model names
 
 Warmup work is excluded from measured samples and token totals. Keep workload, concurrency, warmups, repetitions, and environment identical when comparing models.

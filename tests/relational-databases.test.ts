@@ -74,6 +74,8 @@ export async function joined(userRepository: Repository<User>, teamRepository: R
   assert.match(state, /"database_sources":\["userRepository","teamRepository"\]/u);
   assert.match(state, /"evidence_boundary":"current_file"/u);
   assert.doesNotMatch(JSON.stringify(candidate.question), /bounded data|intentionally bounded/iu);
+  assert.match(JSON.stringify(candidate.question), /same visible relational database client/u);
+  assert.match(JSON.stringify(candidate.question), /application-only logic/u);
 });
 
 await test("query-in-loop prefilter handles statement loops and collection callbacks", () => {

@@ -187,6 +187,11 @@ export function notAsync() {
     candidates.map((candidate) => candidate.target.source.split("(")[0]),
     ["async function two", "async function commented"],
   );
+  const question = JSON.stringify(candidates[0]?.question);
+  assert.match(question, /explicit local statement/u);
+  assert.match(question, /safe to start together/u);
+  assert.match(question, /neither independence nor required ordering/u);
+  assert.match(question, /separate files alone do not establish/u);
 });
 
 await test("cancellation selection requires an AbortSignal and a known cancellable platform call", () => {

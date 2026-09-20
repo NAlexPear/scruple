@@ -114,6 +114,48 @@ const makeBenchmarkPlugin = (): ScruplePlugin => {
   });
 };
 
+const makeChoiceBenchmarkPlugin = (): ScruplePlugin => {
+  return definePlugin({
+    rules: {
+      "choice-rule": () => ({
+        description: "Benchmark choice outcomes",
+        collect(document) {
+          const target = document.functions[0];
+          return target === undefined
+            ? []
+            : [
+                {
+                  target,
+                  state: { source: target.source },
+                  question: {
+                    type: "choice",
+                    instructions: "Classify this fixture.",
+                    criteria: {
+                      finding: "Report a diagnostic.",
+                      safe: "Do not report a diagnostic.",
+                      insufficient_context: "Abstain.",
+                    },
+                  },
+                },
+              ];
+        },
+        diagnose(answer, candidate) {
+          return answer.type === "choice" &&
+            answer.choice === "finding" &&
+            (answer.probabilities["finding"] ?? 0) >= 0.9 &&
+            answer.confidence >= 0.7
+            ? {
+                message: "Choice finding",
+                filename: candidate.target.filename,
+                location: candidate.target.location,
+              }
+            : null;
+        },
+      }),
+    },
+  });
+};
+
 await test("benchmark excludes warmups and respects bounded concurrency", async () => {
   let calls = 0;
   let active = 0;
@@ -179,6 +221,12 @@ await test("benchmark excludes warmups and respects bounded concurrency", async 
   assert.deepEqual(report.settings, { concurrency: 2, repetitions: 2, warmups: 1 });
   assert.deepEqual(report.resolvedModels, ["resolved-model"]);
   assert.deepEqual(report.summary.cases, { total: 4, passed: 4, failed: 0 });
+  assert.deepEqual(report.summary.outcomes, {
+    labelAgreement: { correct: 4, incorrect: 0, rate: 1, total: 4 },
+    diagnosticAgreement: { correct: 4, incorrect: 0, rate: 1, total: 4 },
+    abstentions: { correct: 4, incorrect: 0, rate: 1, total: 4, actual: 0, expected: 0 },
+    strictAgreement: { correct: 4, incorrect: 0, rate: 1, total: 4 },
+  });
   assert.deepEqual(report.summary.usage, {
     inputTokens: 28,
     modelCalls: 4,
@@ -193,4 +241,101 @@ await test("benchmark excludes warmups and respects bounded concurrency", async 
   assert.equal(report.summary.durationMs.mean > 0, true);
   assert.equal(report.summary.caseLatencyMs.p95 > 0, true);
   assert.equal(report.summary.throughputCasesPerSecond > 0, true);
+});
+
+await test("benchmark separates labels, diagnostics, abstentions, and strict agreement", async () => {
+  const provider: DecisionProvider = {
+    id: "choice-fixture",
+    evaluate(request): Promise<DecisionResponse> {
+      const source = JSON.stringify(request.state);
+      const answer = new Map<boolean, DecisionAnswer>([
+        [
+          true,
+          {
+            type: "choice",
+            choice: "insufficient_context",
+            confidence: 1,
+            probabilities: { finding: 0, safe: 0, insufficient_context: 1 },
+          },
+        ],
+        [
+          false,
+          {
+            type: "choice",
+            choice: "finding",
+            confidence: 1,
+            probabilities: { finding: 0.5, safe: 0.5, insufficient_context: 0 },
+          },
+        ],
+      ]).get(source.includes("abstain"));
+      assert.ok(answer);
+      return Promise.resolve({
+        model: "choice-model",
+        answers: Object.fromEntries(Object.keys(request.questions).map((id) => [id, answer])),
+      });
+    },
+  };
+  const fixtures: EvalFixture[] = [
+    {
+      id: "label-only",
+      filename: "label-only.ts",
+      source: "function labelOnly() {}",
+      ruleId: "test/choice-rule",
+      expectedFinding: true,
+      expectedCandidates: 1,
+      expectedChoices: ["finding"],
+      rationale: "The label is right but does not pass the diagnostic threshold.",
+      tags: ["positive"],
+    },
+    {
+      id: "diagnostic-only",
+      filename: "diagnostic-only.ts",
+      source: "function diagnosticOnly() {}",
+      ruleId: "test/choice-rule",
+      expectedFinding: false,
+      expectedCandidates: 1,
+      expectedChoices: ["safe"],
+      rationale: "The wrong low-probability label still produces the correct visible behavior.",
+      tags: ["negative"],
+    },
+    {
+      id: "abstain",
+      filename: "abstain.ts",
+      source: "function abstain() {}",
+      ruleId: "test/choice-rule",
+      expectedFinding: false,
+      expectedCandidates: 1,
+      expectedChoices: ["insufficient_context"],
+      expectedAbstention: true,
+      rationale: "The provider should abstain without producing a diagnostic.",
+      tags: ["negative", "abstention"],
+    },
+  ];
+
+  const report = await runBenchmark({
+    fixtures,
+    parser: oxcParser(),
+    plugins: { test: makeChoiceBenchmarkPlugin() },
+    provider,
+    providerName: "fixture",
+    requestedModel: "choice-model",
+    warmups: 0,
+    repetitions: 1,
+    concurrency: 1,
+  });
+
+  assert.deepEqual(report.summary.outcomes, {
+    labelAgreement: { correct: 2, incorrect: 1, rate: 2 / 3, total: 3 },
+    diagnosticAgreement: { correct: 2, incorrect: 1, rate: 2 / 3, total: 3 },
+    abstentions: { correct: 3, incorrect: 0, rate: 1, total: 3, actual: 1, expected: 1 },
+    strictAgreement: { correct: 1, incorrect: 2, rate: 1 / 3, total: 3 },
+  });
+  assert.deepEqual(report.samples[0]?.cases[0]?.answers, [
+    {
+      type: "choice",
+      choice: "finding",
+      confidence: 1,
+      probabilities: { finding: 0.5, safe: 0.5, insufficient_context: 0 },
+    },
+  ]);
 });

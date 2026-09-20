@@ -107,14 +107,14 @@ const noSensitiveLogs = (options: ObservabilityRuleOptions = {}): SemanticRule =
     description: "Observability emissions should not expose sensitive values.",
     select: (calls) => calls,
     instructions:
-      "Does this selected log, event, span, metric, or attribute call directly emit a visibly sensitive value without effective redaction? Judge only evidence visible in `call` and `context`. Sensitive values include credentials, authentication/session material, private keys, financial account data, sensitive URL or header contents, and personal data whose disclosure is clearly inappropriate here. A field name alone does not prove its runtime value is sensitive, and structured telemetry is not automatically safe. Treat explicit masking, allowlisting, or a visibly redacted value as safe. Hashing or pseudonymization is safe only when the visible evidence establishes that the representation is suitable for disclosure; low-entropy values and policy-dependent personal data otherwise require insufficient_context. If safety depends on an unseen helper, logger/exporter redaction, or runtime configuration, choose insufficient_context.",
+      "Classify the values passed by this selected observability call. Select `exposed_sensitive_value` when a visible value expression directly reads credential, authentication, session, private-key, financial-account, or clearly private personal data, such as `session.token`. Select `safe_or_redacted` when sensitive-looking properties contain literal redaction markers and every other visible value is an ordinary operation name, identifier, duration, count, or other non-sensitive telemetry. Select `insufficient_context` when a helper result or runtime expression may contain sensitive data but its contents or redaction are not visible. Judge value expressions, not property names by themselves.",
     criteria: {
       exposed_sensitive_value:
-        "The call visibly emits sensitive data or a secret-bearing object/value without effective redaction.",
+        "At least one visible emitted expression directly reads a secret or clearly sensitive runtime value, such as an authentication or session token.",
       safe_or_redacted:
-        "The emitted values are non-sensitive, explicitly redacted or allowlisted, or visibly represented safely for this use.",
+        "Sensitive-looking properties contain literal redaction markers, and all other visible emitted expressions are ordinary non-sensitive operational telemetry.",
       insufficient_context:
-        "The available source does not establish what is emitted or whether an unseen boundary redacts it.",
+        "A helper result or runtime expression may contain sensitive data, but visible source does not show its contents or effective redaction.",
     },
     finding: "exposed_sensitive_value",
     message: "This observability call appears to expose a sensitive value without redaction.",

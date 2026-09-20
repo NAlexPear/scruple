@@ -37,6 +37,7 @@ export interface EvalCaseResult {
   actualCandidates: number;
   expectedChoices: string[];
   actualChoices: string[];
+  answers: DecisionAnswer[];
   expectedAbstention?: boolean;
   actualAbstention: boolean;
   accepted: boolean;
@@ -291,8 +292,9 @@ export const runEvalCase = async (
   );
   const actualCandidates = result.stats.candidates;
   const errors = result.errors.map((error) => error.message);
-  const actualChoices = (result.decisions ?? []).flatMap((decision) =>
-    decision.answer.type === "choice" ? [decision.answer.choice] : [],
+  const answers = (result.decisions ?? []).map((decision) => decision.answer);
+  const actualChoices = answers.flatMap((answer) =>
+    answer.type === "choice" ? [answer.choice] : [],
   );
   const actualAbstention =
     actualChoices.length > 0 && actualChoices.every((choice) => choice === "insufficient_context");
@@ -308,6 +310,7 @@ export const runEvalCase = async (
     actualCandidates,
     expectedChoices: fixture.expectedChoices,
     actualChoices,
+    answers,
     ...(fixture.expectedAbstention === undefined
       ? {}
       : { expectedAbstention: fixture.expectedAbstention }),

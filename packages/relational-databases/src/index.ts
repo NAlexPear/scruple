@@ -92,14 +92,14 @@ const preferDatabaseJoin = (options: PreferDatabaseJoinOptions = {}): SemanticRu
               collection_operations: callEvidenceList(collectionOperations),
             },
             instructions:
-              "Does this function combine results from multiple queries to the same relational database in application memory when that database layer could reasonably do the work? Verify that the selected calls produce the relevant query results, target a compatible store, and are actually combined by the collection operation. Consider joins, relation includes, aggregations, subqueries, and filtered queries. Do not infer database provenance or backend capabilities that the supplied file does not establish.",
+              "Does this function fetch related collections through the same visible relational database client and then match records from those collections in application memory? Select `database_pushdown` when the visible calls share the same database client and the collection operation directly compares related fields or keys without application functions. Select `intentionally_in_memory` for independent transformations, different stores, or matching that visibly calls application-only logic such as decryption or normalization that is not available in the database query layer. Select `insufficient_context` only when the shared database provenance or relationship is not visible.",
             criteria: {
               database_pushdown:
-                "The function visibly fetches related results from a compatible relational database and combines or searches across them in memory even though the available database layer can reasonably express that work.",
+                "The function visibly fetches related collections through the same relational database client and directly matches their fields or keys in application memory without application-only transformations.",
               intentionally_in_memory:
-                "The operation does not combine multiple query results, is an independent post-query transformation, operates on non-database data, uses separate database systems, or visibly requires application-only semantics.",
+                "The data comes from different stores, is not related, or matching visibly requires application-only logic such as decryption or normalization.",
               insufficient_context:
-                "The file does not establish query provenance, store compatibility, the relationship between results and collection operations, or support for an equivalent database operation.",
+                "The visible source does not establish shared relational database provenance or a relationship between the results.",
             },
           }),
         ];

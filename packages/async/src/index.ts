@@ -146,14 +146,14 @@ const noSerialIndependentWork = (options: AsyncRuleOptions = {}): SemanticRule =
       }),
     question: {
       instructions:
-        "Does this function unnecessarily await independent operations in series? Require clear local evidence that starting at least two directly awaited operations together preserves results, side effects, failure ordering, whether later work runs after an earlier failure, resource limits, transactions, locks, rate limits, and required ordering. Locally normalized failures or known non-failing operations can establish compatible failure behavior. A later call using an earlier result is dependent. Choose `insufficient_context` rather than infer effects or failure contracts hidden behind callees.",
+        "Do the selected directly awaited operations wait in series even though the visible source establishes that they are independent or safe to start together? Treat an explicit local statement that the operations are independent or safe to start together as evidence that concurrent start preserves required behavior unless visible code contradicts it. Different arguments, read-only operations, or separate files alone do not establish compatible failure and side-effect behavior. Choose `ordering_required` for a visible dependency, side effect, transaction, resource limit, failure constraint, or required sequence. Choose `insufficient_context` when neither independence nor required ordering is explicitly established.",
       criteria: {
         serial_independent_work:
-          "At least two directly awaited operations are visibly independent and starting them together preserves observable success, failure, and side-effect behavior.",
+          "The operations wait in series, and visible source explicitly states that they are independent or safe to start together.",
         ordering_required:
-          "Data dependency, side effects, error semantics, a transaction, resource control, or an explicit constraint requires or reasonably justifies the sequence.",
+          "Visible code establishes a dependency, side effect, transaction, resource limit, failure constraint, or required sequence.",
         insufficient_context:
-          "The function does not establish enough about callee effects or failure behavior to prove that concurrent execution preserves behavior.",
+          "Visible source does not explicitly establish either independence or required ordering; separate targets or read-only calls alone are not enough.",
       },
     },
     finding: "serial_independent_work",

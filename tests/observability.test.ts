@@ -95,8 +95,10 @@ await test("refined rules encode safe and ambiguity boundaries", () => {
     plugin.rules["no-sensitive-logs"](),
     "function record(user: User) { logger.info({ email: hash(user.email) }); }",
   );
-  assert.match(sensitiveInstructions, /Hashing or pseudonymization is safe only/u);
-  assert.match(sensitiveInstructions, /logger\/exporter redaction/u);
+  assert.match(sensitiveInstructions, /Classify the values passed/u);
+  assert.match(sensitiveInstructions, /such as `session\.token`/u);
+  assert.match(sensitiveInstructions, /literal redaction markers/u);
+  assert.match(sensitiveInstructions, /not property names by themselves/u);
 
   const errorInstructions = instructionsFor(
     plugin.rules["no-unactionable-errors"](),

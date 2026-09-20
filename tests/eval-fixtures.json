@@ -233,6 +233,17 @@
       "tags": ["positive", "serial-await", "independent", "read-only"]
     },
     {
+      "id": "async-different-files-without-safety-contract",
+      "filename": "inputs.ts",
+      "source": "import { readFile } from \"node:fs/promises\";\nexport async function loadInputs() {\n  const config = await readFile(\"config.json\", \"utf8\");\n  const schema = await readFile(\"schema.json\", \"utf8\");\n  return { config, schema };\n}\n",
+      "rule_id": "async/no-serial-independent-work",
+      "expected_finding": false,
+      "expected_choice": "insufficient_context",
+      "expected_abstention": true,
+      "rationale": "Different read targets establish data independence but do not establish that concurrent failure and side-effect behavior is acceptable.",
+      "tags": ["negative", "serial-await", "insufficient-context", "failure-ordering"]
+    },
+    {
       "id": "async-intentional-fixed-fan-out",
       "filename": "dashboard.ts",
       "source": "export async function dashboard() {\n  const [profile, alerts] = await Promise.all([loadProfile(), loadAlerts()]);\n  return { profile, alerts };\n}\n",
@@ -639,6 +650,15 @@
       "tags": ["negative", "post-query-transformation", "no-join"]
     },
     {
+      "id": "same-database-application-only-key-matching",
+      "filename": "report.ts",
+      "source": "import { db } from \"./db.js\";\nimport { decryptExternalId } from \"./crypto.js\";\nexport async function report() {\n  const users = await db.user.findMany();\n  const teams = await db.team.findMany();\n  return users.map((user) => ({\n    ...user,\n    team: teams.find((team) => decryptExternalId(team.encryptedExternalId) === user.teamExternalId),\n  }));\n}\n",
+      "rule_id": "relational-databases/prefer-database-join",
+      "expected_finding": false,
+      "rationale": "The match requires application-only decryption that the visible database query layer cannot perform.",
+      "tags": ["negative", "in-memory-join", "application-only-semantics", "encrypted-data"]
+    },
+    {
       "id": "knex-query-results-joined-in-memory",
       "filename": "report.ts",
       "source": "import knex from \"knex\";\nexport async function report() {\n  const users = await knex(\"users\");\n  const teams = await knex(\"teams\");\n  return users.map((user) => ({ ...user, team: teams.find((team) => team.id === user.team_id) }));\n}\n",
@@ -999,6 +1019,24 @@
       "expected_finding": false,
       "rationale": "The token is explicitly redacted while a non-secret identifier is retained.",
       "tags": ["negative", "redacted", "structured"]
+    },
+    {
+      "id": "sensitive-log-mixes-redacted-and-raw-secrets",
+      "filename": "auth.ts",
+      "source": "export function recordLogin(session: Session, config: Config) {\n  logger.info({ sessionToken: \"[REDACTED]\", apiKey: config.apiKey });\n}\n",
+      "rule_id": "observability/no-sensitive-logs",
+      "expected_finding": true,
+      "rationale": "Redacting one field does not make the raw API key in the same event safe.",
+      "tags": ["positive", "redacted", "mixed-values", "api-key"]
+    },
+    {
+      "id": "sensitive-log-token-count-is-not-a-secret",
+      "filename": "usage.ts",
+      "source": "export function recordUsage(usage: Usage) {\n  logger.info({ operation: \"model.complete\", tokenCount: usage.inputTokens });\n}\n",
+      "rule_id": "observability/no-sensitive-logs",
+      "expected_finding": false,
+      "rationale": "A token count is an ordinary numeric usage metric, not authentication material.",
+      "tags": ["negative", "safe", "misleading-field-name", "metric"]
     },
     {
       "id": "sensitive-log-safe-structured-fields",

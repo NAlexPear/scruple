@@ -26,6 +26,13 @@ export interface BenchmarkMetricSummary {
   p95: number;
 }
 
+export interface BenchmarkAgreementSummary {
+  correct: number;
+  incorrect: number;
+  rate: number;
+  total: number;
+}
+
 export interface BenchmarkReport {
   provider: string;
   requestedModel: string;
@@ -45,6 +52,15 @@ export interface BenchmarkReport {
       total: number;
       passed: number;
       failed: number;
+    };
+    outcomes: {
+      labelAgreement: BenchmarkAgreementSummary;
+      diagnosticAgreement: BenchmarkAgreementSummary;
+      abstentions: BenchmarkAgreementSummary & {
+        actual: number;
+        expected: number;
+      };
+      strictAgreement: BenchmarkAgreementSummary;
     };
     durationMs: BenchmarkMetricSummary;
     caseLatencyMs: BenchmarkMetricSummary;
@@ -131,6 +147,7 @@ export const runBenchmark = async (options: RunBenchmarkOptions): Promise<Benchm
   const failures = cases.filter((result) => !result.accepted);
   const durationMs = summarizeMetric(samples.map((sample) => sample.durationMs));
   const usage = sumUsage(cases);
+  const outcomes = summarizeOutcomes(cases);
   return {
     provider: options.providerName,
     requestedModel: options.requestedModel,
@@ -151,6 +168,7 @@ export const runBenchmark = async (options: RunBenchmarkOptions): Promise<Benchm
         passed: cases.length - failures.length,
         failed: failures.length,
       },
+      outcomes,
       durationMs,
       caseLatencyMs: summarizeMetric(cases.map((result) => result.latencyMs)),
       throughputCasesPerSecond:
@@ -161,6 +179,42 @@ export const runBenchmark = async (options: RunBenchmarkOptions): Promise<Benchm
       },
     },
   };
+};
+
+const summarizeOutcomes = (
+  cases: readonly EvalCaseResult[],
+): BenchmarkReport["summary"]["outcomes"] => {
+  const labelMatches = cases.filter((result) =>
+    arraysEqual(result.actualChoices, result.expectedChoices),
+  ).length;
+  const diagnosticMatches = cases.filter(
+    (result) => result.actualFinding === result.expectedFinding,
+  ).length;
+  const abstentionMatches = cases.filter(
+    (result) => result.actualAbstention === (result.expectedAbstention ?? false),
+  ).length;
+  const strictMatches = cases.filter((result) => result.accepted).length;
+  return {
+    labelAgreement: agreementSummary(labelMatches, cases.length),
+    diagnosticAgreement: agreementSummary(diagnosticMatches, cases.length),
+    abstentions: {
+      ...agreementSummary(abstentionMatches, cases.length),
+      actual: cases.filter((result) => result.actualAbstention).length,
+      expected: cases.filter((result) => result.expectedAbstention === true).length,
+    },
+    strictAgreement: agreementSummary(strictMatches, cases.length),
+  };
+};
+
+const agreementSummary = (correct: number, total: number): BenchmarkAgreementSummary => ({
+  correct,
+  incorrect: total - correct,
+  rate: total === 0 ? 0 : correct / total,
+  total,
+});
+
+const arraysEqual = (left: readonly string[], right: readonly string[]): boolean => {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 };
 
 const runSample = async (
