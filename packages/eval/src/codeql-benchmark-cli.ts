@@ -17,8 +17,24 @@ import {
 
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 
+const CODEQL_BENCHMARK_HELP = `Benchmark CodeQL against Scruple's pinned workload
+
+Usage:
+  pnpm benchmark-codeql [options]
+
+Options:
+  --codeql <path>        CodeQL executable (default: codeql)
+  --warmups <n>          Unmeasured runs per query group (default: 1)
+  --repetitions <n>      Measured runs per query group (default: 3)
+  -h, --help             Show this help
+`;
+
 const main = async (): Promise<void> => {
   const cliArguments = process.argv.slice(2);
+  if (cliArguments.includes("--help") || cliArguments.includes("-h")) {
+    process.stdout.write(CODEQL_BENCHMARK_HELP);
+    return;
+  }
   const codeql = option(cliArguments, "--codeql") ?? "codeql";
   const warmups = integerOption(cliArguments, "--warmups", 1, true);
   const repetitions = integerOption(cliArguments, "--repetitions", 3, false);

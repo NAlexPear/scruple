@@ -1,10 +1,46 @@
 # Benchmarks
 
-Scruple includes a repeatable benchmark for measuring provider speed with real rules and source evidence. This page reports the latest saved Jev result.
+Scruple's benchmark suite uses ten pinned code examples, one for every built-in plugin. It measures Scruple with Jev, a direct hosted language model, and three static analysis tools. The static tools are included to show differences in scope as well as speed.
 
-## Current result
+These are small comparison runs, not broad accuracy claims. A case is **unsupported** when a tool is not designed to answer that kind of question. Unsupported cases are reported separately and are not counted as misses.
 
-We ran Jev `1.13.0` on September 20, 2026. Concurrency `64` gave the best balance of speed and response time.
+## Results at a glance
+
+All results below were recorded on September 20, 2026.
+
+| Tool                      | Coverage of the 10 task types                  | Result on applicable cases                    | Measured speed                                                            |
+| ------------------------- | ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
+| Scruple with Jev 1.13.0   | All 10 evaluated                               | 1,945/2,560 correct (76.0%) at concurrency 64 | 229.5 cases/s                                                             |
+| Direct GPT-4.1 prompt     | All 10 evaluated                               | 20/20 correct                                 | 1.94 cases/s at concurrency 2                                             |
+| Semgrep Community Edition | 0 native; 5 narrow custom rules; 5 unsupported | Custom rules: 5/5 correct                     | 1.784 s for all 10 files; default rules: 3.084 s                          |
+| CodeQL CLI                | 2 native; 1 narrow custom query; 7 unsupported | Native: 1/2 correct; custom: 1/1 correct      | 8.932 s database setup, then 20.145 s official or 5.372 s custom analysis |
+| SonarQube Community Build | 1 native; 9 unsupported                        | Native: 0/1 correct                           | 52.380 s server setup, then 21.197 s for the one applicable file          |
+
+The direct GPT-4.1 run answered every pinned case correctly, but it processed about 118 times fewer cases per second than Scruple with Jev at concurrency 64. The three static tools had much narrower coverage. Their custom rules match exact code shapes and should not be read as equivalents to Scruple's semantic checks.
+
+## Cost estimates
+
+Costs separate API or license charges from the computer that runs the benchmark. Runner costs depend on where and how long you run each tool, so they are not assigned a made-up dollar value.
+
+| Tool                      | API or software cost for the measured run                                                                                                              | Other cost                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Scruple with Jev          | Scruple is MIT licensed. Jev used 2,013,880 input and 174,999 output tokens at concurrency 64. No public Jev rate was available to calculate the bill. | A small client runner, plus the Jev charge under the account's terms                              |
+| Direct GPT-4.1 prompt     | About **$0.0327** for 20 measured cases, or **$0.00163 per case**                                                                                      | A small client runner                                                                             |
+| Semgrep Community Edition | **$0 software charge**                                                                                                                                 | Local or CI compute for about 1.8 to 3.1 seconds per measured scan                                |
+| CodeQL CLI                | **$0 license charge for public repositories**. Private organizational repositories require an eligible GitHub plan and GitHub Code Security license.   | Local or CI compute for database creation and analysis                                            |
+| SonarQube Community Build | **$0 software charge**                                                                                                                                 | A Docker host for about 52.4 seconds of setup and 21.2 seconds per measured scan in this workflow |
+
+The GPT-4.1 estimate uses OpenAI's published price of $2.00 per million input tokens and $8.00 per million output tokens. The measured calls used 10,362 input and 1,493 output tokens:
+
+```text
+(10,362 × $2 / 1,000,000) + (1,493 × $8 / 1,000,000) = $0.032668
+```
+
+The estimate excludes the unmeasured warmup, taxes, and any account discounts. Prices can change. Check the current [GPT-4.1 pricing](https://developers.openai.com/api/docs/models/gpt-4.1), [Semgrep Community Edition](https://semgrep.dev/products/community-edition), [CodeQL license terms](https://docs.github.com/en/code-security/codeql-cli/about-the-codeql-cli), and [SonarQube plans](https://www.sonarsource.com/plans-and-pricing/) before making a purchasing decision.
+
+## Jev under sustained load
+
+We ran Jev `1.13.0` with 128 cases per repetition. Concurrency `64` gave the best balance of speed and response time.
 
 ::: tip Practical setting
 Use Jev's default concurrency of `64` for sustained workloads. Concurrency `128` completed slightly more work per second, but individual cases took much longer and results varied more between runs.
@@ -20,23 +56,21 @@ Use Jev's default concurrency of `64` for sustained workloads. Concurrency `128`
 
 Moving from concurrency `64` to `128` increased throughput by 8.2%. Mean case time increased by 48.2%, and p95 case time increased by 36.6%.
 
-## What we measured
+Every concurrency level used two unmeasured warmups, twenty measured repetitions, Jev `1.13.0`, and Scruple commit [`02bd7b7`](https://github.com/NAlexPear/scruple/commit/02bd7b7eb055eb1b059b19961b767f37c767e0af). Each level ran 2,560 measured cases on Node.js 26.8.2 and Linux x64. The client had two logical Intel Xeon CPUs and about 4 GB of memory. Jev performed the model work on its hosted service.
 
-The base workload contains ten fixtures drawn from Scruple's evaluation corpus, with one fixture for every built-in plugin. The fixture IDs are pinned in [`benchmarks/fixtures.json`](https://github.com/NAlexPear/scruple/blob/main/benchmarks/fixtures.json).
+## How the comparisons work
 
-For the sustained test, the benchmark cycled those ten fixtures in order until each repetition contained 128 cases. Every concurrency level used:
+The workload IDs are pinned in [`benchmarks/fixtures.json`](https://github.com/NAlexPear/scruple/blob/main/benchmarks/fixtures.json).
 
-- Two unmeasured warmups
-- Twenty measured repetitions
-- 2,560 measured cases
-- Jev `1.13.0`
-- Scruple commit [`02bd7b7`](https://github.com/NAlexPear/scruple/commit/02bd7b7eb055eb1b059b19961b767f37c767e0af)
-- Node.js 26.8.2 on Linux x64
-- A client with two logical Intel Xeon CPUs and about 4 GB of memory
+- **Scruple with Jev** runs parsing, candidate collection, provider requests, and diagnosis. The sustained run repeats the ten cases to measure parallel throughput.
+- **Direct GPT-4.1** receives the same selected evidence and fixed choice questions, but bypasses Scruple's provider and diagnosis engine. Its 20 measured cases are two repetitions of the base workload.
+- **Semgrep** scans all ten fixture files. The official `p/default` profile and five benchmark-owned rules are reported separately.
+- **CodeQL** builds one database from all ten files. Its official JavaScript security-and-quality suite and one benchmark-owned query are timed and scored separately.
+- **SonarQube** scans only its one applicable fixture. Its timing includes scanner and Java startup, analysis, upload, server processing, quality-gate polling, and report retrieval. Server setup is reported separately.
 
-Jev performed the model work on its hosted service. The client hardware above ran Scruple and made the HTTPS requests.
+The timings are not interchangeable. Jev and GPT-4.1 receive small, selected inputs. Semgrep and CodeQL parse a set of files. SonarQube runs a client-server workflow against one file. The results answer practical questions about each workflow, but they do not isolate model compute or prove that one tool can replace another.
 
-## Run it yourself
+## Run the Jev benchmark
 
 Export a Jev API key, then choose a concurrency level:
 
@@ -54,14 +88,25 @@ pnpm benchmark \
 
 The JSON report includes every measured case, run times, case latency, throughput, token usage, selected model, and information about the client machine. Warmup work is not included in the totals.
 
+The other runners and their exact setup steps are documented in the repository:
+
+- [Direct hosted LLM](https://github.com/NAlexPear/scruple/blob/main/benchmarks/llm-README.md)
+- [Semgrep](https://github.com/NAlexPear/scruple/blob/main/benchmarks/semgrep/README.md)
+- [CodeQL](https://github.com/NAlexPear/scruple/blob/main/benchmarks/codeql/README.md)
+- [SonarQube](https://github.com/NAlexPear/scruple/blob/main/benchmarks/sonarqube/README.md)
+
 ## Read the numbers carefully
 
-These results describe one model, workload, date, and client location. They are not a service guarantee. Network conditions and hosted service load can change the result.
+These results describe specific versions, workloads, dates, and machines. They are not service guarantees. Network conditions, hosted service load, rule updates, and machine size can change the results.
 
-The repeated 128-case workload measures speed under load. It does not measure how many different code patterns Scruple understands. The reports record whether each fixture produced its expected result, but this small and uneven workload is not an accuracy score.
+The ten examples are intentionally small. They test the behavior pinned in this repository, not general code quality or broad review skill. The Jev run repeats those examples, so its 2,560 results are not 2,560 independent code patterns.
 
-The benchmark also cannot separate internet travel time from work inside Jev. Scruple's local engine and HTTP client were much faster in local controls, but Jev does not currently expose enough timing detail to divide remote time further.
+The Jev benchmark cannot separate internet travel time from work inside Jev. Scruple's local engine and HTTP client were much faster in local controls, but Jev does not currently expose enough timing detail to divide remote time further.
 
-## Data
+## Saved data
 
-The [saved result](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20) includes a compact summary and compressed raw reports for every concurrency level.
+- [Jev 1.13.0](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20)
+- [GPT-4.1](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/openai-gpt-4.1-2025-04-14/2026-09-20)
+- [CodeQL 2.27.0](https://github.com/NAlexPear/scruple/blob/main/benchmarks/codeql/results/codeql-2.27.0/2026-09-20.json)
+
+The Semgrep and SonarQube benchmark documentation records the representative results and exact tool versions. Their runners emit complete JSON reports for new runs.
