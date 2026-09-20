@@ -127,13 +127,15 @@ source → parser → normalized targets → plugins → decision provider → d
 
 ```sh
 pnpm install
+pnpm fix
 pnpm check
 ```
 
-`pnpm check` verifies formatting, lints, type-checks, builds, and runs the deterministic Node test
-suite. Public packages are emitted as unbundled ESM with declarations, source maps, and TypeScript
-source. The compiled `scruple` bin leaves dependencies external so parser, provider, and rule
-plugins resolve from the consuming project.
+`pnpm fix` applies safe Oxlint fixes and Oxfmt formatting. `pnpm check` verifies formatting, linting,
+types, builds, and the deterministic Node test suite without modifying source files. Public packages
+are emitted as unbundled ESM with declarations, source maps, and TypeScript source. The compiled
+`scruple` bin leaves dependencies external so parser, provider, and rule plugins resolve from the
+consuming project.
 
 Live model evaluations are separate from deterministic checks:
 
