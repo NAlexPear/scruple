@@ -26,13 +26,13 @@
 
 ## Where Scruple fits
 
-| Check             | Speed                         | Scope                                                 | Cost  | Examples                     |
-| ----------------- | ----------------------------- | ----------------------------------------------------- | ----- | ---------------------------- |
-| Static checks     | Usually fastest               | Syntax, types, formatting, and known patterns         | $     | TypeScript, Oxlint, ESLint   |
-| Codebase analysis | Codebase and cache dependent  | Cross-file data flow and codebase-wide known patterns | $-$$$ | SonarQube, CodeQL            |
-| Semantic checks   | Target and provider dependent | Named standards that require interpretation           | $-$$  | Scruple                      |
-| AI review         | Diff and provider dependent   | Open-ended review comments and suggested changes      | $$    | CodeRabbit, GitHub Copilot   |
-| Human review      | Minutes or longer             | Architecture, product intent, and new tradeoffs       | $$$   | Teammates and domain experts |
+| Check             | Speed                         | Scope                                                 | Cost      | Examples                     |
+| ----------------- | ----------------------------- | ----------------------------------------------------- | --------- | ---------------------------- |
+| Static checks     | Usually fastest               | Syntax, types, formatting, and known patterns         | \$        | TypeScript, Oxlint, ESLint   |
+| Codebase analysis | Codebase and cache dependent  | Cross-file data flow and codebase-wide known patterns | \$-\$\$\$ | SonarQube, CodeQL            |
+| Semantic checks   | Target and provider dependent | Named standards that require interpretation           | \$-\$\$   | Scruple                      |
+| AI review         | Diff and provider dependent   | Open-ended review comments and suggested changes      | \$\$      | CodeRabbit, GitHub Copilot   |
+| Human review      | Minutes or longer             | Architecture, product intent, and new tradeoffs       | \$\$\$    | Teammates and domain experts |
 
 ## Use Scruple
 
