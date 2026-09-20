@@ -9,8 +9,9 @@
 <p align="center"><strong>Make good taste enforceable.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml/badge.svg?branch=main&event=push" alt="Main CI status"></a>
-  <a href="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml"><img src="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml/badge.svg?branch=main&event=push" alt="Docs CI status"></a>
+  <a href="https://github.com/NAlexPear/scruple/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/NAlexPear/scruple/ci.yml?branch=main&event=push&label=main" alt="Main CI status"></a>
+  <a href="https://github.com/NAlexPear/scruple/actions/workflows/docs.yml"><img src="https://img.shields.io/github/actions/workflow/status/NAlexPear/scruple/docs.yml?branch=main&event=push&label=docs" alt="Docs CI status"></a>
+  <a href="https://www.npmjs.com/package/@scruple/cli"><img src="https://img.shields.io/npm/v/%40scruple%2Fcli?label=npm" alt="Published npm version"></a>
 </p>
 
 <p align="center">
