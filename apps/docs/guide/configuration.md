@@ -31,6 +31,31 @@ rules: {
 
 Warnings are reported but do not produce exit code 1. Error-severity findings do.
 
+## Warning and error thresholds
+
+Decision rules use separate probability thresholds for warnings and errors:
+
+```ts
+rules: {
+  "tests/no-vacuous-tests": [
+    "error",
+    {
+      threshold: {
+        warning: 0.9,
+        error: 0.97,
+      },
+    },
+  ],
+},
+```
+
+The provider must choose the rule's finding label and meet `minConfidence`. A probability from
+`threshold.warning` up to `threshold.error` produces a non-blocking warning. A probability at or
+above `threshold.error` produces a blocking error.
+
+The configured rule severity sets the highest result the rule may produce. `"warn"` caps every
+finding at warning. `"error"` allows the thresholds to choose warning or error.
+
 ## Inline suppressions
 
 Use a `scruple-disable` comment when a rule is generally useful but should skip one target. Put `scruple-disable-next-line` immediately above the reported line, or put `scruple-disable-line` on that line. Include the full `plugin/rule` ID.
