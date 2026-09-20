@@ -18,6 +18,8 @@ export type ProbabilityRuleOptions = DecisionRuleOptions;
 
 export type NoUselessCommentsOptions = ProbabilityRuleOptions;
 
+const maxConcurrentTodoClassifications = 16;
+
 export interface PreferConciseCommentsOptions extends ProbabilityRuleOptions {
   minCharacters?: number;
 }
@@ -341,8 +343,10 @@ const classifyTodoComments = async (
   const possible = document.comments.filter(
     (comment) => comment.value.trim().length > 0 && !isIgnoredComment(comment),
   );
-  const classifications = await Promise.all(
-    possible.map(async (comment) => {
+  const classifications = await mapConcurrent(
+    possible,
+    maxConcurrentTodoClassifications,
+    async (comment) => {
       const response = await context.provider.evaluate(
         comment,
         {
@@ -372,9 +376,30 @@ const classifyTodoComments = async (
         throw new Error(`Provider ${context.provider.id} omitted the TODO classification answer`);
       }
       return answer.type === "choice" && answer.choice === "todo" ? comment : null;
-    }),
+    },
   );
   return classifications.filter((comment): comment is CommentTarget => comment !== null);
+};
+
+const mapConcurrent = async <Input, Output>(
+  values: readonly Input[],
+  concurrency: number,
+  run: (value: Input) => Promise<Output>,
+): Promise<Output[]> => {
+  let nextIndex = 0;
+  const results: Output[] = [];
+  const runWorker = async (): Promise<void> => {
+    const index = nextIndex;
+    nextIndex += 1;
+    if (index >= values.length) {
+      return;
+    }
+    results[index] = await run(values[index]!);
+    await runWorker();
+  };
+  const workers = Array.from({ length: Math.min(concurrency, values.length) }, () => runWorker());
+  await Promise.all(workers);
+  return results;
 };
 
 const commentState = (comment: CommentTarget, document: ParsedDocument): JsonValue => {

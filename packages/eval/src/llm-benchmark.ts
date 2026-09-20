@@ -5,6 +5,7 @@ import { collectEvalCandidates, type EvalFixture } from "@scruple/eval";
 
 export const OPENAI_MODEL = "gpt-4.1-2025-04-14";
 export const LLM_PROMPT_VERSION = "scruple-direct-choice-v1";
+const taskBuildConcurrency = 8;
 export const LLM_SYSTEM_PROMPT =
   "You classify one Scruple rule question using only the supplied bounded evidence. Select exactly one listed choice. Select insufficient_context only when the evidence does not support another choice. Do not inspect or infer facts from the wider repository.";
 
@@ -82,43 +83,41 @@ export const buildLlmBenchmarkTasks = async (
   parser: SourceParser,
   plugins: PluginMap,
 ): Promise<LlmBenchmarkTask[]> => {
-  const tasks = await Promise.all(
-    fixtures.map(async (fixture) => {
-      const separator = fixture.ruleId.indexOf("/");
-      const plugin = plugins[fixture.ruleId.slice(0, separator)];
-      const factory = plugin?.rules[fixture.ruleId.slice(separator + 1)];
-      if (factory === undefined) {
-        throw new Error(`No rule configured for benchmark fixture: ${fixture.ruleId}`);
+  const tasks = await mapConcurrent(fixtures, taskBuildConcurrency, async (fixture) => {
+    const separator = fixture.ruleId.indexOf("/");
+    const plugin = plugins[fixture.ruleId.slice(0, separator)];
+    const factory = plugin?.rules[fixture.ruleId.slice(separator + 1)];
+    if (factory === undefined) {
+      throw new Error(`No rule configured for benchmark fixture: ${fixture.ruleId}`);
+    }
+    const candidates = await collectEvalCandidates(fixture, factory(), parser);
+    if (candidates.length !== fixture.expectedCandidates) {
+      throw new Error(
+        `${fixture.id} expected ${fixture.expectedCandidates} candidates, received ${candidates.length}`,
+      );
+    }
+    return candidates.map((candidate, index) => {
+      if (candidate.question.type !== "choice") {
+        throw new Error(`${fixture.id} candidate ${index} is not a choice question`);
       }
-      const candidates = await collectEvalCandidates(fixture, factory(), parser);
-      if (candidates.length !== fixture.expectedCandidates) {
-        throw new Error(
-          `${fixture.id} expected ${fixture.expectedCandidates} candidates, received ${candidates.length}`,
-        );
+      const expectedChoice = fixture.expectedChoices[index];
+      if (expectedChoice === undefined) {
+        throw new Error(`${fixture.id} has no expected choice for candidate ${index}`);
       }
-      return candidates.map((candidate, index) => {
-        if (candidate.question.type !== "choice") {
-          throw new Error(`${fixture.id} candidate ${index} is not a choice question`);
-        }
-        const expectedChoice = fixture.expectedChoices[index];
-        if (expectedChoice === undefined) {
-          throw new Error(`${fixture.id} has no expected choice for candidate ${index}`);
-        }
-        const content = {
-          id: fixture.id,
-          ruleId: fixture.ruleId,
-          expectedChoice,
-          expectedFinding: fixture.expectedFinding,
-          evidence: candidate.state,
-          question: {
-            instructions: candidate.question.instructions,
-            criteria: candidate.question.criteria,
-          },
-        };
-        return Object.assign(content, { hash: sha256(stableJson(content)) });
-      });
-    }),
-  );
+      const content = {
+        id: fixture.id,
+        ruleId: fixture.ruleId,
+        expectedChoice,
+        expectedFinding: fixture.expectedFinding,
+        evidence: candidate.state,
+        question: {
+          instructions: candidate.question.instructions,
+          criteria: candidate.question.criteria,
+        },
+      };
+      return Object.assign(content, { hash: sha256(stableJson(content)) });
+    });
+  });
   return tasks.flat();
 };
 

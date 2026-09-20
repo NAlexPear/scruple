@@ -11,11 +11,13 @@ import {
   type DecisionRecord,
   type Diagnostic,
   type ScrupleConfig,
+  type SourceFile,
 } from "@scruple/core";
 import { createJiti } from "jiti";
 import { glob } from "tinyglobby";
 
 const defaultPatterns = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"];
+const maxConcurrentFileReads = 32;
 const defaultIgnore = [
   "**/node_modules/**",
   "**/dist/**",
@@ -64,12 +66,7 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
     ignore: [...defaultIgnore, ...(config.ignore ?? [])],
     onlyFiles: true,
   });
-  const files = await Promise.all(
-    filenames.toSorted().map(async (filename) => ({
-      filename,
-      source: await readFile(resolve(cwd, filename), "utf8"),
-    })),
-  );
+  const files = await readSourceFiles(cwd, filenames);
 
   try {
     const result = await runScruple(config, files, undefined, {
@@ -96,6 +93,31 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
   } finally {
     await config.provider.close?.();
   }
+};
+
+const readSourceFiles = async (
+  cwd: string,
+  filenames: readonly string[],
+): Promise<SourceFile[]> => {
+  const entries = filenames.toSorted().entries();
+  const files: SourceFile[] = [];
+  const readNext = async (): Promise<void> => {
+    const next = entries.next();
+    if (next.done === true) {
+      return;
+    }
+    const [index, filename] = next.value;
+    files[index] = {
+      filename,
+      source: await readFile(resolve(cwd, filename), "utf8"),
+    };
+    await readNext();
+  };
+  const workers = Array.from({ length: Math.min(maxConcurrentFileReads, filenames.length) }, () =>
+    readNext(),
+  );
+  await Promise.all(workers);
+  return files;
 };
 
 const printDecisions = (decisions: DecisionRecord[]): void => {
