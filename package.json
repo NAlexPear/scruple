@@ -15,14 +15,15 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r --sort build",
-    "check": "oxfmt --check . && oxlint . && tsc --noEmit && pnpm build",
+    "check": "oxfmt --check . && oxlint . && pnpm typecheck && pnpm build",
     "dogfood": "pnpm build && node packages/cli/dist/bin.js --config scruple.production.config.ts --explain && node packages/cli/dist/bin.js --config scruple.tests.config.ts --explain",
     "dogfood:production": "pnpm build && node packages/cli/dist/bin.js --config scruple.production.config.ts --explain",
     "dogfood:tests": "pnpm build && node packages/cli/dist/bin.js --config scruple.tests.config.ts --explain",
     "eval": "pnpm build && node packages/eval/dist/cli.js",
     "fix": "oxlint --fix . && oxfmt .",
     "release:version": "node scripts/set-release-version.ts",
-    "test": "pnpm build && node --test"
+    "test": "pnpm build && node --test",
+    "typecheck": "tsc --noEmit && pnpm --filter @scruple/docs typecheck"
   },
   "devDependencies": {
     "@scruple/api-contracts": "workspace:*",

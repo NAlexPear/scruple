@@ -48,5 +48,5 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "exclude": ["**/dist/**", "**/node_modules/**"]
+  "exclude": ["apps/docs/**", "**/dist/**", "**/node_modules/**"]
 }

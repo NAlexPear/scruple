@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
+    "isolatedDeclarations": false,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "skipLibCheck": true,
+    "sourceMap": false,
+    "types": ["node", "vitepress/client"]
+  },
+  "include": [".vitepress/**/*.ts", ".vitepress/**/*.vue"],
+  "exclude": [".vitepress/cache/**", "dist/**", "node_modules/**"]
+}

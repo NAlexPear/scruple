@@ -1,3 +1,4 @@
+import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { h } from "vue";
 
@@ -6,7 +7,7 @@ import ScrupleMark from "./ScrupleMark.vue";
 // oxlint-disable-next-line import/no-unassigned-import -- Vite bundles theme styles from this import.
 import "./custom.css";
 
-export default {
+const theme: Theme = {
   extends: DefaultTheme,
   Layout: () =>
     h(DefaultTheme.Layout, null, {
@@ -17,3 +18,5 @@ export default {
     app.component("ScrupleMark", ScrupleMark);
   },
 };
+
+export default theme;

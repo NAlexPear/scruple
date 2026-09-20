@@ -1,17 +1,57 @@
-import { defineConfig } from "vitepress";
+import { defineConfig, type DefaultTheme } from "vitepress";
 
-const pluginItems = [
-  ["Overview", "/plugins/"],
-  ["API Contracts", "/plugins/api-contracts"],
-  ["Async", "/plugins/async"],
-  ["Comments", "/plugins/comments"],
-  ["Errors", "/plugins/errors"],
-  ["Observability", "/plugins/observability"],
-  ["Relational Databases", "/plugins/relational-databases"],
-  ["Resources", "/plugins/resources"],
-  ["Security", "/plugins/security"],
-  ["Tests", "/plugins/tests"],
-].map(([text, link]) => ({ text, link }));
+const pluginItems: DefaultTheme.SidebarItem[] = [
+  { text: "Overview", link: "/plugins/" },
+  { text: "API Contracts", link: "/plugins/api-contracts" },
+  { text: "Async", link: "/plugins/async" },
+  { text: "Comments", link: "/plugins/comments" },
+  { text: "Errors", link: "/plugins/errors" },
+  { text: "Observability", link: "/plugins/observability" },
+  { text: "Relational Databases", link: "/plugins/relational-databases" },
+  { text: "Resources", link: "/plugins/resources" },
+  { text: "Security", link: "/plugins/security" },
+  { text: "Tests", link: "/plugins/tests" },
+];
+
+const sidebar: DefaultTheme.SidebarItem[] = [
+  {
+    text: "Getting started",
+    items: [
+      { text: "Introduction", link: "/guide/introduction" },
+      { text: "Quickstart", link: "/guide/quickstart" },
+      { text: "Configuration", link: "/guide/configuration" },
+      { text: "Write your own plugin", link: "/guide/writing-a-plugin" },
+    ],
+  },
+  {
+    text: "Core concepts",
+    items: [
+      { text: "How Scruple works", link: "/concepts/how-it-works" },
+      { text: "Evidence and decisions", link: "/concepts/evidence-and-decisions" },
+    ],
+  },
+  {
+    text: "Providers",
+    collapsed: true,
+    items: [
+      { text: "Overview", link: "/providers/" },
+      { text: "Jev", link: "/providers/jev" },
+      { text: "Laya", link: "/providers/laya" },
+    ],
+  },
+  {
+    text: "Plugins",
+    collapsed: true,
+    items: pluginItems,
+  },
+  {
+    text: "Reference",
+    items: [
+      { text: "CLI", link: "/reference/cli" },
+      { text: "Configuration API", link: "/reference/configuration" },
+    ],
+  },
+];
 
 export default defineConfig({
   title: "Scruple",
@@ -29,45 +69,7 @@ export default defineConfig({
       { text: "GitHub", link: "https://github.com/NAlexPear/scruple" },
     ],
     search: { provider: "local" },
-    sidebar: [
-      {
-        text: "Getting started",
-        items: [
-          { text: "Introduction", link: "/guide/introduction" },
-          { text: "Quickstart", link: "/guide/quickstart" },
-          { text: "Configuration", link: "/guide/configuration" },
-          { text: "Write your own plugin", link: "/guide/writing-a-plugin" },
-        ],
-      },
-      {
-        text: "Core concepts",
-        items: [
-          { text: "How Scruple works", link: "/concepts/how-it-works" },
-          { text: "Evidence and decisions", link: "/concepts/evidence-and-decisions" },
-        ],
-      },
-      {
-        text: "Providers",
-        collapsed: true,
-        items: [
-          { text: "Overview", link: "/providers/" },
-          { text: "Jev", link: "/providers/jev" },
-          { text: "Laya", link: "/providers/laya" },
-        ],
-      },
-      {
-        text: "Plugins",
-        collapsed: true,
-        items: pluginItems,
-      },
-      {
-        text: "Reference",
-        items: [
-          { text: "CLI", link: "/reference/cli" },
-          { text: "Configuration API", link: "/reference/configuration" },
-        ],
-      },
-    ],
+    sidebar,
     outline: { level: [2, 3], label: "On this page" },
     socialLinks: [{ icon: "github", link: "https://github.com/NAlexPear/scruple" }],
     editLink: {
