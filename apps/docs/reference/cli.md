@@ -13,6 +13,7 @@ scruple check [patterns...] [options]
 | Option                  | Description                                |
 | ----------------------- | ------------------------------------------ |
 | `-c, --config <path>`   | Use an explicit configuration file         |
+| `--explain`             | Include accepted and abstained decisions   |
 | `-f, --format <format>` | `stylish` or `json`; defaults to `stylish` |
 | `-h, --help`            | Print usage information                    |
 
@@ -42,3 +43,5 @@ Without `--config`, Scruple checks these names in order:
 ## JSON output
 
 `--format json` prints the complete run result, including diagnostics, operational errors, and statistics. Use it for CI integrations that need structured locations, probabilities, confidence, model IDs, or token counts.
+
+Add `--explain` to retain every provider answer in a `decisions` array, including safe answers and `insufficient_context` abstentions that do not produce diagnostics. Without `--explain`, answers that do not diagnose are discarded to keep normal output small. Stylish explain output prints one compact line per evaluated candidate.

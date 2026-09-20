@@ -5,7 +5,13 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { runScruple, type Diagnostic, type ScrupleConfig } from "@scruple/core";
+import {
+  runScruple,
+  type DecisionAnswer,
+  type DecisionRecord,
+  type Diagnostic,
+  type ScrupleConfig,
+} from "@scruple/core";
 import { createJiti } from "jiti";
 import { glob } from "tinyglobby";
 
@@ -30,6 +36,7 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
     allowPositionals: true,
     options: {
       config: { type: "string", short: "c" },
+      explain: { type: "boolean", default: false },
       format: { type: "string", short: "f", default: "stylish" },
       help: { type: "boolean", short: "h", default: false },
     },
@@ -65,11 +72,16 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
   );
 
   try {
-    const result = await runScruple(config, files);
+    const result = await runScruple(config, files, undefined, {
+      includeDecisions: values.explain,
+    });
     if (values.format === "json") {
       process.stdout.write(`${JSON.stringify(result, jsonErrorReplacer, 2)}\n`);
     } else {
       printStylish(result.diagnostics);
+      if (values.explain) {
+        printDecisions(result.decisions ?? []);
+      }
       for (const error of result.errors) {
         process.stderr.write(
           `scruple: ${error.filename === undefined ? "" : `${error.filename}: `}${error.message}\n`,
@@ -84,6 +96,31 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
   } finally {
     await config.provider.close?.();
   }
+};
+
+const printDecisions = (decisions: DecisionRecord[]): void => {
+  if (decisions.length === 0) {
+    process.stdout.write("\nNo semantic candidates were evaluated.\n");
+    return;
+  }
+  process.stdout.write("\nDecisions\n");
+  for (const decision of decisions) {
+    const position = `${decision.filename}:${decision.location.start.line}:${decision.location.start.column}`;
+    const outcome = decision.diagnostic ? "diagnostic" : "accepted";
+    process.stdout.write(
+      `  ${position}  ${decision.ruleId}  ${answerSummary(decision.answer)}  ${outcome}  ${decision.model}\n`,
+    );
+  }
+};
+
+const answerSummary = (answer: DecisionAnswer): string => {
+  if (answer.type === "choice") {
+    return `choice=${answer.choice} confidence=${answer.confidence.toFixed(2)}`;
+  }
+  if (answer.type === "score") {
+    return `score=${answer.score} confidence=${answer.confidence.toFixed(2)}`;
+  }
+  return `noul=${answer.noul.toFixed(2)}`;
 };
 
 const findConfig = (cwd: string, explicit: string | undefined): string => {
@@ -170,6 +207,7 @@ Usage:
 
 Options:
   -c, --config <path>   Config file (default: scruple.config.ts)
+      --explain         Include every provider decision, including accepted and abstained candidates
   -f, --format <format> stylish or json (default: stylish)
   -h, --help            Show this help
 

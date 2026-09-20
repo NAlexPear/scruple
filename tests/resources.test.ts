@@ -120,6 +120,32 @@ export function ordinary(values: string[]) {
   });
 });
 
+await test("resource selectors ignore lifecycle and retry syntax quoted in rule prompts", () => {
+  const source = `export function lifecyclePrompt() {
+  return "Treat using declarations and scoped helpers as managed resources.";
+}
+
+export function retryPrompt() {
+  return \`Look for while loops, retry attempts, and catch handlers.\`;
+}
+
+export async function processFiles(files: string[]) {
+  for (const file of files) {
+    try { await processFile(file); }
+    catch (error) { reportFileError(file, error); }
+  }
+}
+`;
+  const plugin = resources();
+  const document = oxcParser().parse("self-hosting.ts", source);
+
+  assert.equal(plugin.rules["no-leaked-resources"]().collect(document).length, 0);
+  assert.equal(plugin.rules["require-cleanup-on-failure"]().collect(document).length, 0);
+  assert.equal(plugin.rules["require-bounded-retries"]().collect(document).length, 0);
+  assert.equal(plugin.rules["require-retry-backoff-with-jitter"]().collect(document).length, 0);
+  assert.equal(plugin.rules["require-retry-time-budget"]().collect(document).length, 0);
+});
+
 await test("complete cleanup rule requires multiple explicit acquisitions", () => {
   const source = `export async function partialConstruction() {
   const input = await open("input");

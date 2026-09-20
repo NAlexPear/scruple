@@ -282,6 +282,70 @@ async function joinedUsers() {
   });
 });
 
+await test("engine optionally preserves accepted and abstained provider decisions", async () => {
+  const rule: SemanticRule = {
+    description: "Audit fixture",
+    collect(document) {
+      return document.functions.slice(0, 1).map((target) => ({
+        target,
+        state: { function: target.source },
+        question: {
+          type: "choice" as const,
+          instructions: "Classify the visible evidence.",
+          criteria: { safe: "Safe.", insufficient_context: "Not enough evidence." },
+        },
+      }));
+    },
+    diagnose: () => null,
+  };
+  const provider: DecisionProvider = {
+    id: "audit-fixture",
+    evaluate(request) {
+      const answers = Object.fromEntries(
+        Object.keys(request.questions).map((id) => [
+          id,
+          {
+            type: "choice" as const,
+            choice: "insufficient_context",
+            confidence: 0.88,
+            probabilities: { safe: 0.12, insufficient_context: 0.88 },
+          },
+        ]),
+      );
+      return Promise.resolve({ model: "audit-model", answers });
+    },
+  };
+  const config = defineConfig({
+    parser: oxcParser(),
+    provider,
+    plugins: { audit: definePlugin({ rules: { evidence: () => rule } }) },
+    rules: { "audit/evidence": "warn" },
+  });
+  const files = [{ filename: "audit.ts", source: "export function audit() { return true; }" }];
+
+  const normal = await runScruple(config, files);
+  const explained = await runScruple(config, files, undefined, { includeDecisions: true });
+
+  assert.equal(normal.decisions, undefined);
+  assert.deepEqual(explained.diagnostics, []);
+  assert.deepEqual(explained.decisions, [
+    {
+      ruleId: "audit/evidence",
+      filename: "audit.ts",
+      location: { start: { line: 1, column: 8 }, end: { line: 1, column: 41 } },
+      targetKind: "function",
+      answer: {
+        type: "choice",
+        choice: "insufficient_context",
+        confidence: 0.88,
+        probabilities: { safe: 0.12, insufficient_context: 0.88 },
+      },
+      diagnostic: false,
+      model: "audit-model",
+    },
+  ]);
+});
+
 await test("plugins register rules without enabling them", async () => {
   assert.deepEqual(Object.keys(comments().rules), [
     "no-useless-comments",

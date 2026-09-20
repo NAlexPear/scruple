@@ -22,6 +22,35 @@ await test("resolves and validates shared decision rule options", () => {
   );
 });
 
+await test("normalizes using declarations and standalone control regions without reading prose", () => {
+  const document = oxcParser().parse(
+    "facts.ts",
+    `export async function run() {
+  await using file = await open("report.txt");
+  while (true) {
+    try { return await file.readFile(); }
+    catch (error) { log(error); }
+    finally { recordAttempt(); }
+  }
+  const example = "using handle; while (true) catch (error)";
+}`,
+  );
+
+  assert.deepEqual(
+    document.facts?.declarations.map((fact) => ({ kind: fact.kind, source: fact.source })),
+    [{ kind: "await-using", source: 'await using file = await open("report.txt");' }],
+  );
+  assert.deepEqual(
+    document.facts?.controls.map((fact) => ({ kind: fact.kind, loop: fact.loop })),
+    [
+      { kind: "loop", loop: "while" },
+      { kind: "catch", loop: undefined },
+      { kind: "finally", loop: undefined },
+    ],
+  );
+  assert.equal(document.facts?.completeness.declarations, "complete");
+});
+
 await test("normalizes an explicit Fastify route with bounded local evidence", () => {
   const document = oxcParser().parse(
     "server.ts",
@@ -165,6 +194,7 @@ await test("normalizes shared call, argument, reference, and control facts", () 
   assert.deepEqual(document.facts?.completeness, {
     calls: "complete",
     control: "complete",
+    declarations: "complete",
     members: "complete",
     reasons: [],
   });
@@ -233,6 +263,7 @@ await test("normalizes shared call, argument, reference, and control facts", () 
   assert.deepEqual(dynamic.facts?.completeness, {
     calls: "complete",
     control: "complete",
+    declarations: "complete",
     members: "partial",
     reasons: ["Dynamic computed member paths are not normalized as static member facts."],
   });

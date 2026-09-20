@@ -780,6 +780,36 @@
     "tags": ["positive", "unbounded", "loop"]
   },
   {
+    "id": "retry-words-only-in-rule-prompt",
+    "filename": "retry-rule.ts",
+    "source": "export function retryInstructions() {\n  return `Check while loops with catch handlers for retry attempts.`;\n}\n",
+    "rule_id": "resources/require-bounded-retries",
+    "expected_finding": false,
+    "expected_candidates": 0,
+    "rationale": "Retry vocabulary inside a prompt string is not executable retry control flow.",
+    "tags": ["negative", "self-hosting", "selector"]
+  },
+  {
+    "id": "collection-loop-handles-item-errors",
+    "filename": "processor.ts",
+    "source": "export async function processFiles(files: string[]) {\n  for (const file of files) {\n    try { await processFile(file); }\n    catch (error) { reportFileError(file, error); }\n  }\n}\n",
+    "rule_id": "resources/require-bounded-retries",
+    "expected_finding": false,
+    "expected_candidates": 0,
+    "rationale": "A collection loop that handles each item's error does not retry the failed operation.",
+    "tags": ["negative", "self-hosting", "selector", "collection-loop"]
+  },
+  {
+    "id": "using-words-only-in-rule-prompt",
+    "filename": "resource-rule.ts",
+    "source": "export function resourceInstructions() {\n  return \"Treat using and await using declarations as managed cleanup.\";\n}\n",
+    "rule_id": "resources/no-leaked-resources",
+    "expected_finding": false,
+    "expected_candidates": 0,
+    "rationale": "Lifecycle syntax quoted in a prompt does not acquire a resource.",
+    "tags": ["negative", "self-hosting", "selector"]
+  },
+  {
     "id": "sensitive-log-raw-session-token",
     "filename": "auth.ts",
     "source": "export function recordLogin(session: Session) {\n  logger.info({ operation: \"user.login\", sessionToken: session.token });\n}\n",
@@ -1454,6 +1484,16 @@
     "expected_choice": "controlled_time_test",
     "rationale": "The test advances controlled virtual time to verify timeout behavior rather than sleeping for readiness.",
     "tags": ["negative", "test", "fake-timers"]
+  },
+  {
+    "id": "test-quotes-timer-fixture",
+    "filename": "timer-rule.test.ts",
+    "source": "test(\"documents a timer fixture\", () => { const fixture = `setTimeout(resolve, 500)`; expect(fixture).toContain(\"setTimeout\"); });\n",
+    "rule_id": "tests/no-fixed-delay-synchronization",
+    "expected_finding": false,
+    "expected_candidates": 0,
+    "rationale": "A timer call quoted inside fixture text is not executable synchronization.",
+    "tags": ["negative", "self-hosting", "selector"]
   },
   {
     "id": "safe-get-deletes-user",

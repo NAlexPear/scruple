@@ -14,6 +14,7 @@ import type {
   ParseIssue,
   StructuredArgumentFact,
   StructuredCallFact,
+  StructuredDeclarationFact,
   StructuredFacts,
   StructuredValueKind,
   SourceLocation,
@@ -49,6 +50,7 @@ type AstNode = Record<string, unknown> & {
   local?: unknown;
   imported?: unknown;
   source?: unknown;
+  kind?: unknown;
 };
 
 const supportedExtensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]);
@@ -814,11 +816,27 @@ const conditionalNodeTypes = new Set([
 
 const collectStructuredFacts = (program: AstNode, source: string): StructuredFacts => {
   const calls: StructuredCallFact[] = [];
+  const controls: StructuredFacts["controls"] = [];
+  const declarations: StructuredDeclarationFact[] = [];
   const members: StructuredFacts["members"] = [];
   let dynamicMembers = false;
 
   const visit = (node: AstNode, ancestors: AstAncestor[]): void => {
     const parent = ancestors.at(-1)?.node;
+    const control = standaloneControlRegion(node, parent);
+    if (control !== undefined) {
+      controls.push(control);
+    }
+    if (
+      node.type === "VariableDeclaration" &&
+      (node.kind === "using" || node.kind === "await using")
+    ) {
+      declarations.push({
+        kind: node.kind === "await using" ? "await-using" : "using",
+        range: rangeOf(node),
+        source: source.slice(node.start, node.end),
+      });
+    }
     if (node.type === "CallExpression") {
       const argumentNodes = Array.isArray(node.arguments)
         ? node.arguments.filter((value): value is AstNode => isNode(value))
@@ -865,16 +883,68 @@ const collectStructuredFacts = (program: AstNode, source: string): StructuredFac
   visit(program, []);
   return {
     calls: calls.toSorted((left, right) => left.range.start - right.range.start),
+    controls: uniqueByRange(controls).toSorted(
+      (left, right) => left.range.start - right.range.start,
+    ),
+    declarations: declarations.toSorted((left, right) => left.range.start - right.range.start),
     members: uniqueByRange(members).toSorted((left, right) => left.range.start - right.range.start),
     completeness: {
       calls: "complete",
       control: "complete",
+      declarations: "complete",
       members: dynamicMembers ? "partial" : "complete",
       reasons: dynamicMembers
         ? ["Dynamic computed member paths are not normalized as static member facts."]
         : [],
     },
   };
+};
+
+const standaloneControlRegion = (
+  node: AstNode,
+  parent: AstNode | undefined,
+): StructuredFacts["controls"][number] | undefined => {
+  if (loopNodeTypes.has(node.type)) {
+    return { kind: "loop", range: rangeOf(node), loop: loopKind(node.type) };
+  }
+  if (conditionalNodeTypes.has(node.type)) {
+    return { kind: "conditional", range: rangeOf(node) };
+  }
+  if (node.type === "CatchClause") {
+    return { kind: "catch", range: rangeOf(node) };
+  }
+  if (
+    node.type === "BlockStatement" &&
+    parent?.type === "TryStatement" &&
+    parent.finalizer === node
+  ) {
+    return { kind: "finally", range: rangeOf(node) };
+  }
+  if (functionTypes.has(node.type) && parent?.type === "CallExpression") {
+    const args = Array.isArray(parent.arguments) ? parent.arguments : [];
+    if (args.includes(node)) {
+      const region = { kind: "callback" as const, range: rangeOf(node) };
+      const callee = getCalleeName(parent.callee);
+      return callee === undefined ? region : { ...region, callee };
+    }
+  }
+  return undefined;
+};
+
+const loopKind = (type: string): NonNullable<StructuredFacts["controls"][number]["loop"]> => {
+  if (type === "DoWhileStatement") {
+    return "do-while";
+  }
+  if (type === "ForInStatement") {
+    return "for-in";
+  }
+  if (type === "ForOfStatement") {
+    return "for-of";
+  }
+  if (type === "ForStatement") {
+    return "for";
+  }
+  return "while";
 };
 
 const argumentFact = (node: AstNode, source: string): StructuredArgumentFact => {
@@ -972,7 +1042,7 @@ const controlRegions = (call: AstNode, ancestors: AstAncestor[]) => {
   for (const ancestor of ancestors) {
     const node = ancestor.node;
     if (loopNodeTypes.has(node.type)) {
-      regions.push({ kind: "loop", range: rangeOf(node) });
+      regions.push({ kind: "loop", range: rangeOf(node), loop: loopKind(node.type) });
     }
     if (conditionalNodeTypes.has(node.type)) {
       regions.push({ kind: "conditional", range: rangeOf(node) });

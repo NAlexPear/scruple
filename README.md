@@ -261,6 +261,14 @@ source → parser → normalized targets → enabled plugin rules → decision p
 
 ## Develop Scruple
 
+Scruple dogfoods focused production and test rule sets separately so intentionally bad snippets in test fixtures do not contaminate production analysis:
+
+```sh
+TYPESAFE_API_KEY=your-key pnpm dogfood
+```
+
+Use `pnpm dogfood:production` or `pnpm dogfood:tests` to run one scope. These commands include `--explain`, preserving safe and `insufficient_context` decisions for selector and prompt audits. Broad function-naming review remains disabled until the parser can prove public exposure.
+
 ```sh
 pnpm install
 pnpm fix

@@ -179,6 +179,11 @@ test("debounces for 500 milliseconds", () => {
   vi.advanceTimersByTime(500);
   expect(search).toHaveBeenCalled();
 });
+
+test("documents a timer fixture", () => {
+  const fixture = \`setTimeout(resolve, 500)\`;
+  expect(fixture).toContain("setTimeout");
+});
 `,
       ),
     );

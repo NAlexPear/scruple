@@ -29,7 +29,7 @@ const defaultErrorAssertionCallPatterns = [
   /(?:^|\.)(?:rejectedWith|rejects|throw|throws)(?:\.|$)/iu,
   /(?:^|\.)(?:toThrow|toThrowError)(?:MatchingInlineSnapshot|MatchingSnapshot)?$/u,
 ];
-const defaultDelayCallPatterns = [/(?:^|\.)(?:delay|pause|sleep|waitForTimeout)$/iu];
+const defaultDelayCallPatterns = [/(?:^|\.)(?:delay|pause|setTimeout|sleep|waitForTimeout)$/iu];
 
 export const tests = (): TestsPlugin => {
   return definePlugin({
@@ -107,7 +107,14 @@ const noFixedDelaySynchronization = (
       testFunctions(document).filter(
         (fn) =>
           fn.calls.some((call) => matchesAny(call.callee, patterns)) ||
-          /\bsetTimeout\s*\(/u.test(fn.source),
+          (document.facts?.calls.some(
+            (call) =>
+              call.callee !== undefined &&
+              call.range.start >= fn.range.start &&
+              call.range.end <= fn.range.end &&
+              matchesAny(call.callee, patterns),
+          ) ??
+            false),
       ),
     instructions:
       "Does this test use a fixed real-time delay to guess when behavior is ready before checking it? Flag sleeps, pauses, or timeout waits used as synchronization when a condition, event, promise, locator, or polling assertion should determine readiness. Do not flag fake-clock advancement, tests whose subject is timeout/debounce/backoff behavior, explicit real-time latency or soak tests, or condition-based waits that merely have a finite timeout bound. If an imported wait helper's behavior is opaque, abstain rather than inferring it from its name.",

@@ -59,6 +59,14 @@ export interface ControlRegionFact {
   range: SourceRange;
   /** Present for inline callbacks passed to a statically named call. */
   callee?: string;
+  /** Present for loop regions so selectors can distinguish retry loops from collection iteration. */
+  loop?: "do-while" | "for" | "for-in" | "for-of" | "while";
+}
+
+export interface StructuredDeclarationFact {
+  kind: "await-using" | "using";
+  range: SourceRange;
+  source: string;
 }
 
 export interface StructuredCallFact {
@@ -80,10 +88,13 @@ export interface MemberAccessFact {
 
 export interface StructuredFacts {
   calls: StructuredCallFact[];
+  controls: ControlRegionFact[];
+  declarations: StructuredDeclarationFact[];
   members: MemberAccessFact[];
   completeness: {
     calls: "complete";
     control: "complete";
+    declarations: "complete";
     members: "complete" | "partial";
     reasons: string[];
   };
@@ -395,10 +406,26 @@ export interface RunStats {
   outputTokens: number;
 }
 
+export interface DecisionRecord {
+  ruleId: string;
+  filename: string;
+  location: SourceLocation;
+  targetKind: CodeTarget["kind"];
+  answer: DecisionAnswer;
+  diagnostic: boolean;
+  model: string;
+}
+
+export interface RunOptions {
+  includeDecisions?: boolean;
+}
+
 export interface RunResult {
   diagnostics: Diagnostic[];
   errors: OperationalError[];
   stats: RunStats;
+  /** Provider answers retained only when RunOptions.includeDecisions is enabled. */
+  decisions?: DecisionRecord[];
 }
 
 interface ActiveRule {
@@ -421,6 +448,7 @@ export const runScruple = async (
   config: ScrupleConfig,
   files: SourceFile[],
   signal?: AbortSignal,
+  options: RunOptions = {},
 ): Promise<RunResult> => {
   const errors: OperationalError[] = [];
   const allPending: PendingCandidate[] = [];
@@ -464,6 +492,7 @@ export const runScruple = async (
   }
 
   const diagnostics: Diagnostic[] = [];
+  const decisions: DecisionRecord[] = [];
   const batches = groupByState(allPending);
   let inputTokens = 0;
   let outputTokens = 0;
@@ -496,6 +525,17 @@ export const runScruple = async (
         }
 
         const diagnostic = activeRule.rule.diagnose(answer, candidate);
+        if (options.includeDecisions === true) {
+          decisions.push({
+            ruleId: activeRule.id,
+            filename: candidate.target.filename,
+            location: candidate.target.location,
+            targetKind: candidate.target.kind,
+            answer,
+            diagnostic: diagnostic !== null,
+            model: response.model,
+          });
+        }
         if (diagnostic) {
           diagnostics.push({
             ...diagnostic,
@@ -513,7 +553,7 @@ export const runScruple = async (
     }
   });
 
-  return {
+  const result: RunResult = {
     diagnostics: diagnostics.toSorted(compareDiagnostics),
     errors,
     stats: {
@@ -524,6 +564,10 @@ export const runScruple = async (
       outputTokens,
     },
   };
+  if (options.includeDecisions === true) {
+    result.decisions = decisions.toSorted(compareDecisions);
+  }
+  return result;
 };
 
 const resolveRules = (config: ScrupleConfig, errors: OperationalError[]): ActiveRule[] => {
@@ -657,6 +701,15 @@ const sanitizeId = (id: string): string => {
 };
 
 const compareDiagnostics = (left: Diagnostic, right: Diagnostic): number => {
+  return (
+    left.filename.localeCompare(right.filename) ||
+    left.location.start.line - right.location.start.line ||
+    left.location.start.column - right.location.start.column ||
+    left.ruleId.localeCompare(right.ruleId)
+  );
+};
+
+const compareDecisions = (left: DecisionRecord, right: DecisionRecord): number => {
   return (
     left.filename.localeCompare(right.filename) ||
     left.location.start.line - right.location.start.line ||

@@ -40,9 +40,6 @@ const defaultLifecycleCallPatterns = [
   ...defaultScopedLifecycleCallPatterns,
 ];
 const defaultRetryCallPatterns = [/(?:^|\.)(?:backoff|retry|retryAsync|shouldRetry)$/iu];
-const retryLanguagePattern = /\b(?:attempts?|retries|retrying)\b/iu;
-const loopPattern = /\b(?:for|while)\s*\(|\bdo\s*\{/u;
-const catchPattern = /\bcatch\s*(?:\([^)]*\))?\s*\{/u;
 
 export const resources = (): ResourcesPlugin => {
   return definePlugin({
@@ -255,7 +252,7 @@ const lifecycleFunctions = (document: ParsedDocument, patterns?: RegExp[]): Func
   const lifecyclePatterns = patterns ?? defaultLifecycleCallPatterns;
   return implementationFunctions(document).filter(
     (fn) =>
-      /\b(?:await\s+)?using\s+/u.test(fn.source) ||
+      factsOwnedBy(document, fn, document.facts?.declarations ?? []).length > 0 ||
       fn.calls.some((call) => matchesAny(call.callee, lifecyclePatterns)),
   );
 };
@@ -272,12 +269,47 @@ const multiResourceFunctions = (
 
 const retryFunctions = (document: ParsedDocument, patterns?: RegExp[]): FunctionTarget[] => {
   const retryPatterns = patterns ?? defaultRetryCallPatterns;
-  return implementationFunctions(document).filter(
-    (fn) =>
-      fn.calls.some((call) => matchesAny(call.callee, retryPatterns)) ||
-      (loopPattern.test(fn.source) && catchPattern.test(fn.source)) ||
-      (retryLanguagePattern.test(fn.source) && catchPattern.test(fn.source)),
+  return implementationFunctions(document).filter((fn) => {
+    if (fn.calls.some((call) => matchesAny(call.callee, retryPatterns))) {
+      return true;
+    }
+    const controls = factsOwnedBy(document, fn, document.facts?.controls ?? []);
+    const retryLoops = controls.filter(
+      (control) =>
+        control.kind === "loop" && control.loop !== "for-in" && control.loop !== "for-of",
+    );
+    return controls.some(
+      (control) =>
+        control.kind === "catch" &&
+        retryLoops.some(
+          (loop) => loop.range.start <= control.range.start && loop.range.end >= control.range.end,
+        ),
+    );
+  });
+};
+
+const factsOwnedBy = <Fact extends { range: { start: number; end: number } }>(
+  document: ParsedDocument,
+  fn: FunctionTarget,
+  facts: Fact[],
+): Fact[] => {
+  return facts.filter(
+    (fact) =>
+      fact.range.start >= fn.range.start &&
+      fact.range.end <= fn.range.end &&
+      smallestContainingFunction(document, fact.range) === fn,
   );
+};
+
+const smallestContainingFunction = (
+  document: ParsedDocument,
+  range: { start: number; end: number },
+): FunctionTarget | undefined => {
+  return document.functions
+    .filter((candidate) => candidate.range.start <= range.start && candidate.range.end >= range.end)
+    .toSorted(
+      (left, right) => left.range.end - left.range.start - (right.range.end - right.range.start),
+    )[0];
 };
 
 const implementationFunctions = (document: ParsedDocument): FunctionTarget[] => {
