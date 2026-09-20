@@ -1,12 +1,9 @@
 import { readFile } from "node:fs/promises";
 
-import { comments } from "@scruple/comments";
-import type { DecisionProvider, PluginMap } from "@scruple/core";
+import type { DecisionProvider } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
 import { layaProvider, type LayaModel } from "@scruple/provider-laya";
-import { relationalDatabases } from "@scruple/relational-databases";
-import { tests } from "@scruple/tests";
 
 import {
   hasEvalFailures,
@@ -16,12 +13,9 @@ import {
   type EvalRunReport,
 } from "./index.js";
 import { EVAL_HELP, parseEvalOptions, type EvalProviderSpec } from "./options.js";
+import { evaluationPlugins } from "./plugins.js";
 
-const plugins: PluginMap = {
-  comments: comments(),
-  tests: tests(),
-  "relational-databases": relationalDatabases(),
-};
+const plugins = evaluationPlugins();
 
 try {
   const options = parseEvalOptions(process.argv.slice(2));

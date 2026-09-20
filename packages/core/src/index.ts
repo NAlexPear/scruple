@@ -17,7 +17,7 @@ export interface SourceLocation {
 }
 
 export interface CodeTarget {
-  kind: "comment" | "function" | "test" | "expression" | "file";
+  kind: "comment" | "error-handler" | "function" | "test" | "expression" | "file";
   filename: string;
   language: string;
   range: SourceRange;
@@ -40,6 +40,21 @@ export interface FunctionTarget extends CodeTarget {
   calls: CallCapture[];
 }
 
+export interface ErrorHandlerExitCapture {
+  kind: "return" | "throw";
+  range: SourceRange;
+  source: string;
+}
+
+export interface ErrorHandlerTarget extends CodeTarget {
+  kind: "error-handler";
+  binding?: string;
+  bodySource: string;
+  trySource: string;
+  calls: CallCapture[];
+  exits: ErrorHandlerExitCapture[];
+}
+
 export interface CommentTarget extends CodeTarget {
   kind: "comment";
   style: "line" | "block";
@@ -52,13 +67,23 @@ export interface ParseIssue {
   range?: SourceRange;
 }
 
+export interface ModuleReference {
+  kind: "import" | "export";
+  specifier: string;
+  source: string;
+  range: SourceRange;
+  location: SourceLocation;
+}
+
 export interface ParsedDocument {
   filename: string;
   language: string;
   source: string;
   imports: string[];
+  moduleReferences: ModuleReference[];
   comments: CommentTarget[];
   functions: FunctionTarget[];
+  errorHandlers: ErrorHandlerTarget[];
   issues: ParseIssue[];
 }
 
@@ -161,8 +186,22 @@ export interface SemanticRule {
   ): Omit<Diagnostic, "ruleId" | "severity" | "model"> | null;
 }
 
-export type RuleFactory<Options = never> = (options?: Options) => SemanticRule;
-export type RuleFactories = Record<string, RuleFactory>;
+export interface RepositoryFinding {
+  message: string;
+  filename: string;
+  location: SourceLocation;
+}
+
+export interface RepositoryRule {
+  readonly description: string;
+  check(documents: readonly ParsedDocument[]): RepositoryFinding[];
+}
+
+export type Rule = SemanticRule | RepositoryRule;
+export type RuleFactory<Options = never, Result extends Rule = SemanticRule> = (
+  options?: Options,
+) => Result;
+export type RuleFactories = Record<string, RuleFactory<never, Rule>>;
 
 export interface ScruplePlugin<Rules extends RuleFactories = RuleFactories> {
   readonly rules: Rules;
@@ -180,7 +219,7 @@ export interface ScrupleConfig {
   ignore?: string[];
 }
 
-type RuleOptions<Factory> = Factory extends RuleFactory<infer Options> ? Options : never;
+type RuleOptions<Factory> = Factory extends RuleFactory<infer Options, Rule> ? Options : never;
 
 type PluginRuleConfigurations<Namespace extends string, Plugin> =
   Plugin extends ScruplePlugin<infer Rules>
@@ -249,11 +288,11 @@ export interface RunResult {
 interface ActiveRule {
   id: string;
   severity: DiagnosticSeverity;
-  rule: SemanticRule;
+  rule: Rule;
 }
 
 interface PendingCandidate {
-  activeRule: ActiveRule;
+  activeRule: ActiveRule & { rule: SemanticRule };
   candidate: RuleCandidate;
 }
 
@@ -270,6 +309,7 @@ export const runScruple = async (
   const errors: OperationalError[] = [];
   const allPending: PendingCandidate[] = [];
   const activeRules = resolveRules(config, errors);
+  const documents: ParsedDocument[] = [];
   let parsedFiles = 0;
 
   for (const file of files) {
@@ -281,6 +321,7 @@ export const runScruple = async (
     try {
       document = config.parser.parse(file.filename, file.source);
       parsedFiles += 1;
+      documents.push(document);
     } catch (cause) {
       errors.push({ filename: file.filename, message: errorMessage(cause), cause });
       continue;
@@ -293,9 +334,13 @@ export const runScruple = async (
     }
 
     for (const activeRule of activeRules) {
+      const rule = activeRule.rule;
+      if (isRepositoryRule(rule)) {
+        continue;
+      }
       try {
-        for (const candidate of activeRule.rule.collect(document)) {
-          allPending.push({ activeRule, candidate });
+        for (const candidate of rule.collect(document)) {
+          allPending.push({ activeRule: { ...activeRule, rule }, candidate });
         }
       } catch (cause) {
         errors.push({
@@ -307,8 +352,29 @@ export const runScruple = async (
     }
   }
 
-  const batches = groupByState(allPending);
   const diagnostics: Diagnostic[] = [];
+  for (const activeRule of activeRules) {
+    if (!isRepositoryRule(activeRule.rule)) {
+      continue;
+    }
+    try {
+      for (const finding of activeRule.rule.check(documents)) {
+        diagnostics.push({
+          ...finding,
+          ruleId: activeRule.id,
+          severity: activeRule.severity,
+          model: "static",
+        });
+      }
+    } catch (cause) {
+      errors.push({
+        message: `Rule ${activeRule.id} failed while checking the repository: ${errorMessage(cause)}`,
+        cause,
+      });
+    }
+  }
+
+  const batches = groupByState(allPending);
   let inputTokens = 0;
   let outputTokens = 0;
 
@@ -449,6 +515,10 @@ const parseRuleConfiguration = (
 
 const isRuleSeverity = (value: unknown): value is RuleSeverity => {
   return value === "off" || value === "warn" || value === "error";
+};
+
+const isRepositoryRule = (rule: Rule): rule is RepositoryRule => {
+  return "check" in rule;
 };
 
 const groupByState = (pending: PendingCandidate[]): EvaluationBatch[] => {

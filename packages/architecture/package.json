@@ -1,0 +1,49 @@
+{
+  "name": "@scruple/architecture",
+  "version": "0.0.2",
+  "description": "Deterministic repository architecture rules for Scruple.",
+  "keywords": [
+    "architecture",
+    "code-quality",
+    "dependency-graph",
+    "static-analysis"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/architecture"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scruple/core": "workspace:*",
+    "picomatch": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.3"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

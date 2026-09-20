@@ -8,6 +8,10 @@ test("rule filtering combines category and case-insensitive text search", () => 
     filterRules("VACUOUS", "tests").map((rule) => rule.id),
     ["tests/no-vacuous-tests"],
   );
+  assert.deepEqual(
+    filterRules("transaction", "queues").map((rule) => rule.id),
+    ["queues/no-acknowledge-before-processing"],
+  );
   assert.equal(filterRules("comment", "database").length, 0);
 });
 

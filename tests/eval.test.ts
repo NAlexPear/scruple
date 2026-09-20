@@ -2,20 +2,17 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { comments } from "@scruple/comments";
 import type {
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
-  PluginMap,
   ScruplePlugin,
 } from "@scruple/core";
 import { definePlugin } from "@scruple/core";
 import { hasEvalFailures, parseEvalFixtures, runEvaluation, type EvalFixture } from "@scruple/eval";
 import { parseEvalOptions } from "@scruple/eval/options";
+import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
-import { relationalDatabases } from "@scruple/relational-databases";
-import { tests } from "@scruple/tests";
 
 await test("evaluation options pair providers and models by position", () => {
   assert.deepEqual(
@@ -51,11 +48,7 @@ await test("evaluation corpus has unique, reachable positive and negative cases"
     await readFile(new URL("./eval-fixtures.json", import.meta.url), "utf8"),
   );
   const fixtures = parseEvalFixtures(raw);
-  const plugins: PluginMap = {
-    comments: comments(),
-    tests: tests(),
-    "relational-databases": relationalDatabases(),
-  };
+  const plugins = evaluationPlugins();
   const parser = oxcParser();
 
   for (const fixture of fixtures) {
@@ -71,7 +64,9 @@ await test("evaluation corpus has unique, reachable positive and negative cases"
       new Set([true, false]),
       `${fixture.ruleId} must have both positive and negative cases`,
     );
-    const candidates = factory().collect(parser.parse(fixture.filename, fixture.source));
+    const rule = factory();
+    assert.ok("collect" in rule, `${fixture.ruleId} must be a semantic rule`);
+    const candidates = rule.collect(parser.parse(fixture.filename, fixture.source));
     assert.ok(candidates.length > 0, `${fixture.id} must reach ${fixture.ruleId}`);
   }
 });

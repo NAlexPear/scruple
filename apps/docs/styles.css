@@ -818,6 +818,9 @@ kbd {
 .category-dot.tests {
   background: var(--blue);
 }
+.category-dot.queues {
+  background: var(--magenta);
+}
 .category-dot.database {
   background: var(--orange);
 }

@@ -7,6 +7,8 @@ import type {
 } from "@scruple/core";
 import { runScruple } from "@scruple/core";
 
+export { evaluationPlugins } from "./plugins.js";
+
 export interface EvalFixture {
   id: string;
   filename: string;

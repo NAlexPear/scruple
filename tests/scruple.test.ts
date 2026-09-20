@@ -9,6 +9,7 @@ import type {
   SemanticRule,
 } from "@scruple/core";
 import { defineConfig, definePlugin, runScruple } from "@scruple/core";
+import { observability } from "@scruple/observability";
 import { oxcParser } from "@scruple/parser-oxc";
 import { relationalDatabases } from "@scruple/relational-databases";
 import { tests as testRules } from "@scruple/tests";
@@ -99,6 +100,15 @@ const findingProvider = (finding: string | undefined): DecisionProvider => {
   };
 };
 
+const vacuousAnswer = (probability: number, confidence: number): DecisionAnswer => {
+  return {
+    type: "choice",
+    choice: "vacuous",
+    confidence,
+    probabilities: { vacuous: probability },
+  };
+};
+
 await test("OXC normalizes comments, tests, functions, imports, and calls", () => {
   const parser = oxcParser();
   const source = `import { db } from "./db";
@@ -136,6 +146,77 @@ async function joinedUsers() {
     document.functions.find((fn) => fn.name === "joinedUsers")?.calls.map((call) => call.callee),
     ["db.user.findMany", "db.order.findMany", "users.map"],
   );
+});
+
+await test("OXC recognizes modified and generated test callbacks", () => {
+  const document = oxcParser().parse(
+    "example.test.ts",
+    `test.skip("disabled", () => run());
+test.each([[1, 2, 3]])("adds %s and %s", (left, right, expected) => {
+  expect(add(left, right)).toBe(expected);
+});
+`,
+  );
+  const testFunctions = document.functions.filter((fn) => fn.kind === "test");
+
+  assert.deepEqual(
+    testFunctions.map((fn) => fn.testName),
+    ["disabled", "adds %s and %s"],
+  );
+  assert.equal(testFunctions[0]?.enclosingSource, 'test.skip("disabled", () => run())');
+  const generatedTest = testFunctions[1];
+  assert.match(String(generatedTest?.enclosingSource), /^test\.each/u);
+});
+
+await test("test rule includes invocation and transitive local assertion helpers", () => {
+  const document = oxcParser().parse(
+    "math.test.ts",
+    `import { expect } from "vitest";
+
+function verifyEqual(actual: number, expected: number) {
+  expect(actual).toBe(expected);
+}
+
+function assertSum(left: number, right: number, expected: number) {
+  verifyEqual(add(left, right), expected);
+}
+
+test.each([[1, 2, 3]])("adds %s and %s", (left, right, expected) => {
+  assertSum(left, right, expected);
+});
+`,
+  );
+  const candidate = testRules().rules["no-vacuous-tests"]().collect(document)[0];
+  assert.ok(candidate);
+
+  assert.deepEqual(candidate.state, {
+    language: "typescript",
+    imports: ['import { expect } from "vitest";'],
+    test: {
+      name: "adds %s and %s",
+      invocation: `test.each([[1, 2, 3]])("adds %s and %s", (left, right, expected) => {
+  assertSum(left, right, expected);
+})`,
+      callback: `(left, right, expected) => {
+  assertSum(left, right, expected);
+}`,
+      calls: ["assertSum"],
+    },
+    local_helpers: [
+      {
+        name: "assertSum",
+        source: `function assertSum(left: number, right: number, expected: number) {
+  verifyEqual(add(left, right), expected);
+}`,
+      },
+      {
+        name: "verifyEqual",
+        source: `function verifyEqual(actual: number, expected: number) {
+  expect(actual).toBe(expected);
+}`,
+      },
+    ],
+  });
 });
 
 await test("engine reports decisions from all three rule categories", async () => {
@@ -212,6 +293,100 @@ await test("plugins register rules without enabling them", async () => {
   assert.equal(result.stats.requests, 0);
 });
 
+await test("observability rules deterministically select bounded call evidence", () => {
+  const plugin = observability();
+  const document = oxcParser().parse(
+    "checkout.ts",
+    `import { logger } from "./logger.js";
+export function checkout(card: Card, event: string) {
+  service.info(card);
+  requestLogger.info({ operation: "checkout", card });
+  telemetry.captureException(new Error("declined"));
+  span.setAttribute("customer.email", card.email);
+  logger.error(event);
+}
+`,
+  );
+
+  const sensitive = plugin.rules["no-sensitive-logs"]().collect(document);
+  const errors = plugin.rules["no-unactionable-errors"]().collect(document);
+  const operations = plugin.rules["require-operation-context"]().collect(document);
+
+  assert.deepEqual(
+    sensitive.map((candidate) => candidate.target.source),
+    [
+      'requestLogger.info({ operation: "checkout", card })',
+      'telemetry.captureException(new Error("declined"))',
+      'span.setAttribute("customer.email", card.email)',
+      "logger.error(event)",
+    ],
+  );
+  assert.deepEqual(
+    errors.map((candidate) => candidate.target.source),
+    ['telemetry.captureException(new Error("declined"))', "logger.error(event)"],
+  );
+  assert.deepEqual(
+    operations.map((candidate) => candidate.target.source),
+    [
+      'requestLogger.info({ operation: "checkout", card })',
+      'telemetry.captureException(new Error("declined"))',
+      "logger.error(event)",
+    ],
+  );
+  assert.equal(sensitive[0]?.target.location.start.line, 4);
+  assert.ok(JSON.stringify(sensitive[0]?.state).length < 2_500);
+
+  const largeDocument = oxcParser().parse(
+    "large.ts",
+    `function record() { logger.info({ operation: "large", value: "${"x".repeat(8_000)}" }); }`,
+  );
+  const largeState = plugin.rules["no-sensitive-logs"]().collect(largeDocument)[0]?.state;
+  assert.ok(JSON.stringify(largeState).length < 6_000);
+  assert.match(JSON.stringify(largeState), /excerpt truncated/u);
+});
+
+await test("observability rules diagnose only confident configured findings", () => {
+  const plugin = observability();
+  const document = oxcParser().parse(
+    "checkout.ts",
+    'function checkout(card: Card) { logger.error("checkout failed", { card }); }',
+  );
+  const cases = [
+    ["no-sensitive-logs", "exposed_sensitive_value"],
+    ["no-unactionable-errors", "unactionable"],
+    ["require-operation-context", "operation_missing"],
+  ] as const;
+
+  for (const [ruleName, finding] of cases) {
+    const rule = plugin.rules[ruleName]();
+    const candidate = rule.collect(document)[0];
+    assert.ok(candidate);
+    assert.ok(
+      rule.diagnose(
+        {
+          type: "choice",
+          choice: finding,
+          confidence: 0.95,
+          probabilities: { [finding]: 0.95 },
+        },
+        candidate,
+      ),
+    );
+    assert.equal(
+      rule.diagnose(
+        {
+          type: "choice",
+          choice: "insufficient_context",
+          confidence: 0.99,
+          probabilities: { insufficient_context: 0.99 },
+        },
+        candidate,
+      ),
+      null,
+    );
+  }
+});
+
 await test("comments rules preserve calibrated default decision margins", () => {
   const plugin = comments();
   const parser = oxcParser();
@@ -251,6 +426,30 @@ await test("comments rules preserve calibrated default decision margins", () => 
   );
 });
 
+await test("test rule preserves conservative default decision margins", () => {
+  const rule = testRules().rules["no-vacuous-tests"]();
+  const candidate = rule.collect(
+    oxcParser().parse("example.test.ts", 'test("runs", () => run());'),
+  )[0];
+  assert.ok(candidate);
+
+  assert.ok(rule.diagnose(vacuousAnswer(0.9, 0.7), candidate));
+  assert.equal(rule.diagnose(vacuousAnswer(0.89, 0.99), candidate), null);
+  assert.equal(rule.diagnose(vacuousAnswer(0.99, 0.69), candidate), null);
+  assert.equal(
+    rule.diagnose(
+      {
+        type: "choice",
+        choice: "insufficient_context",
+        confidence: 0.99,
+        probabilities: { vacuous: 0.99, insufficient_context: 0.99 },
+      },
+      candidate,
+    ),
+    null,
+  );
+});
+
 await test("commented-out code rule collects short executable comments", () => {
   const plugin = comments();
   const document = oxcParser().parse(
@@ -259,7 +458,139 @@ await test("commented-out code rule collects short executable comments", () => {
   );
 
   assert.equal(plugin.rules["no-commented-out-code"]().collect(document).length, 1);
+  assert.equal(plugin.rules["no-misleading-comments"]().collect(document).length, 1);
   assert.equal(plugin.rules["no-useless-comments"]().collect(document).length, 0);
+});
+
+await test("comments rules recognize block TODOs and ignore tool directives", () => {
+  const plugin = comments();
+  const document = oxcParser().parse(
+    "comments.ts",
+    '/**\n * TODO: fix this later\n */\nexport const value = legacyValue;\n/* #__PURE__ */ factory();\n/// <reference path="./types.d.ts" />\n',
+  );
+
+  assert.equal(plugin.rules["require-actionable-todos"]().collect(document).length, 1);
+  assert.equal(plugin.rules["no-useless-comments"]().collect(document).length, 0);
+  assert.equal(plugin.rules["no-commented-out-code"]().collect(document).length, 0);
+});
+
+await test("comments rules bound evidence from large enclosing functions", () => {
+  const plugin = comments();
+  const document = oxcParser().parse(
+    "comments.ts",
+    `function example() {\n  const DISTANT_START = "${"a".repeat(600)}";\n  // Return the timeout in milliseconds.\n  return 30;\n  const distantEnd = "${"b".repeat(600)}DISTANT_END";\n}\n`,
+  );
+  const candidate = plugin.rules["no-misleading-comments"]().collect(document)[0];
+  assert.ok(candidate);
+  const state = JSON.stringify(candidate.state);
+
+  assert.match(state, /Return the timeout in milliseconds/u);
+  assert.doesNotMatch(state, /DISTANT_START/u);
+  assert.doesNotMatch(state, /DISTANT_END/u);
+});
+
+await test("comments rules reject invalid probability and length options", () => {
+  const plugin = comments();
+
+  assert.throws(
+    () => plugin.rules["no-useless-comments"]({ threshold: Number.NaN }),
+    /threshold must be a finite number between 0 and 1/u,
+  );
+  assert.throws(
+    () => plugin.rules["no-misleading-comments"]({ minConfidence: 1.1 }),
+    /minConfidence must be a finite number between 0 and 1/u,
+  );
+  assert.throws(
+    () => plugin.rules["prefer-concise-comments"]({ minCharacters: 1.5 }),
+    /minCharacters must be a non-negative integer/u,
+  );
+});
+
+await test("database join prefilter recognizes common ORM query shapes", () => {
+  const rule = relationalDatabases().rules["prefer-database-join"]();
+  const sources = [
+    `import { Repository } from "typeorm";
+async function joined(userRepository: Repository<User>, teamRepository: Repository<Team>) {
+  const users = await userRepository.find();
+  const teams = await teamRepository.find();
+  return users.map((user) => teams.find((team) => team.id === user.teamId));
+}`,
+    `import knex from "knex";
+async function joined() {
+  const users = await knex("users");
+  const teams = await knex("teams");
+  return users.map((user) => teams.find((team) => team.id === user.team_id));
+}`,
+    `import mongoose from "mongoose";
+const User = mongoose.model("User", userSchema);
+const Team = mongoose.model("Team", teamSchema);
+async function joined() {
+  const users = await User.find();
+  const teams = await Team.find();
+  return users.map((user) => teams.find((team) => team.id === user.teamId));
+}`,
+  ];
+
+  for (const [index, source] of sources.entries()) {
+    const candidates = rule.collect(oxcParser().parse(`orm-${index}.ts`, source));
+    assert.equal(candidates.length, 1, `ORM case ${index} should reach semantic evaluation`);
+  }
+});
+
+await test("database join prefilter requires database provenance for generic call names", () => {
+  const rule = relationalDatabases().rules["prefer-database-join"]();
+  const document = oxcParser().parse(
+    "promises.ts",
+    `async function pair(values: Promise<string>[]) {
+  const left = await Promise.all(values);
+  const right = await Promise.all(values);
+  return left.map((value, index) => [value, right[index]]);
+}`,
+  );
+
+  assert.equal(rule.collect(document).length, 0);
+});
+
+await test("database join decision receives source-level provenance and can abstain", () => {
+  const rule = relationalDatabases().rules["prefer-database-join"]();
+  const document = oxcParser().parse(
+    "report.ts",
+    `import { db } from "./db.js";
+async function report() {
+  const users = await db.user.findMany();
+  const teams = await db.team.findMany();
+  return { users: users.map(toApiUser), teams: teams.map(toApiTeam) };
+}`,
+  );
+  const candidate = rule.collect(document)[0];
+  assert.ok(candidate);
+  assert.deepEqual(candidate.state, {
+    language: "typescript",
+    imports: ['import { db } from "./db.js";'],
+    function: document.functions.find((fn) => fn.name === "report")?.source,
+    evidence: {
+      database_calls: [
+        { callee: "db.user.findMany", source: "db.user.findMany()" },
+        { callee: "db.team.findMany", source: "db.team.findMany()" },
+      ],
+      collection_operations: [
+        { callee: "users.map", source: "users.map(toApiUser)" },
+        { callee: "teams.map", source: "teams.map(toApiTeam)" },
+      ],
+    },
+  });
+  assert.equal(
+    rule.diagnose(
+      {
+        type: "choice",
+        choice: "intentionally_in_memory",
+        confidence: 0.99,
+        probabilities: { intentionally_in_memory: 0.99 },
+      },
+      candidate,
+    ),
+    null,
+  );
 });
 
 await test("engine batches independent questions sharing identical evidence", async () => {

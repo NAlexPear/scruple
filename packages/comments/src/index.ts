@@ -47,7 +47,7 @@ export const comments = (): CommentsPlugin => {
 };
 
 const noUselessComments = (options: NoUselessCommentsOptions = {}): SemanticRule => {
-  const threshold = options.threshold ?? 0.9;
+  const threshold = probabilityOption("threshold", options.threshold, 0.9);
   return {
     description: "Comments should add information that the code does not already express.",
     collect(document) {
@@ -81,7 +81,7 @@ const noMisleadingComments = (options: ProbabilityRuleOptions = {}): SemanticRul
   const { threshold, minConfidence } = probabilityOptions(options, 0.85, 0.7);
   return choiceRule({
     description: "Comments should accurately describe the code they accompany.",
-    select: ordinaryComments,
+    select: reviewableComments,
     question: {
       instructions:
         "Does `comment` materially contradict the visible current code? Judge concrete claims about behavior, conditions, units, validation, side effects, and returned values. Do not call a clearly historical note misleading merely because it discusses prior code.",
@@ -104,7 +104,7 @@ const noCommentedOutCode = (options: ProbabilityRuleOptions = {}): SemanticRule 
   const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
   return choiceRule({
     description: "Comments should not preserve disabled implementation code.",
-    select: disabledCodeComments,
+    select: reviewableComments,
     question: {
       instructions:
         "Is `comment` disabled executable implementation code that belongs in version control rather than the source file? Distinguish disabled code from documentation examples, pseudocode, grammars, regular expressions, and configuration snippets.",
@@ -157,6 +157,9 @@ const noChangeHistoryComments = (options: ProbabilityRuleOptions = {}): Semantic
 const preferConciseComments = (options: PreferConciseCommentsOptions = {}): SemanticRule => {
   const { threshold, minConfidence } = probabilityOptions(options, 0.9, 0.65);
   const minCharacters = options.minCharacters ?? 100;
+  if (!Number.isSafeInteger(minCharacters) || minCharacters < 0) {
+    throw new TypeError("minCharacters must be a non-negative integer");
+  }
   return choiceRule({
     description: "Comments should express useful information without unnecessary prose.",
     select: (document) =>
@@ -243,6 +246,7 @@ const choiceRule = (definition: ChoiceRuleDefinition): SemanticRule => {
 };
 
 const commentState = (comment: CommentTarget, document: ParsedDocument): JsonValue => {
+  const enclosingCode = comment.enclosingSource;
   return {
     language: document.language,
     comment: {
@@ -252,8 +256,9 @@ const commentState = (comment: CommentTarget, document: ParsedDocument): JsonVal
     },
     context: {
       enclosing_code:
-        comment.enclosingSource ??
-        nearbySource(document.source, comment.range.start, comment.range.end),
+        enclosingCode !== undefined && enclosingCode.length <= 1_000
+          ? enclosingCode
+          : nearbySource(document.source, comment.range.start, comment.range.end),
     },
   };
 };
@@ -264,7 +269,7 @@ const ordinaryComments = (document: ParsedDocument): CommentTarget[] => {
   );
 };
 
-const disabledCodeComments = (document: ParsedDocument): CommentTarget[] => {
+const reviewableComments = (document: ParsedDocument): CommentTarget[] => {
   return document.comments.filter(
     (comment) =>
       comment.value.trim().length > 0 && !isIgnoredComment(comment) && !isTodoCandidate(comment),
@@ -280,18 +285,20 @@ const isBaseCandidate = (comment: CommentTarget): boolean => {
 };
 
 const isIgnoredComment = (comment: CommentTarget): boolean => {
-  return /^(?:eslint|oxlint|prettier|istanbul|c8|tslint|@ts-|SPDX-|Copyright\b|Generated\b|Code generated\b)/iu.test(
+  return /^(?:\*\s*)?(?:eslint|oxlint|prettier|istanbul|c8|tslint|@ts-|@vite-ignore\b|@license\b|@preserve\b|SPDX-|Copyright\b|Generated\b|Code generated\b|#__PURE__\b|#__NO_SIDE_EFFECTS__\b|\/\s*<reference\b|\/\s*<amd-)/iu.test(
     comment.value.trim(),
   );
 };
 
 const isTodoCandidate = (comment: CommentTarget): boolean => {
-  return /^(?:TODO|FIXME|HACK)\b/iu.test(comment.value.trim());
+  return /^(?:\s*\*?\s*)(?:TODO|FIXME|HACK)\b/imu.test(comment.value);
 };
 
 const isChangeHistoryCandidate = (comment: CommentTarget): boolean => {
-  return /\b(?:before|changed|formerly|no longer|old implementation|older|previously|removed|replaced|used to|was using|were using)\b/iu.test(
-    comment.value,
+  return (
+    /\b(?:before|changed|formerly|no longer|old implementation|older|previously|removed|replaced|used to|was using|were using)\b/iu.test(
+      comment.value,
+    ) || /\b(?:migrated|moved|switched)\s+from\b/iu.test(comment.value)
   );
 };
 
@@ -306,9 +313,17 @@ const probabilityOptions = (
   defaultMinConfidence: number,
 ): { threshold: number; minConfidence: number } => {
   return {
-    threshold: options.threshold ?? defaultThreshold,
-    minConfidence: options.minConfidence ?? defaultMinConfidence,
+    threshold: probabilityOption("threshold", options.threshold, defaultThreshold),
+    minConfidence: probabilityOption("minConfidence", options.minConfidence, defaultMinConfidence),
   };
+};
+
+const probabilityOption = (name: string, value: number | undefined, fallback: number): number => {
+  const resolved = value ?? fallback;
+  if (!Number.isFinite(resolved) || resolved < 0 || resolved > 1) {
+    throw new RangeError(`${name} must be a finite number between 0 and 1`);
+  }
+  return resolved;
 };
 
 const isFinding = (

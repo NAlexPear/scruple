@@ -1,0 +1,45 @@
+{
+  "name": "@scruple/http-clients",
+  "version": "0.0.2",
+  "description": "Semantic rules for safe HTTP client usage.",
+  "keywords": [
+    "code-quality",
+    "http",
+    "linting",
+    "semantic-analysis"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/http-clients"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scruple/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

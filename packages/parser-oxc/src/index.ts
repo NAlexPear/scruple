@@ -1,7 +1,10 @@
 import type {
   CallCapture,
   CommentTarget,
+  ErrorHandlerExitCapture,
+  ErrorHandlerTarget,
   FunctionTarget,
+  ModuleReference,
   ParsedDocument,
   ParseIssue,
   SourceLocation,
@@ -25,6 +28,8 @@ type AstNode = Record<string, unknown> & {
   expression?: unknown;
   object?: unknown;
   property?: unknown;
+  param?: unknown;
+  source?: unknown;
 };
 
 const supportedExtensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]);
@@ -63,6 +68,7 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
       const language = languageFor(filename);
       const locate = createLocator(source);
       const imports = collectImports(program, source);
+      const moduleReferences = collectModuleReferences(program, source, locate);
       const functions = collectFunctions(
         program,
         source,
@@ -70,6 +76,14 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
         language,
         locate,
         configuredTestCallees,
+      );
+      const errorHandlers = collectErrorHandlers(
+        program,
+        source,
+        filename,
+        language,
+        locate,
+        functions,
       );
       const comments = result.comments.map((comment) =>
         convertComment(comment, source, filename, language, locate, functions),
@@ -80,12 +94,109 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
         language,
         source,
         imports,
+        moduleReferences,
         comments,
         functions,
+        errorHandlers,
         issues: result.errors.map(convertError),
       } satisfies ParsedDocument;
     },
   };
+};
+
+const collectErrorHandlers = (
+  program: AstNode,
+  source: string,
+  filename: string,
+  language: string,
+  locate: (range: SourceRange) => SourceLocation,
+  functions: FunctionTarget[],
+): ErrorHandlerTarget[] => {
+  const handlers: ErrorHandlerTarget[] = [];
+  walk(program, undefined, {
+    enter(node, parent) {
+      if (node.type !== "CatchClause") {
+        return;
+      }
+      const body = isNode(node.body) ? node.body : node;
+      const enclosing = smallestEnclosingFunction(functions, rangeOf(node));
+      const flow = collectErrorHandlerFlow(body, source);
+      const target: ErrorHandlerTarget = {
+        kind: "error-handler",
+        filename,
+        language,
+        range: rangeOf(node),
+        location: locate(rangeOf(node)),
+        source: source.slice(node.start, node.end),
+        bodySource: source.slice(body.start, body.end),
+        trySource:
+          parent?.type === "TryStatement"
+            ? source.slice(parent.start, parent.end)
+            : source.slice(node.start, node.end),
+        calls: flow.calls,
+        exits: flow.exits,
+      };
+      if (isNode(node.param)) {
+        target.binding = source.slice(node.param.start, node.param.end);
+      }
+      if (enclosing !== undefined) {
+        target.enclosingSource = enclosing.source;
+      }
+      handlers.push(target);
+    },
+    leave() {},
+  });
+  return handlers;
+};
+
+const collectErrorHandlerFlow = (
+  body: AstNode,
+  source: string,
+): { calls: CallCapture[]; exits: ErrorHandlerExitCapture[] } => {
+  const calls: CallCapture[] = [];
+  const exits: ErrorHandlerExitCapture[] = [];
+
+  const visit = (node: AstNode, root: boolean): void => {
+    if (!root && (functionTypes.has(node.type) || node.type === "CatchClause")) {
+      return;
+    }
+    if (node.type === "CallExpression") {
+      const callee = getCalleeName(node.callee);
+      if (callee !== undefined) {
+        calls.push({ callee, range: rangeOf(node), source: source.slice(node.start, node.end) });
+      }
+    } else if (node.type === "ThrowStatement" || node.type === "ReturnStatement") {
+      exits.push({
+        kind: node.type === "ThrowStatement" ? "throw" : "return",
+        range: rangeOf(node),
+        source: source.slice(node.start, node.end),
+      });
+    }
+    for (const key of visitorKeys[node.type] ?? []) {
+      const value = node[key];
+      if (Array.isArray(value)) {
+        for (const child of value) {
+          if (isNode(child)) {
+            visit(child, false);
+          }
+        }
+      } else if (isNode(value)) {
+        visit(value, false);
+      }
+    }
+  };
+
+  visit(body, true);
+  return { calls, exits };
+};
+
+const smallestEnclosingFunction = (
+  functions: FunctionTarget[],
+  range: SourceRange,
+): FunctionTarget | undefined => {
+  return functions
+    .filter((fn) => fn.range.start <= range.start && fn.range.end >= range.end)
+    .toSorted((left, right) => rangeLength(left.range) - rangeLength(right.range))[0];
 };
 
 const collectImports = (program: AstNode, source: string): string[] => {
@@ -94,6 +205,38 @@ const collectImports = (program: AstNode, source: string): string[] => {
     .filter((value) => isNode(value))
     .filter((node) => node.type === "ImportDeclaration")
     .map((node) => source.slice(node.start, node.end));
+};
+
+const collectModuleReferences = (
+  program: AstNode,
+  source: string,
+  locate: (range: SourceRange) => SourceLocation,
+): ModuleReference[] => {
+  const body = Array.isArray(program.body) ? program.body : [];
+  return body.flatMap((value) => {
+    if (!isNode(value)) {
+      return [];
+    }
+    const kind =
+      value.type === "ImportDeclaration"
+        ? "import"
+        : value.type === "ExportNamedDeclaration" || value.type === "ExportAllDeclaration"
+          ? "export"
+          : undefined;
+    if (kind === undefined || !isNode(value.source) || typeof value.source.value !== "string") {
+      return [];
+    }
+    const range = rangeOf(value.source);
+    return [
+      {
+        kind,
+        specifier: value.source.value,
+        source: source.slice(value.start, value.end),
+        range,
+        location: locate(range),
+      },
+    ];
+  });
 };
 
 const collectFunctions = (
@@ -122,6 +265,9 @@ const collectFunctions = (
           async: node.async === true,
           calls: [],
         };
+        if (test !== undefined && parent !== undefined) {
+          target.enclosingSource = source.slice(parent.start, parent.end);
+        }
         if (name !== undefined) {
           target.name = name;
         }
@@ -232,7 +378,7 @@ const getTestDetails = (
     return undefined;
   }
 
-  const callee = getCalleeName(parent.callee);
+  const callee = getTestCalleeName(parent.callee);
   const rootCallee = callee?.split(".")[0];
   if (
     rootCallee === undefined ||
@@ -245,6 +391,13 @@ const getTestDetails = (
   const firstArgument = args.find((value) => isNode(value));
   const value = firstArgument?.type === "Literal" ? firstArgument.value : undefined;
   return typeof value === "string" ? { name: value } : {};
+};
+
+const getTestCalleeName = (value: unknown): string | undefined => {
+  if (isNode(value) && value.type === "CallExpression") {
+    return getTestCalleeName(value.callee);
+  }
+  return getCalleeName(value);
 };
 
 const functionName = (node: AstNode, parent: AstNode | undefined): string | undefined => {

@@ -39,6 +39,25 @@ export const rules = [
     description: "Checks TODO, FIXME, and HACK markers for meaningful follow-up context.",
   },
   {
+    id: "queues/require-idempotent-handler",
+    category: "queues",
+    title: "Require idempotent handlers",
+    description: "Finds visible queue handlers whose side effects are unsafe under redelivery.",
+  },
+  {
+    id: "queues/no-acknowledge-before-processing",
+    category: "queues",
+    title: "No early acknowledgements",
+    description: "Checks that explicit acknowledgements follow processing and transaction commit.",
+  },
+  {
+    id: "queues/require-dead-letter-policy",
+    category: "queues",
+    title: "Require dead-letter policies",
+    description:
+      "Checks visible queue declarations for a dead-letter destination and bounded attempts.",
+  },
+  {
     id: "tests/no-vacuous-tests",
     category: "tests",
     title: "No vacuous tests",
@@ -50,6 +69,25 @@ export const rules = [
     title: "Prefer database joins",
     description:
       "Finds in-memory joins that could reasonably use an available relational database layer.",
+  },
+  {
+    id: "resources/no-leaked-resources",
+    category: "resources",
+    title: "No leaked resources",
+    description: "Finds acquired resources left owned on a visible function exit path.",
+  },
+  {
+    id: "resources/require-bounded-retries",
+    category: "resources",
+    title: "Require bounded retries",
+    description:
+      "Requires retry behavior to enforce a finite attempt, elapsed-time, or deadline bound.",
+  },
+  {
+    id: "resources/require-cleanup-on-failure",
+    category: "resources",
+    title: "Require cleanup on failure",
+    description: "Finds resource cleanup that runs after success but can be bypassed by failure.",
   },
 ];
 
@@ -75,7 +113,7 @@ export const setupContent = (step, provider) => {
       filename: "terminal",
       code: `pnpm add --save-dev \\
   @scruple/cli @scruple/core @scruple/parser-oxc \\
-  ${providerPackage} @scruple/comments @scruple/tests`,
+  ${providerPackage} @scruple/comments @scruple/resources @scruple/tests`,
     };
   }
 
