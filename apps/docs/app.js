@@ -36,7 +36,7 @@ const traceData = {
     description:
       "The evidence does not establish data provenance or database capability. Scruple abstains.",
     rule: "relational-databases/prefer-database-join",
-    icon: "—",
+    icon: "·",
     abstain: true,
   },
 };
