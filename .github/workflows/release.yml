@@ -133,7 +133,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Download tested packages
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: npm-packages
           path: release
