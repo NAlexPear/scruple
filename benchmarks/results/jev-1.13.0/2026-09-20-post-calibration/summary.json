@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-20",
+  "commit": "2c9a5732bcc715c0f6f52ed3d053660f0506a835",
+  "provider": "jev",
+  "requestedModel": "jev-1.13.0",
+  "resolvedModel": "jev-1.13.0",
+  "sustained": {
+    "fixtureCount": 128,
+    "warmups": 2,
+    "repetitions": 20,
+    "concurrency": 64,
+    "measuredCases": 2560,
+    "strictMatches": 2560,
+    "labelMatches": 2560,
+    "diagnosticMatches": 2560,
+    "abstentionMatches": 2560,
+    "durationMs": { "mean": 553.51, "p50": 540.641, "p95": 619.157 },
+    "caseLatencyMs": { "mean": 173.182, "p50": 163.761, "p95": 281.356 },
+    "throughputCasesPerSecond": 231.252,
+    "inputTokens": 2012580,
+    "outputTokens": 174980,
+    "estimatedCostUsd": 0.08452836,
+    "rawReport": "raw/concurrency-64.json.gz"
+  },
+  "focused": {
+    "fixtureCount": 19,
+    "warmups": 1,
+    "repetitions": 5,
+    "concurrency": 8,
+    "measuredCases": 95,
+    "strictMatches": 95,
+    "labelMatches": 95,
+    "diagnosticMatches": 95,
+    "abstentionMatches": 95,
+    "actualAbstentions": 10,
+    "expectedAbstentions": 10,
+    "inputTokens": 75340,
+    "outputTokens": 5905,
+    "estimatedCostUsd": 0.00316428,
+    "rawReport": "raw/three-rules-19-fixtures.json.gz"
+  }
+}
