@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -58,7 +58,9 @@ await test("CLI rejects conflicting cache options", async () => {
 });
 
 await test("CLI persists its default cache across processes and honors cache switches", async () => {
-  const directory = await mkdtemp(join(process.cwd(), "node_modules/.cache/scruple-cli-test-"));
+  const cacheRoot = join(process.cwd(), "node_modules/.cache");
+  await mkdir(cacheRoot, { recursive: true });
+  const directory = await mkdtemp(join(cacheRoot, "scruple-cli-test-"));
   const callsPath = join(directory, "provider-calls.txt");
   const customCache = join(directory, "custom-cache");
   try {
