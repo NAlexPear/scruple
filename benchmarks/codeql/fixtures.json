@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "corpus": "tests/eval-fixtures.json",
+  "pinnedFixtureList": "benchmarks/fixtures.json",
+  "officialSuite": "codeql/javascript-queries@2.4.5:codeql-suites/javascript-security-and-quality.qls",
+  "cases": [
+    {
+      "id": "useless-restates-assignment",
+      "sourceSha256": "883809a8794284935b098f24a63886a22b2297c8e730cd1e1d20c9a3f9ebc66b",
+      "scope": "unsupported",
+      "reason": "CodeQL does not assess whether natural-language comments merely restate code."
+    },
+    {
+      "id": "swallowed-empty-catch",
+      "sourceSha256": "9b78d97fde463dfa8a9bae7deeed67e1fb7f31d10bd811e89f46f46dfb38c557",
+      "scope": "unsupported",
+      "reason": "The official JavaScript suite has no general swallowed-error or empty-catch query."
+    },
+    {
+      "id": "async-independent-loads-serialized",
+      "sourceSha256": "8bda3d5376d194ce7aab8d6bba76fedb833662f8330c37ae744aea1f35a22140",
+      "scope": "unsupported",
+      "reason": "CodeQL's js/missing-await query checks missing synchronization, not independent work serialized by await."
+    },
+    {
+      "id": "unactionable-generic-error",
+      "sourceSha256": "c14202b3b284e28d05544a22c96ada479b0647b1ff2e4130b62c3407e0a0b269",
+      "scope": "unsupported",
+      "reason": "The official suite does not judge whether an error event carries useful operation and exception context."
+    },
+    {
+      "id": "database-join-done-in-memory",
+      "sourceSha256": "18946ee59d15e6171d0bb8c62db94402f69d769c1162803c72ea236c8e8e365f",
+      "scope": "unsupported",
+      "reason": "The official suite does not recommend relational joins over application-side joins."
+    },
+    {
+      "id": "resource-file-handle-falls-through",
+      "sourceSha256": "da7d06f047309ea02d2df284fc179b0238c36f89aa1be7bf58576923502e551b",
+      "scope": "unsupported",
+      "reason": "The official JavaScript suite has no general Node.js FileHandle leak query."
+    },
+    {
+      "id": "authorization-gates-access-with-request-role",
+      "sourceSha256": "7953a6c9628890dbe677be59fd0d44e876fe879b53a209a404edf13e91695e85",
+      "scope": "native",
+      "officialQueryIds": ["js/user-controlled-bypass"],
+      "reason": "The official query detects user-controlled values guarding sensitive actions. The fixture is a bounded snippet, so framework and sensitive-action modeling may limit matching."
+    },
+    {
+      "id": "vacuous-test-tautology",
+      "sourceSha256": "f2632dc6c32c2cd9c93ca3081f0ea4312f3a7dd5ed6ef657ed90b63fcc91de0e",
+      "scope": "custom",
+      "customQueryIds": ["scruple/tautological-assert-equal"],
+      "reason": "The benchmark-owned query measures one exact assert.equal(true, true) shape. It is not equivalent to Scruple's semantic vacuous-test rule."
+    },
+    {
+      "id": "validation-express-body-unchecked",
+      "sourceSha256": "002827387e66822bf14d3ed59ae78c789b43ca146282d716bd5d811dc1f40c00",
+      "scope": "unsupported",
+      "reason": "CodeQL models dangerous data-flow sinks, but persistence without runtime schema validation is not itself an official query sink."
+    },
+    {
+      "id": "sensitive-log-redacted-token",
+      "sourceSha256": "b9515a38c32cee911dcfd9d88669ea6d1cb19eba840f9ecd2b6d856ede815ff1",
+      "scope": "native",
+      "officialQueryIds": ["js/clear-text-logging"],
+      "reason": "The official query checks clear-text sensitive data reaching logs. This negative fixture should remain unflagged because it logs a redaction literal."
+    }
+  ]
+}

@@ -19,6 +19,11 @@
       "types": "./dist/benchmark-options.d.ts",
       "import": "./dist/benchmark-options.js"
     },
+    "./codeql-benchmark": {
+      "source": "./src/codeql-benchmark.ts",
+      "types": "./dist/codeql-benchmark.d.ts",
+      "import": "./dist/codeql-benchmark.js"
+    },
     "./semgrep-benchmark": {
       "source": "./src/semgrep-benchmark.ts",
       "types": "./dist/semgrep-benchmark.d.ts",

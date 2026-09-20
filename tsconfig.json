@@ -15,6 +15,7 @@
       "@scruple/eval": ["./packages/eval/src/index.ts"],
       "@scruple/eval/benchmark": ["./packages/eval/src/benchmark.ts"],
       "@scruple/eval/benchmark-options": ["./packages/eval/src/benchmark-options.ts"],
+      "@scruple/eval/codeql-benchmark": ["./packages/eval/src/codeql-benchmark.ts"],
       "@scruple/eval/semgrep-benchmark": ["./packages/eval/src/semgrep-benchmark.ts"],
       "@scruple/eval/semgrep-benchmark-options": [
         "./packages/eval/src/semgrep-benchmark-options.ts"

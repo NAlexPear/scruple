@@ -15,6 +15,7 @@
   "type": "module",
   "scripts": {
     "benchmark": "pnpm build && node packages/eval/dist/benchmark-cli.js",
+    "benchmark-codeql": "pnpm build 1>&2 && node packages/eval/dist/codeql-benchmark-cli.js",
     "benchmark-semgrep": "pnpm build 1>&2 && node packages/eval/dist/semgrep-benchmark-cli.js",
     "build": "pnpm -r --sort build",
     "check": "oxfmt --check . && oxlint . && pnpm typecheck && pnpm build",
