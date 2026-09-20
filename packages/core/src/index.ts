@@ -130,7 +130,7 @@ export interface DecisionProvider {
   close?(): Promise<void> | void;
 }
 
-export interface RuleCandidate {
+export interface PluginCandidate {
   target: CodeTarget;
   state: JsonValue;
   question: DecisionQuestion;
@@ -140,7 +140,7 @@ export interface RuleCandidate {
 export type DiagnosticSeverity = "warning" | "error";
 
 export interface Diagnostic {
-  ruleId: string;
+  pluginId: string;
   severity: DiagnosticSeverity;
   message: string;
   filename: string;
@@ -150,20 +150,20 @@ export interface Diagnostic {
   confidence?: number;
 }
 
-export interface SemanticRule {
+export interface SemanticPlugin {
   readonly id: string;
   readonly description: string;
-  collect(document: ParsedDocument): RuleCandidate[];
+  collect(document: ParsedDocument): PluginCandidate[];
   diagnose(
     answer: DecisionAnswer,
-    candidate: RuleCandidate,
-  ): Omit<Diagnostic, "ruleId" | "model"> | null;
+    candidate: PluginCandidate,
+  ): Omit<Diagnostic, "pluginId" | "model"> | null;
 }
 
 export interface ScrupleConfig {
   parser: SourceParser;
   provider: DecisionProvider;
-  rules: SemanticRule[];
+  plugins: SemanticPlugin[];
   concurrency?: number;
   include?: string[];
   ignore?: string[];
@@ -171,6 +171,10 @@ export interface ScrupleConfig {
 
 export function defineConfig(config: ScrupleConfig): ScrupleConfig {
   return config;
+}
+
+export function definePlugin<const Plugin extends SemanticPlugin>(plugin: Plugin): Plugin {
+  return plugin;
 }
 
 export interface SourceFile {
@@ -199,8 +203,8 @@ export interface RunResult {
 }
 
 interface PendingCandidate {
-  rule: SemanticRule;
-  candidate: RuleCandidate;
+  plugin: SemanticPlugin;
+  candidate: PluginCandidate;
 }
 
 interface EvaluationBatch {
@@ -215,7 +219,20 @@ export async function runScruple(
 ): Promise<RunResult> {
   const errors: OperationalError[] = [];
   const allPending: PendingCandidate[] = [];
+  const plugins: SemanticPlugin[] = [];
+  const pluginIds = new Set<string>();
   let parsedFiles = 0;
+
+  for (const plugin of config.plugins) {
+    if (plugin.id.length === 0) {
+      errors.push({ message: "Plugin IDs must not be empty" });
+    } else if (pluginIds.has(plugin.id)) {
+      errors.push({ message: `Plugin ID is configured more than once: ${plugin.id}` });
+    } else {
+      pluginIds.add(plugin.id);
+      plugins.push(plugin);
+    }
+  }
 
   for (const file of files) {
     if (!config.parser.supports(file.filename)) {
@@ -237,15 +254,15 @@ export async function runScruple(
       }
     }
 
-    for (const rule of config.rules) {
+    for (const plugin of plugins) {
       try {
-        for (const candidate of rule.collect(document)) {
-          allPending.push({ rule, candidate });
+        for (const candidate of plugin.collect(document)) {
+          allPending.push({ plugin, candidate });
         }
       } catch (cause) {
         errors.push({
           filename: file.filename,
-          message: `Rule ${rule.id} failed while collecting candidates: ${errorMessage(cause)}`,
+          message: `Plugin ${plugin.id} failed while collecting candidates: ${errorMessage(cause)}`,
           cause,
         });
       }
@@ -263,8 +280,8 @@ export async function runScruple(
     }
 
     const questions = Object.fromEntries(
-      batch.pending.map(({ rule, candidate }, index) => [
-        `${sanitizeId(rule.id)}_${index}`,
+      batch.pending.map(({ plugin, candidate }, index) => [
+        `${sanitizeId(plugin.id)}_${index}`,
         candidate.question,
       ]),
     );
@@ -274,19 +291,19 @@ export async function runScruple(
       inputTokens += response.usage?.inputTokens ?? 0;
       outputTokens += response.usage?.outputTokens ?? 0;
 
-      batch.pending.forEach(({ rule, candidate }, index) => {
-        const answer = response.answers[`${sanitizeId(rule.id)}_${index}`];
+      batch.pending.forEach(({ plugin, candidate }, index) => {
+        const answer = response.answers[`${sanitizeId(plugin.id)}_${index}`];
         if (!answer) {
           errors.push({
             filename: candidate.target.filename,
-            message: `Provider ${config.provider.id} omitted an answer for rule ${rule.id}`,
+            message: `Provider ${config.provider.id} omitted an answer for plugin ${plugin.id}`,
           });
           return;
         }
 
-        const diagnostic = rule.diagnose(answer, candidate);
+        const diagnostic = plugin.diagnose(answer, candidate);
         if (diagnostic) {
-          diagnostics.push({ ...diagnostic, ruleId: rule.id, model: response.model });
+          diagnostics.push({ ...diagnostic, pluginId: plugin.id, model: response.model });
         }
       });
     } catch (cause) {
@@ -364,7 +381,7 @@ function compareDiagnostics(left: Diagnostic, right: Diagnostic): number {
     left.filename.localeCompare(right.filename) ||
     left.location.start.line - right.location.start.line ||
     left.location.start.column - right.location.start.column ||
-    left.ruleId.localeCompare(right.ruleId)
+    left.pluginId.localeCompare(right.pluginId)
   );
 }
 

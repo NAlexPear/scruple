@@ -7,10 +7,14 @@
     "moduleDetection": "force",
     "paths": {
       "@scruple/core": ["./packages/core/src/index.ts"],
+      "@scruple/example-prefer-database-join": [
+        "./packages/example-prefer-database-join/src/index.ts"
+      ],
+      "@scruple/example-unhelpful-comment": ["./packages/example-unhelpful-comment/src/index.ts"],
+      "@scruple/example-vacuous-test": ["./packages/example-vacuous-test/src/index.ts"],
       "@scruple/parser-oxc": ["./packages/parser-oxc/src/index.ts"],
       "@scruple/provider-jev": ["./packages/provider-jev/src/index.ts"],
       "@scruple/provider-laya": ["./packages/provider-laya/src/index.ts"],
-      "@scruple/rules": ["./packages/rules/src/index.ts"],
       "scruple": ["./packages/cli/src/index.ts"]
     },
     "strict": true,
