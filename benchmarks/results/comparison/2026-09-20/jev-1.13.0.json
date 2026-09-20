@@ -1,0 +1,810 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-20T16:54:23.828Z",
+  "environment": {
+    "node": "v26.8.2",
+    "platform": "linux",
+    "release": "6.1.158+",
+    "architecture": "x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+    "logicalCpuCount": 4,
+    "totalMemoryBytes": 8343158784
+  },
+  "runs": [
+    {
+      "provider": "jev",
+      "requestedModel": "jev-1.13.0",
+      "resolvedModels": ["jev-1.13.0"],
+      "workload": {
+        "fixtureCount": 10,
+        "fixtureIds": [
+          "useless-restates-assignment",
+          "swallowed-empty-catch",
+          "async-independent-loads-serialized",
+          "unactionable-generic-error",
+          "database-join-done-in-memory",
+          "resource-file-handle-falls-through",
+          "authorization-gates-access-with-request-role",
+          "vacuous-test-tautology",
+          "validation-express-body-unchecked",
+          "sensitive-log-redacted-token"
+        ]
+      },
+      "settings": {
+        "concurrency": 2,
+        "repetitions": 2,
+        "warmups": 1
+      },
+      "samples": [
+        {
+          "repetition": 1,
+          "durationMs": 760.953337,
+          "throughputCasesPerSecond": 13.141410272835165,
+          "cases": [
+            {
+              "id": "useless-restates-assignment",
+              "ruleId": "comments/no-useless-comments",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["redundant"],
+              "actualChoices": ["redundant"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "redundant",
+                  "confidence": 1,
+                  "probabilities": {
+                    "belongs_to_other_rule": 0,
+                    "useful": 0,
+                    "redundant": 1,
+                    "insufficient_context": 0
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 120.38670800000011,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 601,
+                "modelCalls": 1,
+                "outputTokens": 63
+              }
+            },
+            {
+              "id": "swallowed-empty-catch",
+              "ruleId": "errors/no-swallowed-errors",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["swallowed"],
+              "actualChoices": ["swallowed"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "swallowed",
+                  "confidence": 0.99,
+                  "probabilities": {
+                    "propagated": 0,
+                    "swallowed": 0.99,
+                    "reported_failure": 0,
+                    "insufficient_context": 0.01,
+                    "intentional_recovery": 0
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 135.17703699999993,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 787,
+                "modelCalls": 1,
+                "outputTokens": 74
+              }
+            },
+            {
+              "id": "async-independent-loads-serialized",
+              "ruleId": "async/no-serial-independent-work",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["serial_independent_work"],
+              "actualChoices": ["serial_independent_work"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "serial_independent_work",
+                  "confidence": 0.97,
+                  "probabilities": {
+                    "insufficient_context": 0.02,
+                    "ordering_required": 0,
+                    "serial_independent_work": 0.98
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 112.98164599999996,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 721,
+                "modelCalls": 1,
+                "outputTokens": 58
+              }
+            },
+            {
+              "id": "unactionable-generic-error",
+              "ruleId": "observability/no-unactionable-errors",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["unactionable"],
+              "actualChoices": ["unactionable"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "unactionable",
+                  "confidence": 0.97,
+                  "probabilities": {
+                    "insufficient_context": 0.02,
+                    "actionable": 0,
+                    "unactionable": 0.98
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 205.59451599999989,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 886,
+                "modelCalls": 1,
+                "outputTokens": 61
+              }
+            },
+            {
+              "id": "database-join-done-in-memory",
+              "ruleId": "relational-databases/prefer-database-join",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["database_pushdown"],
+              "actualChoices": ["database_pushdown"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "database_pushdown",
+                  "confidence": 0.99,
+                  "probabilities": {
+                    "intentionally_in_memory": 0.01,
+                    "insufficient_context": 0,
+                    "database_pushdown": 0.99
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 146.38774599999988,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 746,
+                "modelCalls": 1,
+                "outputTokens": 68
+              }
+            },
+            {
+              "id": "resource-file-handle-falls-through",
+              "ruleId": "resources/no-leaked-resources",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["leaked_resource"],
+              "actualChoices": ["leaked_resource"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "leaked_resource",
+                  "confidence": 0.91,
+                  "probabilities": {
+                    "not_locally_owned": 0,
+                    "ownership_transferred": 0,
+                    "leaked_resource": 0.93,
+                    "insufficient_context": 0,
+                    "released_or_managed": 0.07
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 139.216639,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 658,
+                "modelCalls": 1,
+                "outputTokens": 77
+              }
+            },
+            {
+              "id": "authorization-gates-access-with-request-role",
+              "ruleId": "security/no-user-controlled-authorization",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["user_controlled_authorization"],
+              "actualChoices": ["user_controlled_authorization"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "user_controlled_authorization",
+                  "confidence": 0.99,
+                  "probabilities": {
+                    "trusted_authorization": 0,
+                    "not_authorization": 0,
+                    "insufficient_context": 0.01,
+                    "user_controlled_authorization": 0.99
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 140.63133600000015,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 1001,
+                "modelCalls": 1,
+                "outputTokens": 79
+              }
+            },
+            {
+              "id": "vacuous-test-tautology",
+              "ruleId": "tests/no-vacuous-tests",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["vacuous"],
+              "actualChoices": ["vacuous"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "vacuous",
+                  "confidence": 0.91,
+                  "probabilities": {
+                    "vacuous": 0.9400000000000001,
+                    "meaningful_explicit_verification": 0,
+                    "insufficient_context": 0,
+                    "intentional_smoke_oracle": 0.06
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 129.3740499999999,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 801,
+                "modelCalls": 1,
+                "outputTokens": 73
+              }
+            },
+            {
+              "id": "validation-express-body-unchecked",
+              "ruleId": "api-contracts/require-input-validation",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["validation_required"],
+              "actualChoices": ["validation_required"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "validation_required",
+                  "confidence": 0.99,
+                  "probabilities": {
+                    "validation_present": 0,
+                    "validation_required": 0.99,
+                    "insufficient_context": 0.01,
+                    "framework_validation_present": 0,
+                    "trusted_input": 0
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 152.0818479999998,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 794,
+                "modelCalls": 1,
+                "outputTokens": 70
+              }
+            },
+            {
+              "id": "sensitive-log-redacted-token",
+              "ruleId": "observability/no-sensitive-logs",
+              "expectedFinding": false,
+              "actualFinding": false,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["safe_or_redacted"],
+              "actualChoices": ["safe_or_redacted"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "safe_or_redacted",
+                  "confidence": 0.68,
+                  "probabilities": {
+                    "safe_or_redacted": 0.79,
+                    "insufficient_context": 0.03,
+                    "exposed_sensitive_value": 0.18
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 0,
+              "errors": [],
+              "latencyMs": 151.12484200000017,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 874,
+                "modelCalls": 1,
+                "outputTokens": 60
+              }
+            }
+          ],
+          "failures": [],
+          "latencyMs": {
+            "p50": 139.216639,
+            "p95": 205.59451599999989
+          },
+          "usage": {
+            "inputTokens": 7869,
+            "modelCalls": 10,
+            "outputTokens": 683
+          }
+        },
+        {
+          "repetition": 2,
+          "durationMs": 653.22237,
+          "throughputCasesPerSecond": 15.308722510528844,
+          "cases": [
+            {
+              "id": "useless-restates-assignment",
+              "ruleId": "comments/no-useless-comments",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["redundant"],
+              "actualChoices": ["redundant"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "redundant",
+                  "confidence": 1,
+                  "probabilities": {
+                    "useful": 0,
+                    "belongs_to_other_rule": 0,
+                    "insufficient_context": 0,
+                    "redundant": 1
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 156.56094799999983,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 601,
+                "modelCalls": 1,
+                "outputTokens": 63
+              }
+            },
+            {
+              "id": "swallowed-empty-catch",
+              "ruleId": "errors/no-swallowed-errors",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["swallowed"],
+              "actualChoices": ["swallowed"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "swallowed",
+                  "confidence": 0.99,
+                  "probabilities": {
+                    "intentional_recovery": 0,
+                    "swallowed": 0.99,
+                    "propagated": 0,
+                    "reported_failure": 0,
+                    "insufficient_context": 0.01
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 112.65900199999987,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 787,
+                "modelCalls": 1,
+                "outputTokens": 74
+              }
+            },
+            {
+              "id": "async-independent-loads-serialized",
+              "ruleId": "async/no-serial-independent-work",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["serial_independent_work"],
+              "actualChoices": ["serial_independent_work"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "serial_independent_work",
+                  "confidence": 0.98,
+                  "probabilities": {
+                    "ordering_required": 0,
+                    "insufficient_context": 0.01,
+                    "serial_independent_work": 0.99
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 123.64862400000015,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 721,
+                "modelCalls": 1,
+                "outputTokens": 58
+              }
+            },
+            {
+              "id": "unactionable-generic-error",
+              "ruleId": "observability/no-unactionable-errors",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["unactionable"],
+              "actualChoices": ["unactionable"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "unactionable",
+                  "confidence": 0.95,
+                  "probabilities": {
+                    "actionable": 0,
+                    "insufficient_context": 0.03,
+                    "unactionable": 0.97
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 134.07002699999998,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 886,
+                "modelCalls": 1,
+                "outputTokens": 61
+              }
+            },
+            {
+              "id": "database-join-done-in-memory",
+              "ruleId": "relational-databases/prefer-database-join",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["database_pushdown"],
+              "actualChoices": ["database_pushdown"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "database_pushdown",
+                  "confidence": 0.99,
+                  "probabilities": {
+                    "database_pushdown": 0.99,
+                    "insufficient_context": 0,
+                    "intentionally_in_memory": 0.01
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 130.9722479999998,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 746,
+                "modelCalls": 1,
+                "outputTokens": 68
+              }
+            },
+            {
+              "id": "resource-file-handle-falls-through",
+              "ruleId": "resources/no-leaked-resources",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["leaked_resource"],
+              "actualChoices": ["leaked_resource"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "leaked_resource",
+                  "confidence": 0.94,
+                  "probabilities": {
+                    "insufficient_context": 0,
+                    "not_locally_owned": 0,
+                    "released_or_managed": 0.04,
+                    "ownership_transferred": 0,
+                    "leaked_resource": 0.96
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 95.89583299999981,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 658,
+                "modelCalls": 1,
+                "outputTokens": 77
+              }
+            },
+            {
+              "id": "authorization-gates-access-with-request-role",
+              "ruleId": "security/no-user-controlled-authorization",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["user_controlled_authorization"],
+              "actualChoices": ["user_controlled_authorization"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "user_controlled_authorization",
+                  "confidence": 0.98,
+                  "probabilities": {
+                    "insufficient_context": 0.01,
+                    "not_authorization": 0,
+                    "user_controlled_authorization": 0.99,
+                    "trusted_authorization": 0
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 107.25345900000002,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 1001,
+                "modelCalls": 1,
+                "outputTokens": 79
+              }
+            },
+            {
+              "id": "vacuous-test-tautology",
+              "ruleId": "tests/no-vacuous-tests",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["vacuous"],
+              "actualChoices": ["vacuous"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "vacuous",
+                  "confidence": 0.9,
+                  "probabilities": {
+                    "meaningful_explicit_verification": 0,
+                    "vacuous": 0.93,
+                    "intentional_smoke_oracle": 0.07,
+                    "insufficient_context": 0
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 125.22909700000037,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 801,
+                "modelCalls": 1,
+                "outputTokens": 73
+              }
+            },
+            {
+              "id": "validation-express-body-unchecked",
+              "ruleId": "api-contracts/require-input-validation",
+              "expectedFinding": true,
+              "actualFinding": true,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["validation_required"],
+              "actualChoices": ["validation_required"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "validation_required",
+                  "confidence": 0.99,
+                  "probabilities": {
+                    "insufficient_context": 0.01,
+                    "trusted_input": 0,
+                    "validation_present": 0,
+                    "framework_validation_present": 0,
+                    "validation_required": 0.99
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 1,
+              "errors": [],
+              "latencyMs": 78.71828400000004,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 794,
+                "modelCalls": 1,
+                "outputTokens": 70
+              }
+            },
+            {
+              "id": "sensitive-log-redacted-token",
+              "ruleId": "observability/no-sensitive-logs",
+              "expectedFinding": false,
+              "actualFinding": false,
+              "expectedCandidates": 1,
+              "actualCandidates": 1,
+              "expectedChoices": ["safe_or_redacted"],
+              "actualChoices": ["safe_or_redacted"],
+              "answers": [
+                {
+                  "type": "choice",
+                  "choice": "safe_or_redacted",
+                  "confidence": 0.67,
+                  "probabilities": {
+                    "exposed_sensitive_value": 0.17,
+                    "insufficient_context": 0.05,
+                    "safe_or_redacted": 0.78
+                  }
+                }
+              ],
+              "actualAbstention": false,
+              "accepted": true,
+              "diagnostics": 0,
+              "errors": [],
+              "latencyMs": 141.3557209999999,
+              "model": "jev-1.13.0",
+              "usage": {
+                "inputTokens": 874,
+                "modelCalls": 1,
+                "outputTokens": 60
+              }
+            }
+          ],
+          "failures": [],
+          "latencyMs": {
+            "p50": 123.64862400000015,
+            "p95": 156.56094799999983
+          },
+          "usage": {
+            "inputTokens": 7869,
+            "modelCalls": 10,
+            "outputTokens": 683
+          }
+        }
+      ],
+      "summary": {
+        "cases": {
+          "total": 20,
+          "passed": 20,
+          "failed": 0
+        },
+        "outcomes": {
+          "labelAgreement": {
+            "correct": 20,
+            "incorrect": 0,
+            "rate": 1,
+            "total": 20
+          },
+          "diagnosticAgreement": {
+            "correct": 20,
+            "incorrect": 0,
+            "rate": 1,
+            "total": 20
+          },
+          "abstentions": {
+            "correct": 20,
+            "incorrect": 0,
+            "rate": 1,
+            "total": 20,
+            "actual": 0,
+            "expected": 0
+          },
+          "strictAgreement": {
+            "correct": 20,
+            "incorrect": 0,
+            "rate": 1,
+            "total": 20
+          }
+        },
+        "durationMs": {
+          "mean": 707.0878534999999,
+          "p50": 653.22237,
+          "p95": 760.953337
+        },
+        "caseLatencyMs": {
+          "mean": 131.96598054999995,
+          "p50": 130.9722479999998,
+          "p95": 156.56094799999983
+        },
+        "throughputCasesPerSecond": 14.142514187595221,
+        "usage": {
+          "inputTokens": 15738,
+          "modelCalls": 20,
+          "outputTokens": 1366,
+          "perRepetition": {
+            "inputTokens": 7869,
+            "modelCalls": 10,
+            "outputTokens": 683
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "CodeQL",
+    "version": "2.27.0",
+    "queryPack": "codeql/javascript-queries@2.4.5:codeql-suites/javascript-security-and-quality.qls"
+  },
+  "environment": {
+    "platform": "linux",
+    "architecture": "x64",
+    "node": "v26.8.2",
+    "cpuCount": 8
+  },
+  "settings": {
+    "warmups": 1,
+    "repetitions": 2
+  },
+  "workload": {
+    "fixtureIds": [
+      "useless-restates-assignment",
+      "swallowed-empty-catch",
+      "async-independent-loads-serialized",
+      "unactionable-generic-error",
+      "database-join-done-in-memory",
+      "resource-file-handle-falls-through",
+      "authorization-gates-access-with-request-role",
+      "vacuous-test-tautology",
+      "validation-express-body-unchecked",
+      "sensitive-log-redacted-token"
+    ],
+    "sourceHashes": {
+      "useless-restates-assignment": "883809a8794284935b098f24a63886a22b2297c8e730cd1e1d20c9a3f9ebc66b",
+      "swallowed-empty-catch": "9b78d97fde463dfa8a9bae7deeed67e1fb7f31d10bd811e89f46f46dfb38c557",
+      "async-independent-loads-serialized": "8bda3d5376d194ce7aab8d6bba76fedb833662f8330c37ae744aea1f35a22140",
+      "unactionable-generic-error": "c14202b3b284e28d05544a22c96ada479b0647b1ff2e4130b62c3407e0a0b269",
+      "database-join-done-in-memory": "18946ee59d15e6171d0bb8c62db94402f69d769c1162803c72ea236c8e8e365f",
+      "resource-file-handle-falls-through": "da7d06f047309ea02d2df284fc179b0238c36f89aa1be7bf58576923502e551b",
+      "authorization-gates-access-with-request-role": "7953a6c9628890dbe677be59fd0d44e876fe879b53a209a404edf13e91695e85",
+      "vacuous-test-tautology": "f2632dc6c32c2cd9c93ca3081f0ea4312f3a7dd5ed6ef657ed90b63fcc91de0e",
+      "validation-express-body-unchecked": "002827387e66822bf14d3ed59ae78c789b43ca146282d716bd5d811dc1f40c00",
+      "sensitive-log-redacted-token": "b9515a38c32cee911dcfd9d88669ea6d1cb19eba840f9ecd2b6d856ede815ff1"
+    }
+  },
+  "databaseCreation": {
+    "durationMs": 8615.432393,
+    "exitCode": 0,
+    "error": null,
+    "stderr": null
+  },
+  "analyses": [
+    {
+      "durationMs": 24865.05322,
+      "exitCode": 0,
+      "error": null,
+      "stderr": null,
+      "kind": "official",
+      "warmup": true,
+      "repetition": 1,
+      "findings": []
+    },
+    {
+      "durationMs": 28516.504162000005,
+      "exitCode": 0,
+      "error": null,
+      "stderr": null,
+      "kind": "custom",
+      "warmup": true,
+      "repetition": 1,
+      "findings": [
+        {
+          "fixtureId": "vacuous-test-tautology",
+          "ruleId": "scruple/tautological-assert-equal",
+          "message": "This assertion compares two literal true values.",
+          "uri": "vacuous-test-tautology/service.test.ts",
+          "startLine": 3
+        }
+      ]
+    },
+    {
+      "durationMs": 22612.701711999995,
+      "exitCode": 0,
+      "error": null,
+      "stderr": null,
+      "kind": "official",
+      "warmup": false,
+      "repetition": 1,
+      "findings": []
+    },
+    {
+      "durationMs": 4767.418033000009,
+      "exitCode": 0,
+      "error": null,
+      "stderr": null,
+      "kind": "custom",
+      "warmup": false,
+      "repetition": 1,
+      "findings": [
+        {
+          "fixtureId": "vacuous-test-tautology",
+          "ruleId": "scruple/tautological-assert-equal",
+          "message": "This assertion compares two literal true values.",
+          "uri": "vacuous-test-tautology/service.test.ts",
+          "startLine": 3
+        }
+      ]
+    },
+    {
+      "durationMs": 18179.610902999993,
+      "exitCode": 0,
+      "error": null,
+      "stderr": null,
+      "kind": "official",
+      "warmup": false,
+      "repetition": 2,
+      "findings": []
+    },
+    {
+      "durationMs": 4364.339612999989,
+      "exitCode": 0,
+      "error": null,
+      "stderr": null,
+      "kind": "custom",
+      "warmup": false,
+      "repetition": 2,
+      "findings": [
+        {
+          "fixtureId": "vacuous-test-tautology",
+          "ruleId": "scruple/tautological-assert-equal",
+          "message": "This assertion compares two literal true values.",
+          "uri": "vacuous-test-tautology/service.test.ts",
+          "startLine": 3
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "useless-restates-assignment",
+      "scope": "unsupported",
+      "status": "unsupported",
+      "expectedFinding": true,
+      "queryIds": [],
+      "findingCount": 0,
+      "reason": "CodeQL does not assess whether natural-language comments merely restate code."
+    },
+    {
+      "id": "swallowed-empty-catch",
+      "scope": "unsupported",
+      "status": "unsupported",
+      "expectedFinding": true,
+      "queryIds": [],
+      "findingCount": 0,
+      "reason": "The official JavaScript suite has no general swallowed-error or empty-catch query."
+    },
+    {
+      "id": "async-independent-loads-serialized",
+      "scope": "unsupported",
+      "status": "unsupported",
+      "expectedFinding": true,
+      "queryIds": [],
+      "findingCount": 0,
+      "reason": "CodeQL's js/missing-await query checks missing synchronization, not independent work serialized by await."
+    },
+    {
+      "id": "unactionable-generic-error",
+      "scope": "unsupported",
+      "status": "unsupported",
+      "expectedFinding": true,
+      "queryIds": [],
+      "findingCount": 0,
+      "reason": "The official suite does not judge whether an error event carries useful operation and exception context."
+    },
+    {
+      "id": "database-join-done-in-memory",
+      "scope": "unsupported",
+      "status": "unsupported",
+      "expectedFinding": true,
+      "queryIds": [],
+      "findingCount": 0,
+      "reason": "The official suite does not recommend relational joins over application-side joins."
+    },
+    {
+      "id": "resource-file-handle-falls-through",
+      "scope": "unsupported",
+      "status": "unsupported",
+      "expectedFinding": true,
+      "queryIds": [],
+      "findingCount": 0,
+      "reason": "The official JavaScript suite has no general Node.js FileHandle leak query."
+    },
+    {
+      "id": "authorization-gates-access-with-request-role",
+      "scope": "native",
+      "status": "miss",
+      "expectedFinding": true,
+      "queryIds": ["js/user-controlled-bypass"],
+      "findingCount": 0,
+      "reason": "The official query detects user-controlled values guarding sensitive actions. The fixture is a bounded snippet, so framework and sensitive-action modeling may limit matching."
+    },
+    {
+      "id": "vacuous-test-tautology",
+      "scope": "custom",
+      "status": "matched",
+      "expectedFinding": true,
+      "queryIds": ["scruple/tautological-assert-equal"],
+      "findingCount": 2,
+      "reason": "The benchmark-owned query measures one exact assert.equal(true, true) shape. It is not equivalent to Scruple's semantic vacuous-test rule."
+    },
+    {
+      "id": "validation-express-body-unchecked",
+      "scope": "unsupported",
+      "status": "unsupported",
+      "expectedFinding": true,
+      "queryIds": [],
+      "findingCount": 0,
+      "reason": "CodeQL models dangerous data-flow sinks, but persistence without runtime schema validation is not itself an official query sink."
+    },
+    {
+      "id": "sensitive-log-redacted-token",
+      "scope": "native",
+      "status": "matched",
+      "expectedFinding": false,
+      "queryIds": ["js/clear-text-logging"],
+      "findingCount": 0,
+      "reason": "The official query checks clear-text sensitive data reaching logs. This negative fixture should remain unflagged because it logs a redaction literal."
+    }
+  ],
+  "summary": {
+    "native": {
+      "denominator": 2,
+      "matched": 1,
+      "misses": 1,
+      "errors": 0,
+      "accuracy": 0.5
+    },
+    "custom": {
+      "denominator": 1,
+      "matched": 1,
+      "misses": 0,
+      "errors": 0,
+      "accuracy": 1
+    },
+    "unsupported": {
+      "count": 7,
+      "cases": [
+        {
+          "id": "useless-restates-assignment",
+          "reason": "CodeQL does not assess whether natural-language comments merely restate code."
+        },
+        {
+          "id": "swallowed-empty-catch",
+          "reason": "The official JavaScript suite has no general swallowed-error or empty-catch query."
+        },
+        {
+          "id": "async-independent-loads-serialized",
+          "reason": "CodeQL's js/missing-await query checks missing synchronization, not independent work serialized by await."
+        },
+        {
+          "id": "unactionable-generic-error",
+          "reason": "The official suite does not judge whether an error event carries useful operation and exception context."
+        },
+        {
+          "id": "database-join-done-in-memory",
+          "reason": "The official suite does not recommend relational joins over application-side joins."
+        },
+        {
+          "id": "resource-file-handle-falls-through",
+          "reason": "The official JavaScript suite has no general Node.js FileHandle leak query."
+        },
+        {
+          "id": "validation-express-body-unchecked",
+          "reason": "CodeQL models dangerous data-flow sinks, but persistence without runtime schema validation is not itself an official query sink."
+        }
+      ]
+    }
+  }
+}

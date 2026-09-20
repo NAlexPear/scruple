@@ -136,10 +136,10 @@ const summarizeFixtureFindings = (issues, mappings) =>
   mappings.map((mapping) => {
     const prefix = `${PROJECT_KEY}:${mapping.id}/`;
     const fixtureIssues = issues.filter((issue) => issue.component.startsWith(prefix));
-    const expectedRules = new Set(mapping.sonar_rules);
+    const expectedRules = new Set(mapping.sonar_rules ?? []);
     return {
       fixtureId: mapping.id,
-      expectedRules: mapping.sonar_rules,
+      expectedRules: mapping.sonar_rules ?? [],
       matchedFindingCount: fixtureIssues.filter((issue) => expectedRules.has(issue.rule)).length,
       allFindingCount: fixtureIssues.length,
     };
@@ -172,7 +172,6 @@ const main = async () => {
     readJson(join(root, "benchmarks/sonarqube/fixture-map.json")),
   ]);
   const mappings = validateFixtureMapping(mapping, benchmarkIds, corpus.fixtures);
-  const applicableMappings = mappings.filter((entry) => entry.coverage !== "unsupported");
   const fixturesById = new Map(corpus.fixtures.map((fixture) => [fixture.id, fixture]));
   const suffix = randomUUID().slice(0, 8);
   const names = {
@@ -182,7 +181,7 @@ const main = async () => {
   };
   const sourceDir = await mkdtemp(join(tmpdir(), "scruple-sonarqube-"));
   await chmod(sourceDir, 0o777);
-  for (const mappingEntry of applicableMappings) {
+  for (const mappingEntry of mappings) {
     const fixture = fixturesById.get(mappingEntry.id);
     const fixtureDir = join(sourceDir, fixture.id);
     await mkdir(fixtureDir);
@@ -281,7 +280,7 @@ const main = async () => {
         },
         findings: {
           total: findings.total,
-          byFixture: summarizeFixtureFindings(findings.issues, applicableMappings),
+          byFixture: summarizeFixtureFindings(findings.issues, mappings),
           capabilities: summarizeCapabilities(mappings, findings.issues, PROJECT_KEY),
           issues: findings.issues,
         },
@@ -316,6 +315,11 @@ const main = async () => {
             warmups: warmupSamples,
           },
           settings: { warmups, repetitions, qualityGateWait: true },
+          workload: {
+            fixtureIds: mappings.map((entry) => entry.id),
+            casesPerRepetition: mappings.length,
+            measuredCaseEvaluations: mappings.length * repetitions,
+          },
           fixtureMapping: mappings,
           samples,
         },

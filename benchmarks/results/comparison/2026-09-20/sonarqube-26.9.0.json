@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-20T16:55:02.650Z",
+  "tool": {
+    "serverImage": "sonarqube:26.9.0.129388-community@sha256:58b068af30bdfdccf91222de36e310529033e853dfae221b429cba80d10d5751",
+    "serverVersion": "26.9.0.129388",
+    "scannerImage": "sonarsource/sonar-scanner-cli:12.2.0.4256_8.1.0@sha256:a3f4215076706c95a17a68c19322ee916e40a3acd081a8c1a1e839e0194afa57",
+    "scannerVersionOutput": "16:53:59.589 INFO  Scanner configuration file: /opt/sonar-scanner/conf/sonar-scanner.properties\n16:53:59.592 INFO  Project root configuration file: NONE\n16:53:59.606 INFO  SonarScanner CLI 8.1.0.6389\n16:53:59.613 INFO  Linux 6.1.158+ amd64"
+  },
+  "environment": {
+    "node": "v26.8.2",
+    "platform": "linux",
+    "release": "6.1.158+",
+    "architecture": "x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+    "logicalCpuCount": 16,
+    "totalMemoryBytes": 33669939200,
+    "dockerVersion": {
+      "Client": {
+        "Platform": {
+          "Name": "Docker Engine - Community"
+        },
+        "Version": "29.8.1",
+        "ApiVersion": "1.56",
+        "DefaultAPIVersion": "1.56",
+        "GitCommit": "4a63305",
+        "GoVersion": "go1.26.8",
+        "Os": "linux",
+        "Arch": "amd64",
+        "BuildTime": "Tue Sep 15 16:25:38 2026",
+        "Context": "default"
+      },
+      "Server": {
+        "Platform": {
+          "Name": "Docker Engine - Community"
+        },
+        "Version": "29.8.1",
+        "ApiVersion": "1.56",
+        "MinAPIVersion": "1.40",
+        "Os": "linux",
+        "Arch": "amd64",
+        "Components": [
+          {
+            "Name": "Engine",
+            "Version": "29.8.1",
+            "Details": {
+              "ApiVersion": "1.56",
+              "Arch": "amd64",
+              "BuildTime": "Tue Sep 15 16:25:38 2026",
+              "Experimental": "false",
+              "GitCommit": "464cd50",
+              "GoVersion": "go1.26.8",
+              "KernelVersion": "6.1.158+",
+              "MinAPIVersion": "1.40",
+              "Module": "github.com/moby/moby/v2",
+              "ModuleVersion": "v2.0.0+unknown",
+              "Os": "linux"
+            }
+          },
+          {
+            "Name": "containerd",
+            "Version": "v2.3.5",
+            "Details": {
+              "GitCommit": "1294c24a7da8e5a793ed378161673abe94118892"
+            }
+          },
+          {
+            "Name": "runc",
+            "Version": "1.5.1",
+            "Details": {
+              "GitCommit": "v1.5.1-0-g8f2685a4"
+            }
+          },
+          {
+            "Name": "docker-init",
+            "Version": "0.19.0",
+            "Details": {
+              "GitCommit": "de40ad0"
+            }
+          }
+        ],
+        "GitCommit": "464cd50",
+        "GoVersion": "go1.26.8",
+        "KernelVersion": "6.1.158+",
+        "BuildTime": "2026-09-15T16:25:38.000000000+00:00"
+      }
+    }
+  },
+  "setup": {
+    "imagePullDurationMs": 25536.605545,
+    "serverSetupDurationMs": 50271.462180999995,
+    "scannerVersionDiscoveryDurationMs": 973.7419850000006,
+    "warmups": [
+      {
+        "warmup": 1,
+        "scannerWallTimeMs": 23078.292382,
+        "process": {
+          "exitCode": 0,
+          "signal": null,
+          "errors": []
+        }
+      }
+    ]
+  },
+  "settings": {
+    "warmups": 1,
+    "repetitions": 2,
+    "qualityGateWait": true
+  },
+  "workload": {
+    "fixtureIds": [
+      "useless-restates-assignment",
+      "swallowed-empty-catch",
+      "async-independent-loads-serialized",
+      "unactionable-generic-error",
+      "database-join-done-in-memory",
+      "resource-file-handle-falls-through",
+      "authorization-gates-access-with-request-role",
+      "vacuous-test-tautology",
+      "validation-express-body-unchecked",
+      "sensitive-log-redacted-token"
+    ],
+    "casesPerRepetition": 10,
+    "measuredCaseEvaluations": 20
+  },
+  "fixtureMapping": [
+    {
+      "id": "useless-restates-assignment",
+      "scruple_rule": "comments/no-useless-comments",
+      "expected_finding": true,
+      "source_sha256": "883809a8794284935b098f24a63886a22b2297c8e730cd1e1d20c9a3f9ebc66b",
+      "coverage": "unsupported",
+      "reason": "SonarQube has rules for commented-out code, but no rule that detects a natural-language comment restating an assignment."
+    },
+    {
+      "id": "swallowed-empty-catch",
+      "scruple_rule": "errors/no-swallowed-errors",
+      "expected_finding": true,
+      "source_sha256": "9b78d97fde463dfa8a9bae7deeed67e1fb7f31d10bd811e89f46f46dfb38c557",
+      "coverage": "native",
+      "sonar_rules": ["javascript:S2486"],
+      "reason": "S2486 targets ignored exceptions, the same defect as this fixture. Its implementation exempts catches whose try block has one statement, so this exact case may be a native-rule miss."
+    },
+    {
+      "id": "async-independent-loads-serialized",
+      "scruple_rule": "async/no-serial-independent-work",
+      "expected_finding": true,
+      "source_sha256": "8bda3d5376d194ce7aab8d6bba76fedb833662f8330c37ae744aea1f35a22140",
+      "coverage": "unsupported",
+      "reason": "No Community Build JavaScript rule establishes that two awaited operations are independent and should run concurrently."
+    },
+    {
+      "id": "unactionable-generic-error",
+      "scruple_rule": "observability/no-unactionable-errors",
+      "expected_finding": true,
+      "source_sha256": "c14202b3b284e28d05544a22c96ada479b0647b1ff2e4130b62c3407e0a0b269",
+      "coverage": "unsupported",
+      "reason": "No Community Build JavaScript rule judges whether a log message identifies the failed operation and includes the captured cause."
+    },
+    {
+      "id": "database-join-done-in-memory",
+      "scruple_rule": "relational-databases/prefer-database-join",
+      "expected_finding": true,
+      "source_sha256": "18946ee59d15e6171d0bb8c62db94402f69d769c1162803c72ea236c8e8e365f",
+      "coverage": "unsupported",
+      "reason": "No Community Build JavaScript rule recognizes ORM collection fetches followed by an application-side relational join."
+    },
+    {
+      "id": "resource-file-handle-falls-through",
+      "scruple_rule": "resources/no-leaked-resources",
+      "expected_finding": true,
+      "source_sha256": "da7d06f047309ea02d2df284fc179b0238c36f89aa1be7bf58576923502e551b",
+      "coverage": "unsupported",
+      "reason": "Community Build does not provide an equivalent JavaScript rule for an unclosed node:fs FileHandle."
+    },
+    {
+      "id": "authorization-gates-access-with-request-role",
+      "scruple_rule": "security/no-user-controlled-authorization",
+      "expected_finding": true,
+      "source_sha256": "7953a6c9628890dbe677be59fd0d44e876fe879b53a209a404edf13e91695e85",
+      "coverage": "unsupported",
+      "reason": "No Community Build JavaScript rule identifies a request-controlled role as an authorization decision."
+    },
+    {
+      "id": "vacuous-test-tautology",
+      "scruple_rule": "tests/no-vacuous-tests",
+      "expected_finding": true,
+      "source_sha256": "f2632dc6c32c2cd9c93ca3081f0ea4312f3a7dd5ed6ef657ed90b63fcc91de0e",
+      "coverage": "unsupported",
+      "reason": "S5863 is limited to Chai assertions with nonliteral duplicate arguments, and S5914 does not recognize Node assert.equal in this TypeScript fixture."
+    },
+    {
+      "id": "validation-express-body-unchecked",
+      "scruple_rule": "api-contracts/require-input-validation",
+      "expected_finding": true,
+      "source_sha256": "002827387e66822bf14d3ed59ae78c789b43ca146282d716bd5d811dc1f40c00",
+      "coverage": "unsupported",
+      "reason": "No Community Build JavaScript rule requires schema validation before Express request fields reach persistence."
+    },
+    {
+      "id": "sensitive-log-redacted-token",
+      "scruple_rule": "observability/no-sensitive-logs",
+      "expected_finding": false,
+      "source_sha256": "b9515a38c32cee911dcfd9d88669ea6d1cb19eba840f9ecd2b6d856ede815ff1",
+      "coverage": "unsupported",
+      "reason": "This is a safe negative case for a Scruple rule with no Community Build equivalent, so a SonarQube result would not measure that behavior."
+    }
+  ],
+  "samples": [
+    {
+      "repetition": 1,
+      "wallTimeMs": 20027.378224,
+      "scannerWallTimeMs": 19799.004467000006,
+      "reportFetchTimeMs": 228.31092999999237,
+      "process": {
+        "exitCode": 0,
+        "signal": null,
+        "errors": []
+      },
+      "findings": {
+        "total": 0,
+        "byFixture": [
+          {
+            "fixtureId": "useless-restates-assignment",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "swallowed-empty-catch",
+            "expectedRules": ["javascript:S2486"],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "async-independent-loads-serialized",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "unactionable-generic-error",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "database-join-done-in-memory",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "resource-file-handle-falls-through",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "authorization-gates-access-with-request-role",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "vacuous-test-tautology",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "validation-express-body-unchecked",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "sensitive-log-redacted-token",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          }
+        ],
+        "capabilities": {
+          "native": {
+            "count": 1,
+            "ids": ["swallowed-empty-catch"]
+          },
+          "custom": {
+            "count": 0,
+            "ids": []
+          },
+          "unsupported": {
+            "count": 9,
+            "cases": [
+              {
+                "id": "useless-restates-assignment",
+                "reason": "SonarQube has rules for commented-out code, but no rule that detects a natural-language comment restating an assignment."
+              },
+              {
+                "id": "async-independent-loads-serialized",
+                "reason": "No Community Build JavaScript rule establishes that two awaited operations are independent and should run concurrently."
+              },
+              {
+                "id": "unactionable-generic-error",
+                "reason": "No Community Build JavaScript rule judges whether a log message identifies the failed operation and includes the captured cause."
+              },
+              {
+                "id": "database-join-done-in-memory",
+                "reason": "No Community Build JavaScript rule recognizes ORM collection fetches followed by an application-side relational join."
+              },
+              {
+                "id": "resource-file-handle-falls-through",
+                "reason": "Community Build does not provide an equivalent JavaScript rule for an unclosed node:fs FileHandle."
+              },
+              {
+                "id": "authorization-gates-access-with-request-role",
+                "reason": "No Community Build JavaScript rule identifies a request-controlled role as an authorization decision."
+              },
+              {
+                "id": "vacuous-test-tautology",
+                "reason": "S5863 is limited to Chai assertions with nonliteral duplicate arguments, and S5914 does not recognize Node assert.equal in this TypeScript fixture."
+              },
+              {
+                "id": "validation-express-body-unchecked",
+                "reason": "No Community Build JavaScript rule requires schema validation before Express request fields reach persistence."
+              },
+              {
+                "id": "sensitive-log-redacted-token",
+                "reason": "This is a safe negative case for a Scruple rule with no Community Build equivalent, so a SonarQube result would not measure that behavior."
+              }
+            ]
+          },
+          "accuracy": {
+            "applicable": 1,
+            "detected": 0,
+            "misses": ["swallowed-empty-catch"],
+            "recall": 0
+          }
+        },
+        "issues": []
+      }
+    },
+    {
+      "repetition": 2,
+      "wallTimeMs": 19571.674417999995,
+      "scannerWallTimeMs": 19548.171839000002,
+      "reportFetchTimeMs": 23.463772000017343,
+      "process": {
+        "exitCode": 0,
+        "signal": null,
+        "errors": []
+      },
+      "findings": {
+        "total": 0,
+        "byFixture": [
+          {
+            "fixtureId": "useless-restates-assignment",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "swallowed-empty-catch",
+            "expectedRules": ["javascript:S2486"],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "async-independent-loads-serialized",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "unactionable-generic-error",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "database-join-done-in-memory",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "resource-file-handle-falls-through",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "authorization-gates-access-with-request-role",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "vacuous-test-tautology",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "validation-express-body-unchecked",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          },
+          {
+            "fixtureId": "sensitive-log-redacted-token",
+            "expectedRules": [],
+            "matchedFindingCount": 0,
+            "allFindingCount": 0
+          }
+        ],
+        "capabilities": {
+          "native": {
+            "count": 1,
+            "ids": ["swallowed-empty-catch"]
+          },
+          "custom": {
+            "count": 0,
+            "ids": []
+          },
+          "unsupported": {
+            "count": 9,
+            "cases": [
+              {
+                "id": "useless-restates-assignment",
+                "reason": "SonarQube has rules for commented-out code, but no rule that detects a natural-language comment restating an assignment."
+              },
+              {
+                "id": "async-independent-loads-serialized",
+                "reason": "No Community Build JavaScript rule establishes that two awaited operations are independent and should run concurrently."
+              },
+              {
+                "id": "unactionable-generic-error",
+                "reason": "No Community Build JavaScript rule judges whether a log message identifies the failed operation and includes the captured cause."
+              },
+              {
+                "id": "database-join-done-in-memory",
+                "reason": "No Community Build JavaScript rule recognizes ORM collection fetches followed by an application-side relational join."
+              },
+              {
+                "id": "resource-file-handle-falls-through",
+                "reason": "Community Build does not provide an equivalent JavaScript rule for an unclosed node:fs FileHandle."
+              },
+              {
+                "id": "authorization-gates-access-with-request-role",
+                "reason": "No Community Build JavaScript rule identifies a request-controlled role as an authorization decision."
+              },
+              {
+                "id": "vacuous-test-tautology",
+                "reason": "S5863 is limited to Chai assertions with nonliteral duplicate arguments, and S5914 does not recognize Node assert.equal in this TypeScript fixture."
+              },
+              {
+                "id": "validation-express-body-unchecked",
+                "reason": "No Community Build JavaScript rule requires schema validation before Express request fields reach persistence."
+              },
+              {
+                "id": "sensitive-log-redacted-token",
+                "reason": "This is a safe negative case for a Scruple rule with no Community Build equivalent, so a SonarQube result would not measure that behavior."
+              }
+            ]
+          },
+          "accuracy": {
+            "applicable": 1,
+            "detected": 0,
+            "misses": ["swallowed-empty-catch"],
+            "recall": 0
+          }
+        },
+        "issues": []
+      }
+    }
+  ]
+}

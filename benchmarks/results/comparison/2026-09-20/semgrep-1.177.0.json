@@ -1,0 +1,432 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-20T16:54:11.646Z",
+  "tool": {
+    "name": "semgrep",
+    "version": "1.177.0",
+    "executable": "semgrep"
+  },
+  "environment": {
+    "node": "v26.8.2",
+    "platform": "linux",
+    "release": "6.1.158+",
+    "architecture": "x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+    "logicalCpuCount": 4,
+    "totalMemoryBytes": 8343158784
+  },
+  "workload": {
+    "fixtureIds": [
+      "useless-restates-assignment",
+      "swallowed-empty-catch",
+      "async-independent-loads-serialized",
+      "unactionable-generic-error",
+      "database-join-done-in-memory",
+      "resource-file-handle-falls-through",
+      "authorization-gates-access-with-request-role",
+      "vacuous-test-tautology",
+      "validation-express-body-unchecked",
+      "sensitive-log-redacted-token"
+    ],
+    "mapping": "benchmarks/semgrep/cases.json"
+  },
+  "settings": {
+    "warmups": 1,
+    "repetitions": 2
+  },
+  "runs": [
+    {
+      "profile": "official-default",
+      "config": "p/default",
+      "warmupRuns": [
+        {
+          "durationMs": 2963.839484,
+          "exitCode": 0,
+          "signal": null,
+          "processError": null,
+          "stderr": "┌─────────────┐\n│ Scan Status │\n└─────────────┘\n  Scanning 10 files tracked by git with 1074 Code rules:\n                                                                                                                        \n  Language      Rules   Files          Origin      Rules                                                                \n ─────────────────────────────        ───────────────────                                                               \n  ts              163      10          Community    1074                                                                \n  <multilang>      47      10                                                                                           \n                                                                                                                        \n                \n                \n┌──────────────┐\n│ Scan Summary │\n└──────────────┘\n✅ Scan completed successfully.\n • Findings: 0 (0 blocking)\n • Rules run: 210\n • Targets scanned: 10\n • Parsed lines: ~100.0%\n • No ignore information available\nRan 210 rules on 10 files: 0 findings.\n(need more rules? `semgrep login` for additional free Semgrep Registry rules)",
+          "output": {
+            "version": "1.177.0",
+            "findings": [],
+            "errors": []
+          }
+        }
+      ],
+      "measuredRuns": [
+        {
+          "durationMs": 2869.3428349999995,
+          "exitCode": 0,
+          "signal": null,
+          "processError": null,
+          "stderr": "┌─────────────┐\n│ Scan Status │\n└─────────────┘\n  Scanning 10 files tracked by git with 1074 Code rules:\n                                                                                                                        \n  Language      Rules   Files          Origin      Rules                                                                \n ─────────────────────────────        ───────────────────                                                               \n  ts              163      10          Community    1074                                                                \n  <multilang>      47      10                                                                                           \n                                                                                                                        \n                \n                \n┌──────────────┐\n│ Scan Summary │\n└──────────────┘\n✅ Scan completed successfully.\n • Findings: 0 (0 blocking)\n • Rules run: 210\n • Targets scanned: 10\n • Parsed lines: ~100.0%\n • No ignore information available\nRan 210 rules on 10 files: 0 findings.\n(need more rules? `semgrep login` for additional free Semgrep Registry rules)",
+          "output": {
+            "version": "1.177.0",
+            "findings": [],
+            "errors": []
+          }
+        },
+        {
+          "durationMs": 2814.1191089999993,
+          "exitCode": 0,
+          "signal": null,
+          "processError": null,
+          "stderr": "┌─────────────┐\n│ Scan Status │\n└─────────────┘\n  Scanning 10 files tracked by git with 1074 Code rules:\n                                                                                                                        \n  Language      Rules   Files          Origin      Rules                                                                \n ─────────────────────────────        ───────────────────                                                               \n  ts              163      10          Community    1074                                                                \n  <multilang>      47      10                                                                                           \n                                                                                                                        \n                \n                \n┌──────────────┐\n│ Scan Summary │\n└──────────────┘\n✅ Scan completed successfully.\n • Findings: 0 (0 blocking)\n • Rules run: 210\n • Targets scanned: 10\n • Parsed lines: ~100.0%\n • No ignore information available\nRan 210 rules on 10 files: 0 findings.\n(need more rules? `semgrep login` for additional free Semgrep Registry rules)",
+          "output": {
+            "version": "1.177.0",
+            "findings": [],
+            "errors": []
+          }
+        }
+      ],
+      "cases": [
+        {
+          "id": "useless-restates-assignment",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "swallowed-empty-catch",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "async-independent-loads-serialized",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "unactionable-generic-error",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "database-join-done-in-memory",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "resource-file-handle-falls-through",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "authorization-gates-access-with-request-role",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "vacuous-test-tautology",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "validation-express-body-unchecked",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        },
+        {
+          "id": "sensitive-log-redacted-token",
+          "expectedFinding": false,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "No applicable rule in the official p/default ruleset is mapped to this fixture."
+        }
+      ],
+      "summary": {
+        "supported": 0,
+        "correct": 0,
+        "misses": 0,
+        "falsePositives": 0,
+        "accuracy": null,
+        "expectedIssues": 0,
+        "detectedExpectedIssues": 0,
+        "recall": null,
+        "unsupported": {
+          "count": 10,
+          "ids": [
+            "useless-restates-assignment",
+            "swallowed-empty-catch",
+            "async-independent-loads-serialized",
+            "unactionable-generic-error",
+            "database-join-done-in-memory",
+            "resource-file-handle-falls-through",
+            "authorization-gates-access-with-request-role",
+            "vacuous-test-tautology",
+            "validation-express-body-unchecked",
+            "sensitive-log-redacted-token"
+          ]
+        },
+        "findings": 0,
+        "durationMs": {
+          "mean": 2841.7309719999994,
+          "min": 2814.1191089999993,
+          "max": 2869.3428349999995
+        },
+        "exitCodes": [0, 0],
+        "processErrors": 0,
+        "semgrepErrors": 0
+      }
+    },
+    {
+      "profile": "benchmark-owned",
+      "config": "benchmarks/semgrep/rules.yml",
+      "warmupRuns": [
+        {
+          "durationMs": 1600.3573300000007,
+          "exitCode": 0,
+          "signal": null,
+          "processError": null,
+          "stderr": "┌─────────────┐\n│ Scan Status │\n└─────────────┘\n  Scanning 10 files tracked by git with 5 Code rules:\n  Scanning 10 files with 5 ts rules.\n                \n                \n┌──────────────┐\n│ Scan Summary │\n└──────────────┘\n✅ Scan completed successfully.\n • Findings: 4 (4 blocking)\n • Rules run: 5\n • Targets scanned: 10\n • Parsed lines: ~100.0%\n • No ignore information available\nRan 5 rules on 10 files: 4 findings.",
+          "output": {
+            "version": "1.177.0",
+            "findings": [
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.request-role-authorization",
+                "path": "authorization-gates-access-with-request-role/report.ts",
+                "line": 2
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.empty-catch",
+                "path": "swallowed-empty-catch/worker.ts",
+                "line": 2
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.generic-error-message",
+                "path": "unactionable-generic-error/billing.ts",
+                "line": 5
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.tautological-assert-equal",
+                "path": "vacuous-test-tautology/service.test.ts",
+                "line": 3
+              }
+            ],
+            "errors": []
+          }
+        }
+      ],
+      "measuredRuns": [
+        {
+          "durationMs": 1654.7087659999997,
+          "exitCode": 0,
+          "signal": null,
+          "processError": null,
+          "stderr": "┌─────────────┐\n│ Scan Status │\n└─────────────┘\n  Scanning 10 files tracked by git with 5 Code rules:\n  Scanning 10 files with 5 ts rules.\n                \n                \n┌──────────────┐\n│ Scan Summary │\n└──────────────┘\n✅ Scan completed successfully.\n • Findings: 4 (4 blocking)\n • Rules run: 5\n • Targets scanned: 10\n • Parsed lines: ~100.0%\n • No ignore information available\nRan 5 rules on 10 files: 4 findings.",
+          "output": {
+            "version": "1.177.0",
+            "findings": [
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.request-role-authorization",
+                "path": "authorization-gates-access-with-request-role/report.ts",
+                "line": 2
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.empty-catch",
+                "path": "swallowed-empty-catch/worker.ts",
+                "line": 2
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.generic-error-message",
+                "path": "unactionable-generic-error/billing.ts",
+                "line": 5
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.tautological-assert-equal",
+                "path": "vacuous-test-tautology/service.test.ts",
+                "line": 3
+              }
+            ],
+            "errors": []
+          }
+        },
+        {
+          "durationMs": 1603.8917170000004,
+          "exitCode": 0,
+          "signal": null,
+          "processError": null,
+          "stderr": "┌─────────────┐\n│ Scan Status │\n└─────────────┘\n  Scanning 10 files tracked by git with 5 Code rules:\n  Scanning 10 files with 5 ts rules.\n                \n                \n┌──────────────┐\n│ Scan Summary │\n└──────────────┘\n✅ Scan completed successfully.\n • Findings: 4 (4 blocking)\n • Rules run: 5\n • Targets scanned: 10\n • Parsed lines: ~100.0%\n • No ignore information available\nRan 5 rules on 10 files: 4 findings.",
+          "output": {
+            "version": "1.177.0",
+            "findings": [
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.request-role-authorization",
+                "path": "authorization-gates-access-with-request-role/report.ts",
+                "line": 2
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.empty-catch",
+                "path": "swallowed-empty-catch/worker.ts",
+                "line": 2
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.generic-error-message",
+                "path": "unactionable-generic-error/billing.ts",
+                "line": 5
+              },
+              {
+                "checkId": "benchmarks.semgrep.scruple-benchmark.javascript.tautological-assert-equal",
+                "path": "vacuous-test-tautology/service.test.ts",
+                "line": 3
+              }
+            ],
+            "errors": []
+          }
+        }
+      ],
+      "cases": [
+        {
+          "id": "useless-restates-assignment",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "Judging whether prose adds intent requires semantic comparison with nearby code."
+        },
+        {
+          "id": "swallowed-empty-catch",
+          "expectedFinding": true,
+          "coverage": "benchmark_owned",
+          "status": "hit",
+          "findingCount": 2,
+          "ruleIds": ["benchmarks.semgrep.scruple-benchmark.javascript.empty-catch"]
+        },
+        {
+          "id": "async-independent-loads-serialized",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "The fixture depends on proving that the two awaited operations are independent."
+        },
+        {
+          "id": "unactionable-generic-error",
+          "expectedFinding": true,
+          "coverage": "benchmark_owned",
+          "status": "hit",
+          "findingCount": 2,
+          "ruleIds": ["benchmarks.semgrep.scruple-benchmark.javascript.generic-error-message"]
+        },
+        {
+          "id": "database-join-done-in-memory",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "The fixture requires identifying database collections and join intent across operations."
+        },
+        {
+          "id": "resource-file-handle-falls-through",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "The closest local pattern would encode this fixture but would not establish resource ownership or cleanup on all paths."
+        },
+        {
+          "id": "authorization-gates-access-with-request-role",
+          "expectedFinding": true,
+          "coverage": "benchmark_owned",
+          "status": "hit",
+          "findingCount": 2,
+          "ruleIds": ["benchmarks.semgrep.scruple-benchmark.javascript.request-role-authorization"]
+        },
+        {
+          "id": "vacuous-test-tautology",
+          "expectedFinding": true,
+          "coverage": "benchmark_owned",
+          "status": "hit",
+          "findingCount": 2,
+          "ruleIds": ["benchmarks.semgrep.scruple-benchmark.javascript.tautological-assert-equal"]
+        },
+        {
+          "id": "validation-express-body-unchecked",
+          "expectedFinding": true,
+          "coverage": "unsupported",
+          "status": "unsupported",
+          "findingCount": 0,
+          "ruleIds": [],
+          "reason": "The fixture expects absence of any validation before persistence, which is not represented by an equivalent default rule."
+        },
+        {
+          "id": "sensitive-log-redacted-token",
+          "expectedFinding": false,
+          "coverage": "benchmark_owned",
+          "status": "correct_rejection",
+          "findingCount": 0,
+          "ruleIds": []
+        }
+      ],
+      "summary": {
+        "supported": 5,
+        "correct": 5,
+        "misses": 0,
+        "falsePositives": 0,
+        "accuracy": 1,
+        "expectedIssues": 4,
+        "detectedExpectedIssues": 4,
+        "recall": 1,
+        "unsupported": {
+          "count": 5,
+          "ids": [
+            "useless-restates-assignment",
+            "async-independent-loads-serialized",
+            "database-join-done-in-memory",
+            "resource-file-handle-falls-through",
+            "validation-express-body-unchecked"
+          ]
+        },
+        "findings": 8,
+        "durationMs": {
+          "mean": 1629.3002415,
+          "min": 1603.8917170000004,
+          "max": 1654.7087659999997
+        },
+        "exitCodes": [0, 0],
+        "processErrors": 0,
+        "semgrepErrors": 0
+      }
+    }
+  ]
+}
