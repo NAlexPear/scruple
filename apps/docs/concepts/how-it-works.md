@@ -87,7 +87,8 @@ and optional rule-owned data.
 
 Scruple combines independent final questions that share the same evidence state into one provider
 request. Collection and final requests share the provider's concurrency limit and token accounting.
-Suppressed targets are discarded before either request is sent.
+Suppressed targets are discarded before either request is sent. The CLI checks its decision cache
+before sending any request and records cache hits separately from provider calls.
 
 ## Apply rule-owned policy
 

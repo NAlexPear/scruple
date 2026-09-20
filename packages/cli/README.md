@@ -7,6 +7,9 @@ pnpm add --save-dev @scruple/cli
 pnpm exec scruple "src/**/*.{ts,tsx}"
 ```
 
+Successful provider responses are cached in `node_modules/.cache/scruple`. The cache covers collection
+and final decisions. Use `--no-cache` to bypass it or `--cache-dir <path>` to choose another directory.
+
 Use `--explain` to audit every final candidate decision, including accepted and abstained candidates.
 Collection classifications are not included because they only filter possible targets. Combine
 `--explain` with `--format json` for structured output.

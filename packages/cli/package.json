@@ -26,6 +26,13 @@
     "src"
   ],
   "type": "module",
+  "imports": {
+    "#cache": {
+      "source": "./src/cache.ts",
+      "types": "./src/cache.ts",
+      "import": "./dist/cache.js"
+    }
+  },
   "exports": {
     ".": {
       "source": "./src/index.ts",

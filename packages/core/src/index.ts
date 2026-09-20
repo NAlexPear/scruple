@@ -299,10 +299,18 @@ export interface DecisionResponse {
 }
 
 export interface DecisionProvider {
+  /** Cache namespace for this provider and model; change it when their behavior changes. */
   readonly id: string;
   readonly concurrency?: number;
   evaluate(request: DecisionRequest, signal?: AbortSignal): Promise<DecisionResponse>;
   close?(): Promise<void> | void;
+}
+
+export interface DecisionCache {
+  /** Cache implementations must treat storage failures and invalid entries as misses. */
+  get(providerId: string, request: DecisionRequest): Promise<DecisionResponse | undefined>;
+  /** Cache implementations must not reject when a successful response cannot be stored. */
+  set(providerId: string, request: DecisionRequest, response: DecisionResponse): Promise<void>;
 }
 
 export interface CollectionProvider {
@@ -491,6 +499,7 @@ export interface RunStats {
   files: number;
   candidates: number;
   requests: number;
+  cacheHits: number;
   inputTokens: number;
   outputTokens: number;
 }
@@ -507,6 +516,7 @@ export interface DecisionRecord {
 
 export interface RunOptions {
   includeDecisions?: boolean;
+  cache?: DecisionCache;
 }
 
 export interface RunResult {
@@ -544,12 +554,17 @@ export const runScruple = async (
   const activeRules = resolveRules(config, errors);
   let parsedFiles = 0;
   let requests = 0;
+  let cacheHits = 0;
   let inputTokens = 0;
   let outputTokens = 0;
   const provider = managedProvider(
     config.provider,
+    options.cache,
     () => {
       requests += 1;
+    },
+    () => {
+      cacheHits += 1;
     },
     (response) => {
       inputTokens += response.usage?.inputTokens ?? 0;
@@ -687,6 +702,7 @@ export const runScruple = async (
       files: parsedFiles,
       candidates: allPending.length,
       requests,
+      cacheHits,
       inputTokens,
       outputTokens,
     },
@@ -825,7 +841,9 @@ const runConcurrent = async <T>(
 
 const managedProvider = (
   provider: DecisionProvider,
+  cache: DecisionCache | undefined,
   willEvaluate: () => void,
+  didHitCache: () => void,
   didEvaluate: (response: DecisionResponse) => void,
 ): Pick<DecisionProvider, "id" | "evaluate"> => {
   const concurrency = Math.max(1, Math.floor(provider.concurrency ?? 1));
@@ -853,15 +871,23 @@ const managedProvider = (
   return {
     id: provider.id,
     async evaluate(request, signal) {
+      const cached = await cache?.get(provider.id, request);
+      if (cached !== undefined) {
+        didHitCache();
+        return cached;
+      }
+
       await acquire();
+      let response: DecisionResponse;
       try {
         willEvaluate();
-        const response = await provider.evaluate(request, signal);
+        response = await provider.evaluate(request, signal);
         didEvaluate(response);
-        return response;
       } finally {
         release();
       }
+      await cache?.set(provider.id, request, response);
+      return response;
     },
   };
 };

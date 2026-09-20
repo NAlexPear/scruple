@@ -32,9 +32,15 @@ A `SourceParser` supplies an `id`, a `supports(filename)` predicate, and `parse(
 
 A `DecisionProvider` supplies an `id`, `evaluate(request, signal?)`, an optional `close()`, and its
 preferred request concurrency. Requests contain JSON state and named typed questions. Responses
-return named answers, a resolved model ID, and optional token usage.
+return named answers, a resolved model ID, and optional token usage. The provider ID is also its cache
+namespace, so custom providers should change it when they change models or behavior.
 
 The engine gives asynchronous rule collectors a restricted, target-aware provider view. A collector
 can classify a bounded possible target, but cannot close or reconfigure the provider. Scruple applies
 the same cancellation, concurrency, suppression, request counting, and token accounting to collection
 and final decision requests.
+
+`runScruple` also accepts an optional `DecisionCache` through its run options. A cache receives the
+provider ID and complete request, and may return a previous successful response. Cache implementations
+must treat unavailable or invalid storage as a miss rather than failing the analysis. The CLI supplies
+the default filesystem implementation.

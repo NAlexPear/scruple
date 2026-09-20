@@ -83,6 +83,10 @@ pnpm exec scruple "src/**/*.{ts,tsx}"
 pnpm exec scruple --format json
 ```
 
+The CLI caches successful decisions in `node_modules/.cache/scruple`, including collection
+classifications. Repeated checks skip matching provider requests. Pass `--no-cache` to bypass saved
+answers or `--cache-dir <path>` to store them elsewhere.
+
 The Jev provider defaults to the pinned `jev-1.13.0` model rather than the moving `jev-latest`
 alias. A run exits 0 when it has no error-severity findings, 1 when it finds at least one error, and
 2 when configuration, parsing, or provider operations fail.

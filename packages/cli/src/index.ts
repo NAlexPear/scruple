@@ -16,8 +16,13 @@ import {
 import { createJiti } from "jiti";
 import { glob } from "tinyglobby";
 
+import { createFileDecisionCache } from "#cache";
+
+export { createFileDecisionCache, type FileDecisionCacheOptions } from "#cache";
+
 const defaultPatterns = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"];
 const maxConcurrentFileReads = 32;
+const defaultCacheDirectory = "node_modules/.cache/scruple";
 const defaultIgnore = [
   "**/node_modules/**",
   "**/dist/**",
@@ -37,10 +42,12 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
     args: [...argv],
     allowPositionals: true,
     options: {
+      "cache-dir": { type: "string" },
       config: { type: "string", short: "c" },
       explain: { type: "boolean", default: false },
       format: { type: "string", short: "f", default: "stylish" },
       help: { type: "boolean", short: "h", default: false },
+      "no-cache": { type: "boolean", default: false },
     },
   });
 
@@ -56,6 +63,9 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
   if (values.format !== "stylish" && values.format !== "json") {
     throw new Error(`Unknown output format: ${values.format}`);
   }
+  if (values["no-cache"] && values["cache-dir"] !== undefined) {
+    throw new Error("--cache-dir cannot be used with --no-cache");
+  }
 
   const cwd = process.cwd();
   const configPath = findConfig(cwd, values.config);
@@ -67,10 +77,23 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
     onlyFiles: true,
   });
   const files = await readSourceFiles(cwd, filenames);
+  const cache = values["no-cache"]
+    ? undefined
+    : createFileDecisionCache({
+        directory: resolve(cwd, values["cache-dir"] ?? defaultCacheDirectory),
+        onWarning(message, cause) {
+          if (cause instanceof Error) {
+            process.stderr.write(`scruple: ${message} ${cause.message}\n`);
+          } else {
+            process.stderr.write(`scruple: ${message}\n`);
+          }
+        },
+      });
 
   try {
     const result = await runScruple(config, files, undefined, {
       includeDecisions: values.explain,
+      ...(cache === undefined ? {} : { cache }),
     });
     if (values.format === "json") {
       process.stdout.write(`${JSON.stringify(result, jsonErrorReplacer, 2)}\n`);
@@ -228,10 +251,12 @@ Usage:
   scruple [patterns...] [options]
 
 Options:
+      --cache-dir <path> Decision cache directory (default: node_modules/.cache/scruple)
   -c, --config <path>   Config file (default: scruple.config.ts)
       --explain         Include final candidate decisions, not collection classifications
   -f, --format <format> stylish or json (default: stylish)
   -h, --help            Show this help
+      --no-cache        Disable the decision cache
 
 Exit codes:
   0  No error-severity findings

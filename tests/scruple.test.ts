@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { comments } from "@scruple/comments";
 import type {
+  DecisionCache,
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
@@ -344,6 +345,7 @@ async function joinedUsers() {
     files: 1,
     candidates: 3,
     requests: 3,
+    cacheHits: 0,
     inputTokens: 30,
     outputTokens: 0,
   });
@@ -646,9 +648,58 @@ await test("collection can use the managed provider to classify possible candida
     files: 1,
     candidates: 1,
     requests: 3,
+    cacheHits: 0,
     inputTokens: 6,
     outputTokens: 3,
   });
+});
+
+await test("decision cache covers collection and final provider requests", async () => {
+  const stored = new Map<string, DecisionResponse>();
+  const cache: DecisionCache = {
+    get(providerId, request) {
+      return Promise.resolve(stored.get(`${providerId}:${JSON.stringify(request)}`));
+    },
+    set(providerId, request, response) {
+      stored.set(`${providerId}:${JSON.stringify(request)}`, response);
+      return Promise.resolve();
+    },
+  };
+  const underlying = collectionProvider();
+  let providerRequests = 0;
+  const provider: DecisionProvider = {
+    ...underlying,
+    evaluate(request, signal) {
+      providerRequests += 1;
+      return underlying.evaluate(request, signal);
+    },
+  };
+  const config = {
+    parser: oxcParser(),
+    provider,
+    plugins: { comments: comments() },
+    rules: { "comments/require-actionable-todos": "warn" as const },
+  };
+  const files = [
+    {
+      filename: "comments.ts",
+      source: "// Follow up on the migration.\nconst ready = true;\n",
+    },
+  ];
+
+  const first = await runScruple(config, files, undefined, { cache });
+  const second = await runScruple(config, files, undefined, { cache });
+
+  assert.deepEqual(first.errors, []);
+  assert.deepEqual(second.errors, []);
+  assert.deepEqual(second.diagnostics, first.diagnostics);
+  assert.equal(first.stats.requests, 2);
+  assert.equal(first.stats.cacheHits, 0);
+  assert.equal(second.stats.requests, 0);
+  assert.equal(second.stats.cacheHits, 2);
+  assert.equal(second.stats.inputTokens, 0);
+  assert.equal(second.stats.outputTokens, 0);
+  assert.equal(providerRequests, 2);
 });
 
 await test("test rule preserves conservative default decision margins", () => {

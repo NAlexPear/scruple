@@ -31,8 +31,9 @@ const provider = jevProvider({ apiKey });
 | `maxRetries`  | `2`            | SDK retry count                        |
 | `fetch`       | Runtime fetch  | Custom fetch implementation            |
 
-The provider reports input and output token usage in Scruple's run statistics. The request count and
-token totals include collection classifications as well as final candidate decisions.
+The provider reports input and output token usage in Scruple's run statistics. Uncached request and
+token totals include collection classifications as well as final candidate decisions. The CLI reports
+cached responses separately as `cacheHits`.
 
 Review the Jev service's current data handling and billing terms before sending repository code. Scruple does not make claims here about service retention or model training.
 
