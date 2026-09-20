@@ -116,10 +116,10 @@ title: Code checks for problems linters miss
     <h2 id="landing-providers-title">Use AI for one narrow<br>decision at a time.</h2>
     <p>
       Scruple does not ask a chatbot to review your repository. Each rule sends the relevant code
-      and one fixed question to Jev's typed decision models.
+      and one fixed question to Jev or any provider that implements Scruple's small interface.
     </p>
   </div>
-  <JevProvider />
+  <ProviderOptions />
 </section>
 
 <section class="landing-taste" aria-labelledby="landing-taste-title">
