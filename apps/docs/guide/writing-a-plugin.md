@@ -239,26 +239,3 @@ An evaluation fixture records the expected policy outcome independently of the p
 For a plugin maintained in this repository, add fixtures to `tests/eval-fixtures.json` and register the plugin in the evaluation plugin map. External plugins can use the same fixture shape in their own provider-backed evaluation harness.
 
 Pair each likely finding with a nearby safe or ambiguous case. This tests the policy boundary instead of rewarding a provider that always reports.
-
-## Package and document it
-
-Compile the package to JavaScript, export the plugin factory and option types, and declare the supported `@scruple/core` range. A minimal package manifest looks like this:
-
-```json
-{
-  "name": "@acme/scruple-todos",
-  "type": "module",
-  "files": ["dist"],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "dependencies": {
-    "@scruple/core": "^0.0.2"
-  }
-}
-```
-
-Document every exported rule, its defaults, its evidence boundary, and the cases where it deliberately abstains. Use the retained packages in `packages/` as reference implementations.
