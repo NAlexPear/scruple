@@ -26,11 +26,12 @@
 
 ## Where Scruple fits
 
-| Check           | Speed             | Scope                                           | Cost                                | Examples                     |
-| --------------- | ----------------- | ----------------------------------------------- | ----------------------------------- | ---------------------------- |
-| Static checks   | Near-instant      | Syntax, types, formatting, and known patterns   | Local compute                       | TypeScript, Oxlint, ESLint   |
-| Semantic checks | Seconds           | Named standards that require interpretation     | Hosted model usage or local compute | Scruple                      |
-| Human review    | Minutes or longer | Architecture, product intent, and new tradeoffs | Reviewer time                       | Teammates and domain experts |
+| Check             | Speed              | Scope                                           | Cost                                | Examples                     |
+| ----------------- | ------------------ | ----------------------------------------------- | ----------------------------------- | ---------------------------- |
+| Static checks     | Near-instant       | Syntax, types, formatting, and known patterns   | Local compute                       | TypeScript, Oxlint, ESLint   |
+| Codebase analysis | Seconds to minutes | Cross-file data flow and codebase-wide patterns | Hosted service or local compute     | SonarQube, CodeQL            |
+| Semantic checks   | Seconds            | Named standards that require interpretation     | Hosted model usage or local compute | Scruple                      |
+| Human review      | Minutes or longer  | Architecture, product intent, and new tradeoffs | Reviewer time                       | Teammates and domain experts |
 
 ## Use Scruple
 
