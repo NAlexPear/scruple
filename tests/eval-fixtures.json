@@ -99,6 +99,15 @@
     "tags": ["positive", "disabled-code", "declaration"]
   },
   {
+    "id": "commented-out-short-increment",
+    "filename": "comments.ts",
+    "source": "export function countRetry() {\n  // x++;\n  return x;\n}\n",
+    "rule_id": "comments/no-commented-out-code",
+    "expected_finding": true,
+    "rationale": "A short increment statement is still disabled executable code and must reach the semantic rule.",
+    "tags": ["positive", "disabled-code", "short-comment"]
+  },
+  {
     "id": "documentation-code-example",
     "filename": "comments.ts",
     "source": "/** Example: client.connect({ timeout: 1000 }) */\nexport function connect(options: Options) {\n  return new Client(options);\n}\n",

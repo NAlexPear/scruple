@@ -165,6 +165,17 @@ await test("comments rules preserve calibrated default decision margins", () => 
   );
 });
 
+await test("commented-out code rule collects short executable comments", () => {
+  const plugin = comments();
+  const document = oxcParser().parse(
+    "comments.ts",
+    "function retry() {\n  // x++;\n  return x;\n}\n",
+  );
+
+  assert.equal(plugin.rules["no-commented-out-code"]().collect(document).length, 1);
+  assert.equal(plugin.rules["no-useless-comments"]().collect(document).length, 0);
+});
+
 await test("engine batches independent questions sharing identical evidence", async () => {
   let requests = 0;
   const provider: DecisionProvider = {

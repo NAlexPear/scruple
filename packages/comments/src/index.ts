@@ -104,7 +104,7 @@ function noCommentedOutCode(options: ProbabilityRuleOptions = {}): SemanticRule 
   const { threshold, minConfidence } = probabilityOptions(options, 0.95, 0.7);
   return choiceRule({
     description: "Comments should not preserve disabled implementation code.",
-    select: ordinaryComments,
+    select: disabledCodeComments,
     question: {
       instructions:
         "Is `comment` disabled executable implementation code that belongs in version control rather than the source file? Distinguish disabled code from documentation examples, pseudocode, grammars, regular expressions, and configuration snippets.",
@@ -264,13 +264,24 @@ function ordinaryComments(document: ParsedDocument): CommentTarget[] {
   );
 }
 
+function disabledCodeComments(document: ParsedDocument): CommentTarget[] {
+  return document.comments.filter(
+    (comment) =>
+      comment.value.trim().length > 0 && !isIgnoredComment(comment) && !isTodoCandidate(comment),
+  );
+}
+
 function isBaseCandidate(comment: CommentTarget): boolean {
   const value = comment.value.trim();
   if (value.length < 8) {
     return false;
   }
-  return !/^(?:eslint|oxlint|prettier|istanbul|c8|tslint|@ts-|SPDX-|Copyright\b|Generated\b|Code generated\b)/iu.test(
-    value,
+  return !isIgnoredComment(comment);
+}
+
+function isIgnoredComment(comment: CommentTarget): boolean {
+  return /^(?:eslint|oxlint|prettier|istanbul|c8|tslint|@ts-|SPDX-|Copyright\b|Generated\b|Code generated\b)/iu.test(
+    comment.value.trim(),
   );
 }
 
