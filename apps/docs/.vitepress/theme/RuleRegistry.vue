@@ -184,6 +184,12 @@ const filteredRules = computed(() => {
   stroke-width: 1.7;
 }
 
+.rule-search svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
 .rule-search input {
   min-width: 0;
   border: 0;
