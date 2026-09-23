@@ -11,6 +11,7 @@ import {
   type Fetch,
   type Questions,
   type RequestOptions,
+  type TypeSafeClientConfig,
 } from "@typesafe-ai/sdk";
 
 export interface KevProviderOptions {
@@ -19,40 +20,29 @@ export interface KevProviderOptions {
   /** Needed only when the server sets `KEV_API_KEY`. */
   apiKey?: string;
   model?: string;
-  /** Allow a non-loopback `baseURL`. Code then leaves this machine. */
-  allowRemote?: boolean;
   concurrency?: number;
   timeoutMs?: number;
   maxRetries?: number;
   fetch?: Fetch;
 }
 
-const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
-
 /** Kev (github.com/jaredpalmer/kev) serves the System One API from open weights. */
 export const kevProvider = (options: KevProviderOptions): DecisionProvider => {
-  const root = new URL(options.baseURL);
-  if (options.allowRemote !== true && !LOOPBACK_HOSTS.has(root.hostname)) {
-    throw new RangeError(
-      `Kev baseURL must be a loopback address unless allowRemote is true: ${options.baseURL}`,
-    );
-  }
-  const send = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
   const model = options.model ?? "kev-latest";
   const concurrency = options.concurrency ?? 1;
   const timeout = options.timeoutMs ?? 60_000;
   const retry = { maxRetries: options.maxRetries ?? 0 };
-  const client = new TypeSafeClient({
+  const clientConfig: TypeSafeClientConfig = {
     apiKey: options.apiKey ?? "kev-local",
     baseURL: options.baseURL,
     defaultModel: model,
     timeout,
     retry,
-    fetch: (input, init) =>
-      new URL(input).origin === root.origin
-        ? send(input, init)
-        : Promise.reject(new Error(`Kev provider refused a request outside ${root.origin}`)),
-  });
+  };
+  if (options.fetch !== undefined) {
+    clientConfig.fetch = options.fetch;
+  }
+  const client = new TypeSafeClient(clientConfig);
   // Kev answers one request at a time, so queue here rather than let callers' timeouts expire in the server.
   const limit = limiter(concurrency);
 

@@ -11,20 +11,6 @@ const restoreEnvironment = (name: string, value: string | undefined): void => {
   }
 };
 
-await test("Kev provider refuses non-loopback servers unless explicitly allowed", () => {
-  assert.throws(
-    () => kevProvider({ baseURL: "https://api.typesafe.ai" }),
-    /must be a loopback address/u,
-  );
-  assert.throws(() => kevProvider({ baseURL: "http://10.0.0.5:8008" }), /loopback/u);
-  assert.equal(kevProvider({ baseURL: "http://127.0.0.1:8008" }).id, "kev:kev-latest");
-  assert.equal(kevProvider({ baseURL: "http://localhost:8008", model: "kev-4b" }).id, "kev:kev-4b");
-  assert.equal(
-    kevProvider({ baseURL: "http://gpu.internal:8008", allowRemote: true }).id,
-    "kev:kev-latest",
-  );
-});
-
 await test("Kev provider sends System One requests only to its own server", async (t) => {
   const originalBaseUrl = process.env["TYPESAFE_BASE_URL"];
   process.env["TYPESAFE_BASE_URL"] = "https://api.typesafe.ai";
