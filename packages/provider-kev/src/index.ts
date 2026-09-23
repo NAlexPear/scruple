@@ -29,70 +29,48 @@ export interface KevProviderOptions {
 /** Kev (github.com/jaredpalmer/kev) serves the System One API from open weights. */
 export const kevProvider = (options: KevProviderOptions): DecisionProvider => {
   const model = options.model ?? "kev-latest";
-  const concurrency = options.concurrency ?? 1;
-  const timeout = options.timeoutMs ?? 60_000;
-  const retry = { maxRetries: options.maxRetries ?? 0 };
   const clientConfig: TypeSafeClientConfig = {
     apiKey: options.apiKey ?? "kev-local",
     baseURL: options.baseURL,
     defaultModel: model,
-    timeout,
-    retry,
+    timeout: options.timeoutMs ?? 60_000,
+    retry: { maxRetries: options.maxRetries ?? 0 },
   };
   if (options.fetch !== undefined) {
     clientConfig.fetch = options.fetch;
   }
   const client = new TypeSafeClient(clientConfig);
-  // Kev answers one request at a time, so queue here rather than let callers' timeouts expire in the server.
-  const limit = limiter(concurrency);
 
   return {
     id: `kev:${model}`,
-    concurrency,
+    concurrency: options.concurrency ?? 1,
 
-    evaluate: (request: DecisionRequest, signal?: AbortSignal): Promise<DecisionResponse> =>
-      limit(async () => {
-        const requestOptions: RequestOptions = { timeout, retry };
-        if (signal !== undefined) {
-          requestOptions.signal = signal;
-        }
-        const response = await client.systemOne(
-          {
-            state: toEntry(request.state),
-            questions: toQuestions(request.questions),
-            model,
-          },
-          requestOptions,
-        );
+    async evaluate(request: DecisionRequest, signal?: AbortSignal): Promise<DecisionResponse> {
+      const requestOptions: RequestOptions = {
+        timeout: options.timeoutMs ?? 60_000,
+        retry: { maxRetries: options.maxRetries ?? 0 },
+      };
+      if (signal !== undefined) {
+        requestOptions.signal = signal;
+      }
+      const response = await client.systemOne(
+        {
+          state: toEntry(request.state),
+          questions: toQuestions(request.questions),
+          model,
+        },
+        requestOptions,
+      );
 
-        return {
-          model: response.model,
-          answers: response.answers,
-          usage: {
-            inputTokens: response.usage.input_tokens,
-            outputTokens: response.usage.output_tokens,
-          },
-        };
-      }),
-  };
-};
-
-const limiter = (max: number) => {
-  let active = 0;
-  const waiting: (() => void)[] = [];
-  return async <T>(task: () => Promise<T>): Promise<T> => {
-    if (active >= max) {
-      await new Promise<void>((resolve) => {
-        waiting.push(resolve);
-      });
-    }
-    active += 1;
-    try {
-      return await task();
-    } finally {
-      active -= 1;
-      waiting.shift()?.();
-    }
+      return {
+        model: response.model,
+        answers: response.answers,
+        usage: {
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+        },
+      };
+    },
   };
 };
 

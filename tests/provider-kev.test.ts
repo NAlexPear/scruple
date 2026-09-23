@@ -58,39 +58,3 @@ await test("Kev provider sends System One requests only to its own server", asyn
     usage: { inputTokens: 9, outputTokens: 2 },
   });
 });
-
-await test("Kev provider queues requests beyond its concurrency", async () => {
-  let active = 0;
-  let peak = 0;
-  const provider = kevProvider({
-    baseURL: "http://127.0.0.1:8008",
-    fetch: async () => {
-      active += 1;
-      peak = Math.max(peak, active);
-      await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
-      active -= 1;
-      return new Response(
-        JSON.stringify({
-          model: "kev-latest",
-          answers: { decision: { type: "noul", noul: 0.5 } },
-          usage: { input_tokens: 1, output_tokens: 1 },
-        }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      );
-    },
-  });
-  const request = {
-    state: "x",
-    questions: { decision: { type: "noul" as const, instructions: "Is this useful?" } },
-  };
-
-  await Promise.all([
-    provider.evaluate(request),
-    provider.evaluate(request),
-    provider.evaluate(request),
-  ]);
-
-  assert.equal(peak, 1);
-});

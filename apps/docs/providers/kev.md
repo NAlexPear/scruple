@@ -21,7 +21,7 @@ const provider = kevProvider({ baseURL: "http://127.0.0.1:8008" });
 | `baseURL`     | Required       | Root of the Kev server                         |
 | `apiKey`      | `"kev-local"`  | Needed only when the server sets `KEV_API_KEY` |
 | `model`       | `"kev-latest"` | Model sent with each request                   |
-| `concurrency` | `1`            | Requests sent at once; the rest queue          |
+| `concurrency` | `1`            | Maximum simultaneous provider requests         |
 | `timeoutMs`   | `60000`        | Request timeout in milliseconds                |
 | `maxRetries`  | `0`            | SDK retry count                                |
 | `fetch`       | Runtime fetch  | Custom fetch implementation                    |
