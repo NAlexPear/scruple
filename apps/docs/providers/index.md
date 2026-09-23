@@ -8,10 +8,10 @@ hosted Jev service and for a local Kev server.
 Scruple is MIT licensed. Jev receives bounded evidence for collection classifications and final
 candidate decisions over HTTPS, and its model usage is billed separately.
 
-| Provider        | Best for                                         | Runtime           |
-| --------------- | ------------------------------------------------ | ----------------- |
-| [Jev](./jev.md) | Hosted decisions with token usage reporting      | HTTPS API         |
-| [Kev](./kev.md) | Open-weights decisions that stay on your machine | Local HTTP server |
+| Provider        | Best for                                     | Runtime           |
+| --------------- | -------------------------------------------- | ----------------- |
+| [Jev](./jev.md) | Hosted decisions with token usage reporting  | HTTPS API         |
+| [Kev](./kev.md) | Open-weights decisions from a server you run | Local HTTP server |
 
 Model choice affects calibration. Use representative fixtures to choose thresholds rather than copying thresholds blindly between models.
 
