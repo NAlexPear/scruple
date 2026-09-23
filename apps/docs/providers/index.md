@@ -2,15 +2,16 @@
 
 Rules send fixed questions and JSON evidence to a decision provider. Most requests decide whether a
 selected candidate violates a rule. Some rules first send a smaller classification request to decide
-whether an ambiguous bounded target should become a candidate. Scruple includes an adapter for the
-hosted Jev service.
+whether an ambiguous bounded target should become a candidate. Scruple includes adapters for the
+hosted Jev service and for a local Kev server.
 
 Scruple is MIT licensed. Jev receives bounded evidence for collection classifications and final
 candidate decisions over HTTPS, and its model usage is billed separately.
 
-| Provider        | Best for                                    | Runtime   |
-| --------------- | ------------------------------------------- | --------- |
-| [Jev](./jev.md) | Hosted decisions with token usage reporting | HTTPS API |
+| Provider        | Best for                                         | Runtime           |
+| --------------- | ------------------------------------------------ | ----------------- |
+| [Jev](./jev.md) | Hosted decisions with token usage reporting      | HTTPS API         |
+| [Kev](./kev.md) | Open-weights decisions that stay on your machine | Local HTTP server |
 
 Model choice affects calibration. Use representative fixtures to choose thresholds rather than copying thresholds blindly between models.
 

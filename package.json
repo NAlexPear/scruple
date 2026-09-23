@@ -40,6 +40,7 @@
     "@scruple/observability": "workspace:*",
     "@scruple/parser-oxc": "workspace:*",
     "@scruple/provider-jev": "workspace:*",
+    "@scruple/provider-kev": "workspace:*",
     "@scruple/relational-databases": "workspace:*",
     "@scruple/resources": "workspace:*",
     "@scruple/security": "workspace:*",

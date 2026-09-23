@@ -139,6 +139,9 @@ importers:
       '@scruple/provider-jev':
         specifier: workspace:*
         version: link:packages/provider-jev
+      '@scruple/provider-kev':
+        specifier: workspace:*
+        version: link:packages/provider-kev
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:packages/relational-databases
@@ -261,6 +264,9 @@ importers:
       '@scruple/provider-jev':
         specifier: workspace:*
         version: link:../provider-jev
+      '@scruple/provider-kev':
+        specifier: workspace:*
+        version: link:../provider-kev
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:../relational-databases
@@ -290,6 +296,15 @@ importers:
         version: 0.150.0
 
   packages/provider-jev:
+    dependencies:
+      '@scruple/core':
+        specifier: workspace:*
+        version: link:../core
+      '@typesafe-ai/sdk':
+        specifier: ^0.6.0
+        version: 0.6.0
+
+  packages/provider-kev:
     dependencies:
       '@scruple/core':
         specifier: workspace:*

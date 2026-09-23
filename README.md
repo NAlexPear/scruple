@@ -123,11 +123,11 @@ System One API as Jev. Its server binds to `127.0.0.1`, so evidence stays on you
 python -m kev.serve --run jaredpalmer/kev-4b --port 8008
 ```
 
-Use `kevProvider` in place of `jevProvider`. It needs no TypeSafe key, and it refuses a non-loopback
+Install `@scruple/provider-kev` and use `kevProvider` in place of `jevProvider`. It needs no TypeSafe key, and it refuses a non-loopback
 `baseURL` unless you pass `allowRemote: true`:
 
 ```ts
-import { kevProvider } from "@scruple/provider-jev";
+import { kevProvider } from "@scruple/provider-kev";
 
 provider: kevProvider({ baseURL: "http://127.0.0.1:8008" }),
 ```

@@ -43,6 +43,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: "Overview", link: "/providers/" },
       { text: "Jev", link: "/providers/jev" },
+      { text: "Kev", link: "/providers/kev" },
     ],
   },
   {

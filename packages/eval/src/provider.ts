@@ -1,5 +1,6 @@
 import type { DecisionProvider } from "@scruple/core";
-import { jevProvider, kevProvider } from "@scruple/provider-jev";
+import { jevProvider } from "@scruple/provider-jev";
+import { kevProvider } from "@scruple/provider-kev";
 
 export interface EvalProviderOptions {
   concurrency?: number;

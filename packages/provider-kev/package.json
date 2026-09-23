@@ -1,0 +1,47 @@
+{
+  "name": "@scruple/provider-kev",
+  "version": "0.2.0",
+  "description": "Local Kev decision provider for Scruple.",
+  "keywords": [
+    "ai",
+    "kev",
+    "open-weights",
+    "semantic-analysis"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/provider-kev"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scruple/core": "workspace:*",
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
