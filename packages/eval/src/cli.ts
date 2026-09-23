@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 
-import type { RuleConfiguration, RuleSeverity } from "@scruple/core";
 import {
   formatEvalRuns,
   hasEvalFailures,
@@ -18,32 +17,10 @@ import { createEvalProvider, providerName } from "./provider.js";
 
 const plugins = evaluationPlugins();
 
-const isRuleSeverity = (value: unknown): value is RuleSeverity =>
-  value === "off" || value === "warn" || value === "error";
-
-const parseRuleFile = (text: string): Record<string, RuleConfiguration> => {
-  const value: unknown = JSON.parse(text);
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new TypeError("--rules must name a JSON object of rule configurations");
-  }
-  const rules: Record<string, RuleConfiguration> = {};
-  for (const [ruleId, entry] of Object.entries(value)) {
-    if (isRuleSeverity(entry)) {
-      rules[ruleId] = entry;
-    } else if (Array.isArray(entry) && entry.length === 2 && isRuleSeverity(entry[0])) {
-      rules[ruleId] = [entry[0], entry[1]];
-    } else {
-      throw new TypeError(`--rules has an invalid configuration for ${ruleId}`);
-    }
-  }
-  return rules;
-};
-
 const runModel = async (
   model: string,
   repetitions: number,
   fixtures: readonly EvalFixture[],
-  rules: Record<string, RuleConfiguration> | undefined,
 ): Promise<EvalRunReport[]> => {
   const provider = createEvalProvider(model);
   try {
@@ -53,7 +30,6 @@ const runModel = async (
           fixtures,
           parser: oxcParser(),
           plugins,
-          ...(rules === undefined ? {} : { rules }),
           provider,
           providerName: providerName(provider),
           requestedModel: model,
@@ -76,13 +52,9 @@ try {
     );
     const fixtures = parseEvalFixtures(rawFixtures);
     await validateEvalCorpus(fixtures, oxcParser(), plugins);
-    const rules =
-      options.rules === undefined
-        ? undefined
-        : parseRuleFile(await readFile(options.rules, "utf8"));
     const runs = (
       await Promise.all(
-        options.models.map((model) => runModel(model, options.repetitions, fixtures, rules)),
+        options.models.map((model) => runModel(model, options.repetitions, fixtures)),
       )
     ).flat();
     process.stdout.write(

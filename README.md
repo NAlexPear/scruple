@@ -132,16 +132,11 @@ import { kevProvider } from "@scruple/provider-kev";
 provider: kevProvider({ baseURL: "http://127.0.0.1:8008" }),
 ```
 
-Rule thresholds were calibrated on Jev, and Kev's probabilities are softer. Use
-`benchmarks/kev/kev-4b.rules.json` or `kev-9b.rules.json` as rule options, or fit your own. To run the
-eval corpus against Kev:
+To run the eval corpus against Kev:
 
 ```sh
-SCRUPLE_PROVIDER=kev KEV_BASE_URL=http://127.0.0.1:8008 \
-  pnpm eval --model kev-4b --rules benchmarks/kev/kev-4b.rules.json
+SCRUPLE_PROVIDER=kev KEV_BASE_URL=http://127.0.0.1:8008 pnpm eval --model kev-4b
 ```
-
-See [`benchmarks/kev`](benchmarks/kev/README.md) for how the thresholds were fit and how they score.
 
 ### Configure rules
 
