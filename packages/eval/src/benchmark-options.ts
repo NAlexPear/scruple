@@ -1,24 +1,28 @@
 import { parseArgs } from "node:util";
 
-import { DEFAULT_EVAL_MODEL } from "@scruple/eval/options";
+import { parseModels } from "@scruple/eval/options";
 
 export interface BenchmarkOptions {
+  baseURL: string | undefined;
   concurrency: number;
   fixtureIds: string[];
   help: boolean;
   models: string[];
+  provider: string;
   repetitions: number;
   warmups: number;
   workloadSize?: number;
 }
 
-export const BENCHMARK_HELP = `Benchmark Scruple with Jev
+export const BENCHMARK_HELP = `Benchmark Scruple with a decision provider
 
 Usage:
   pnpm benchmark [options]
 
 Options:
-  --model <model>        Jev model to benchmark; repeat to compare models
+  --provider <name>      jev or kev (default: jev)
+  --base-url <url>       Provider API root; required for kev
+  --model <model>        Model to benchmark; repeat to compare models (default: jev-1.13.0 for jev)
   --fixture <id>         Benchmark only this fixture; repeat to select several
   --workload-size <n>    Cycle selected fixtures to create exactly n cases
   --warmups <count>      Unmeasured runs per model (default: 1)
@@ -27,18 +31,22 @@ Options:
   -h, --help             Show this help
 
 Environment:
-  TYPESAFE_API_KEY  Required by Jev
+  TYPESAFE_API_KEY  Required by jev
+  KEV_API_KEY       Sent to kev when the server sets one
 
 Examples:
   pnpm benchmark
   pnpm benchmark --model jev-1.13.0 --repetitions 5
   pnpm benchmark --model jev-1.13.0 --model jev-latest
+  pnpm benchmark --provider kev --base-url http://127.0.0.1:8008 --model kev-4b
 `;
 
 export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions => {
   const { values } = parseArgs({
     args: [...argv],
     options: {
+      provider: { type: "string", default: "jev" },
+      "base-url": { type: "string" },
       model: { type: "string", multiple: true },
       fixture: { type: "string", multiple: true },
       "workload-size": { type: "string" },
@@ -56,10 +64,12 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
       ? undefined
       : parseCount(values["workload-size"], "--workload-size", false);
   return {
+    baseURL: values["base-url"],
     concurrency,
     fixtureIds: values.fixture ?? [],
     help: values.help,
-    models: values.model ?? [DEFAULT_EVAL_MODEL],
+    models: parseModels(values.provider, values.model),
+    provider: values.provider,
     repetitions,
     warmups,
     ...(workloadSize === undefined ? {} : { workloadSize }),

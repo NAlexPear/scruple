@@ -9,29 +9,29 @@ import {
   type EvalFixture,
   type EvalRunReport,
 } from "@scruple/eval";
-import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
+import { EVAL_HELP, parseEvalOptions, type EvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { createEvalProvider, providerName } from "./provider.js";
+import { evalProvider } from "./provider.js";
 
 const plugins = evaluationPlugins();
 
 const runModel = async (
   model: string,
-  repetitions: number,
+  options: EvalOptions,
   fixtures: readonly EvalFixture[],
 ): Promise<EvalRunReport[]> => {
-  const provider = createEvalProvider(model);
+  const provider = evalProvider(options.provider).create({ model, baseURL: options.baseURL });
   try {
     return await Promise.all(
-      Array.from({ length: repetitions }, (_, index) =>
+      Array.from({ length: options.repetitions }, (_, index) =>
         runEvaluation({
           fixtures,
           parser: oxcParser(),
           plugins,
           provider,
-          providerName: providerName(provider),
+          providerName: options.provider,
           requestedModel: model,
           repetition: index + 1,
         }),
@@ -53,9 +53,7 @@ try {
     const fixtures = parseEvalFixtures(rawFixtures);
     await validateEvalCorpus(fixtures, oxcParser(), plugins);
     const runs = (
-      await Promise.all(
-        options.models.map((model) => runModel(model, options.repetitions, fixtures)),
-      )
+      await Promise.all(options.models.map((model) => runModel(model, options, fixtures)))
     ).flat();
     process.stdout.write(
       options.format === "stylish"

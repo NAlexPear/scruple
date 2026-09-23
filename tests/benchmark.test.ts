@@ -42,16 +42,19 @@ await test("benchmark options support repeated Jev models and run settings", () 
       "5",
     ]),
     {
+      baseURL: undefined,
       concurrency: 2,
       fixtureIds: ["first", "second"],
       help: false,
       models: ["jev-stable", "jev-candidate"],
+      provider: "jev",
       repetitions: 4,
       warmups: 0,
       workloadSize: 5,
     },
   );
   assert.deepEqual(parseBenchmarkOptions([]).models, ["jev-1.13.0"]);
+  assert.throws(() => parseBenchmarkOptions(["--provider", "kev"]), /--model is required for kev/u);
   assert.throws(() => parseBenchmarkOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseBenchmarkOptions(["--workload-size", "0"]), /positive integer/u);
 });

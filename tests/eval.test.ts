@@ -28,13 +28,35 @@ await test("evaluation options support repeated Jev models", () => {
   assert.deepEqual(
     parseEvalOptions(["--model", "jev-stable", "--model", "jev-candidate", "--repetitions", "2"]),
     {
+      baseURL: undefined,
       format: "json",
       help: false,
       models: ["jev-stable", "jev-candidate"],
+      provider: "jev",
       repetitions: 2,
     },
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
+  assert.deepEqual(
+    parseEvalOptions([
+      "--provider",
+      "kev",
+      "--base-url",
+      "http://127.0.0.1:8008",
+      "--model",
+      "kev-4b",
+    ]),
+    {
+      baseURL: "http://127.0.0.1:8008",
+      format: "json",
+      help: false,
+      models: ["kev-4b"],
+      provider: "kev",
+      repetitions: 1,
+    },
+  );
+  assert.throws(() => parseEvalOptions(["--provider", "kev"]), /--model is required for kev/u);
+  assert.throws(() => parseEvalOptions(["--provider", "other"]), /Unknown provider: other/u);
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
@@ -53,6 +75,15 @@ await test("evaluation CLI reaches provider validation", () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /TYPESAFE_API_KEY is required for Jev evaluations/u);
   assert.doesNotMatch(result.stderr, /before initialization/u);
+
+  const kev = spawnSync(
+    process.execPath,
+    ["packages/eval/dist/cli.js", "--provider", "kev", "--model", "kev-4b"],
+    { cwd: new URL("..", import.meta.url), encoding: "utf8", env: environment },
+  );
+
+  assert.equal(kev.status, 2);
+  assert.match(kev.stderr, /--base-url is required for Kev evaluations/u);
 });
 
 await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {

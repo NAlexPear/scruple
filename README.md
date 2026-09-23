@@ -134,7 +134,7 @@ provider: kevProvider({ baseURL: "http://127.0.0.1:8008", model: "kev-4b" }),
 To run the eval corpus against Kev:
 
 ```sh
-SCRUPLE_PROVIDER=kev KEV_BASE_URL=http://127.0.0.1:8008 pnpm eval --model kev-4b
+pnpm eval --provider kev --base-url http://127.0.0.1:8008 --model kev-4b
 ```
 
 ### Configure rules

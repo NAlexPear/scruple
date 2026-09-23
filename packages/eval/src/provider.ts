@@ -1,41 +1,54 @@
 import type { DecisionProvider } from "@scruple/core";
-import { jevProvider } from "@scruple/provider-jev";
-import { kevProvider } from "@scruple/provider-kev";
+import { jevProvider, type JevProviderOptions } from "@scruple/provider-jev";
+import { kevProvider, type KevProviderOptions } from "@scruple/provider-kev";
 
-export interface EvalProviderOptions {
+export interface EvalProviderSettings {
+  model: string;
+  baseURL: string | undefined;
   concurrency?: number;
 }
 
-/** Jev by default. `SCRUPLE_PROVIDER=kev` with `KEV_BASE_URL` targets a local Kev server instead. */
-export const createEvalProvider = (
-  model: string,
-  options: EvalProviderOptions = {},
-): DecisionProvider => {
-  const concurrency = options.concurrency === undefined ? {} : { concurrency: options.concurrency };
-  const kind = process.env["SCRUPLE_PROVIDER"] ?? "jev";
-  if (kind === "kev") {
-    const baseURL = process.env["KEV_BASE_URL"];
-    if (baseURL === undefined || baseURL.length === 0) {
-      throw new Error("KEV_BASE_URL is required when SCRUPLE_PROVIDER=kev");
-    }
-    const apiKey = process.env["KEV_API_KEY"];
-    return kevProvider({
-      baseURL,
-      model,
-      ...(apiKey === undefined || apiKey.length === 0 ? {} : { apiKey }),
-      ...concurrency,
-    });
-  }
-  if (kind !== "jev") {
-    throw new Error(`Unknown SCRUPLE_PROVIDER: ${kind}`);
-  }
-  const apiKey = process.env["TYPESAFE_API_KEY"];
-  if (apiKey === undefined || apiKey.length === 0) {
-    throw new Error("TYPESAFE_API_KEY is required for Jev evaluations");
-  }
-  return jevProvider({ apiKey, model, ...concurrency });
+export interface EvalProvider {
+  /** Used when `--model` is omitted. Kev has none because its model must name the server's checkpoint. */
+  defaultModel?: string;
+  create: (settings: EvalProviderSettings) => DecisionProvider;
+}
+
+/** Providers by `--provider` name. Only secrets come from the environment. */
+export const EVAL_PROVIDERS: Record<string, EvalProvider> = {
+  jev: {
+    defaultModel: "jev-1.13.0",
+    create: ({ baseURL, ...settings }) => {
+      const apiKey = process.env["TYPESAFE_API_KEY"];
+      if (apiKey === undefined || apiKey.length === 0) {
+        throw new Error("TYPESAFE_API_KEY is required for Jev evaluations");
+      }
+      const options: JevProviderOptions = { ...settings, apiKey };
+      if (baseURL !== undefined) {
+        options.baseURL = baseURL;
+      }
+      return jevProvider(options);
+    },
+  },
+  kev: {
+    create: ({ baseURL, ...settings }) => {
+      if (baseURL === undefined) {
+        throw new Error("--base-url is required for Kev evaluations");
+      }
+      const options: KevProviderOptions = { ...settings, baseURL };
+      const apiKey = process.env["KEV_API_KEY"];
+      if (apiKey !== undefined) {
+        options.apiKey = apiKey;
+      }
+      return kevProvider(options);
+    },
+  },
 };
 
-/** The provider family recorded in reports, such as `jev` or `kev`. */
-export const providerName = (provider: DecisionProvider): string =>
-  provider.id.split(":")[0] ?? provider.id;
+export const evalProvider = (name: string): EvalProvider => {
+  const provider = EVAL_PROVIDERS[name];
+  if (provider === undefined) {
+    throw new Error(`Unknown provider: ${name}`);
+  }
+  return provider;
+};
