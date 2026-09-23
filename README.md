@@ -128,7 +128,7 @@ Install `@scruple/provider-kev` and use `kevProvider` in place of `jevProvider`.
 ```ts
 import { kevProvider } from "@scruple/provider-kev";
 
-provider: kevProvider({ baseURL: "http://127.0.0.1:8008" }),
+provider: kevProvider({ baseURL: "http://127.0.0.1:8008", model: "kev-4b" }),
 ```
 
 To run the eval corpus against Kev:

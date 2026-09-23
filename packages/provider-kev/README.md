@@ -9,7 +9,7 @@ pnpm add --save-dev @scruple/provider-kev
 ```ts
 import { kevProvider } from "@scruple/provider-kev";
 
-const provider = kevProvider({ baseURL: "http://127.0.0.1:8008" });
+const provider = kevProvider({ baseURL: "http://127.0.0.1:8008", model: "kev-4b" });
 ```
 
 Kev serves the System One API from open weights. `concurrency` defaults to `1` because the Kev server

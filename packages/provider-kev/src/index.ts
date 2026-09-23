@@ -19,7 +19,8 @@ export interface KevProviderOptions {
   baseURL: string;
   /** Needed only when the server sets `KEV_API_KEY`. */
   apiKey?: string;
-  model?: string;
+  /** Checkpoint the server loads with `--run`. The server echoes any name, so this keeps cache keys apart. */
+  model: string;
   concurrency?: number;
   timeoutMs?: number;
   maxRetries?: number;
@@ -28,8 +29,12 @@ export interface KevProviderOptions {
 
 /** Kev (github.com/jaredpalmer/kev) serves the System One API from open weights. */
 export const kevProvider = (options: KevProviderOptions): DecisionProvider => {
-  const model = options.model ?? "kev-latest";
+  if (options.model.trim().length === 0) {
+    throw new TypeError("Kev model must not be empty");
+  }
+  const model = options.model;
   const clientConfig: TypeSafeClientConfig = {
+    // Without an explicit key the SDK reads TYPESAFE_API_KEY and would send it to the Kev server.
     apiKey: options.apiKey ?? "kev-local",
     baseURL: options.baseURL,
     defaultModel: model,
