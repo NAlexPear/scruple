@@ -13,7 +13,7 @@ import { BENCHMARK_HELP, parseBenchmarkOptions } from "@scruple/eval/benchmark-o
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { createJevProvider } from "./jev-provider.js";
+import { createEvalProvider, providerName } from "./provider.js";
 
 const plugins = evaluationPlugins();
 
@@ -38,14 +38,14 @@ const runModel = async (
   repetitions: number,
   concurrency: number,
 ): Promise<BenchmarkReport> => {
-  const provider = createJevProvider(model, { concurrency });
+  const provider = createEvalProvider(model, { concurrency });
   try {
     return await runBenchmark({
       fixtures,
       parser: oxcParser(),
       plugins,
       provider,
-      providerName: "jev",
+      providerName: providerName(provider),
       requestedModel: model,
       warmups,
       repetitions,
@@ -68,7 +68,7 @@ const runModels = async (
   if (model === undefined) {
     return [];
   }
-  process.stderr.write(`Benchmarking Jev/${model}...\n`);
+  process.stderr.write(`Benchmarking ${model}...\n`);
   const report = await runModel(model, fixtures, warmups, repetitions, concurrency);
   return [
     report,

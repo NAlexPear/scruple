@@ -1,0 +1,492 @@
+{
+  "api-contracts/no-ambiguous-failure-contracts": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "api-contracts/no-ignored-significant-results": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "api-contracts/no-misleading-function-names": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "api-contracts/no-misleading-http-status": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "api-contracts/no-side-effects-in-safe-http-methods": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "api-contracts/require-input-validation": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "async/no-async-initialization": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "async/no-serial-independent-work": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "async/no-unbounded-concurrency": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "async/no-unobserved-async-work": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "async/require-abort-listener-cleanup": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "async/require-cancellation-propagation": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "async/require-race-loser-cleanup": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/no-change-history-comments": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/no-commented-out-code": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/no-misleading-comments": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/no-useless-comments": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/prefer-concise-comments": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/require-actionable-deprecations": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/require-actionable-todos": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.5,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "comments/require-justified-suppressions": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "errors/no-lossy-error-wrapping": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "errors/no-message-based-error-dispatch": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "errors/no-swallowed-errors": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.5,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "errors/no-useless-catch-boundaries": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "observability/no-duplicate-error-reporting": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "observability/no-sensitive-logs": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "observability/no-unactionable-errors": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "observability/require-operation-context": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "observability/require-stable-telemetry-names": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "relational-databases/no-query-in-loop": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "relational-databases/prefer-database-join": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.5,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "relational-databases/require-deterministic-pagination-order": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "relational-databases/require-transaction-scoped-client": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "resources/no-leaked-resources": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "resources/require-bounded-retries": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "resources/require-cleanup-on-failure": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "resources/require-complete-resource-cleanup": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "resources/require-retry-backoff-with-jitter": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "resources/require-retry-time-budget": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "security/no-sensitive-data-exposure": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "security/no-unsafe-redirect": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "security/no-untrusted-command-execution": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "security/no-untrusted-mass-assignment": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "security/no-user-controlled-authorization": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "tests/no-fixed-delay-synchronization": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "tests/no-nondeterministic-tests": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "tests/no-vacuous-tests": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.4634,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ],
+  "tests/require-specific-error-assertions": [
+    "warn",
+    {
+      "threshold": {
+        "warning": 0.3224,
+        "error": 1
+      },
+      "minConfidence": 0
+    }
+  ]
+}

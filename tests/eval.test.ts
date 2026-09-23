@@ -36,6 +36,8 @@ await test("evaluation options support repeated Jev models", () => {
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
+  assert.equal(parseEvalOptions([]).rules, undefined);
+  assert.equal(parseEvalOptions(["--rules", "kev.rules.json"]).rules, "kev.rules.json");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
   assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
