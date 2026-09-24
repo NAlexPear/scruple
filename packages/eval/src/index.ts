@@ -449,16 +449,26 @@ const abstentionByRuleId = (
 };
 
 export const runEvaluation = async (options: RunEvaluationOptions): Promise<EvalRunReport> => {
-  const cases = await Promise.all(
-    options.fixtures.map((fixture) =>
-      runEvalCase(
+  const cases: EvalCaseResult[] = [];
+  const concurrency = Math.max(1, Math.floor(options.provider.concurrency ?? 1));
+  const entries = options.fixtures.entries();
+  const runWorker = async (): Promise<void> => {
+    const next = entries.next();
+    if (next.done !== true) {
+      const [index, fixture] = next.value;
+      cases[index] = await runEvalCase(
         fixture,
         options.parser,
         options.plugins,
         options.rules?.[fixture.ruleId] ?? "warn",
         options.provider,
-      ),
-    ),
+      );
+      await runWorker();
+    }
+  };
+  // Each case runs its own runScruple, so bound cases by the provider's concurrency too.
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, options.fixtures.length) }, runWorker),
   );
   const failures = cases.filter((result) => !result.accepted);
   const latencies = cases.map((result) => result.latencyMs);

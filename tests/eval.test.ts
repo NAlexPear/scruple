@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import type {
   ChoiceAnswer,
@@ -364,6 +365,50 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
   assert.deepEqual(report.usage, { inputTokens: 14, modelCalls: 2, outputTokens: 6 });
   assert.equal(report.cases[0]?.model, "resolved-model");
   assert.equal(hasEvalFailures([report]), false);
+});
+
+await test("evaluation runner bounds cases by provider concurrency", async () => {
+  let active = 0;
+  let peak = 0;
+  const scoring = makeScoringProvider();
+  const provider: DecisionProvider = {
+    ...scoring,
+    concurrency: 2,
+    async evaluate(request): Promise<DecisionResponse> {
+      active += 1;
+      peak = Math.max(peak, active);
+      await delay(5);
+      active -= 1;
+      return scoring.evaluate(request);
+    },
+  };
+  const fixtures: EvalFixture[] = ["a", "b", "c", "d", "e"].map((id) => ({
+    id,
+    filename: `${id}.ts`,
+    source: "function good() { return 1; }",
+    ruleId: "test/bad-rule",
+    expectedFinding: false,
+    expectedCandidates: 1,
+    expectedChoices: ["good"],
+    rationale: "Exercise bounded case concurrency.",
+    tags: ["concurrency"],
+  }));
+  const report = await runEvaluation({
+    fixtures,
+    parser: oxcParser(),
+    plugins: { test: makeTestPlugin() },
+    provider,
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.equal(peak, 2);
+  assert.deepEqual(
+    report.cases.map((result) => result.id),
+    ["a", "b", "c", "d", "e"],
+  );
+  assert.equal(report.summary.passed, 5);
 });
 
 await test("evaluation runner distinguishes exact safe decisions from abstentions", async () => {
