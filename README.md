@@ -114,31 +114,6 @@ See the [agent skills guide](https://scruple.dev/guide/agent-skills) for non-int
 Amp, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, and OpenCode, plus direct access to the
 bare skills.
 
-### Run against a local Kev server
-
-[Kev](https://github.com/jaredpalmer/kev) is a family of open-weights models that serves the same
-System One API as Jev. Its server binds to `127.0.0.1`:
-
-```sh
-uv run --extra serve python -m kev.serve --run jaredpalmer/kev-4b --port 8008
-```
-
-Install `@scruple/provider-kev` and pass `kevProvider` as the provider. It needs no TypeSafe key.
-Kev misses most violations at Scruple's shared thresholds, so read the
-[Kev results](https://scruple.dev/providers/kev#results) before relying on it:
-
-```ts
-import { kevProvider } from "@scruple/provider-kev";
-
-provider: kevProvider({ baseURL: "http://127.0.0.1:8008", model: "kev-4b" }),
-```
-
-To run the eval corpus against Kev:
-
-```sh
-pnpm eval --provider kev --base-url http://127.0.0.1:8008 --model kev-4b
-```
-
 ### Configure rules
 
 Plugins register rules without enabling them. Configure each rule separately with `"off"`, `"warn"`,

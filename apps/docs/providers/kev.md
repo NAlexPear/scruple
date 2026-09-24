@@ -40,12 +40,11 @@ These results were recorded on September 23, 2026, on an Apple M2 Max, against `
 Scruple's shared rule thresholds. Kev answers in one deterministic forward pass, so one repetition
 is enough.
 
-| Workload                                    | Kev 4B                      | Kev 9B                      |
-| ------------------------------------------- | --------------------------- | --------------------------- |
-| Held-out half of the eval corpus (93 cases) | 0.85 precision, 0.29 recall | 0.81 precision, 0.34 recall |
-| Full eval corpus (187 cases)                | 0.91 precision, 0.26 recall | 0.90 precision, 0.33 recall |
-| Pinned benchmark, 10 cases x 2, strict      | 4/20                        | 10/20                       |
-| Pinned benchmark, p50 case latency          | 543 ms                      | 943 ms                      |
+| Workload                               | Kev 4B                      | Kev 9B                      |
+| -------------------------------------- | --------------------------- | --------------------------- |
+| Full eval corpus (187 cases)           | 0.91 precision, 0.26 recall | 0.90 precision, 0.33 recall |
+| Pinned benchmark, 10 cases x 2, strict | 4/20                        | 10/20                       |
+| Pinned benchmark, p50 case latency     | 543 ms                      | 943 ms                      |
 
 Kev usually picks the right label, 18/20 (4B) and 20/20 (9B) on the pinned benchmark, but with lower
 probabilities than the thresholds expect. Most violations therefore go unreported. Latency is serial
