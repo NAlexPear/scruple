@@ -11,6 +11,8 @@ export interface EvalProviderSettings {
 export interface EvalProvider {
   /** Used when `--model` is omitted. Kev has none because its model must name the server's checkpoint. */
   defaultModel?: string;
+  /** Kev serves the one checkpoint it loaded with `--run` and echoes any model name. */
+  oneModelPerRun?: boolean;
   create: (settings: EvalProviderSettings) => DecisionProvider;
 }
 
@@ -31,6 +33,7 @@ export const EVAL_PROVIDERS: Record<string, EvalProvider> = {
     },
   },
   kev: {
+    oneModelPerRun: true,
     create: ({ baseURL, ...settings }) => {
       if (baseURL === undefined) {
         throw new Error("--base-url is required for Kev evaluations");

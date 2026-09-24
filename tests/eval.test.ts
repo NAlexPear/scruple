@@ -56,6 +56,10 @@ await test("evaluation options support repeated Jev models", () => {
     },
   );
   assert.throws(() => parseEvalOptions(["--provider", "kev"]), /--model is required for kev/u);
+  assert.throws(
+    () => parseEvalOptions(["--provider", "kev", "--model", "kev-4b", "--model", "kev-9b"]),
+    /kev serves one model per --base-url/u,
+  );
   assert.throws(() => parseEvalOptions(["--provider", "other"]), /Unknown provider: other/u);
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);

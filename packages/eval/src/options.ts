@@ -19,7 +19,7 @@ Usage:
 Options:
   --provider <name>      jev or kev (default: jev)
   --base-url <url>       Provider API root; required for kev
-  --model <model>        Model to evaluate; repeat to compare models (default: jev-1.13.0 for jev)
+  --model <model>        Model to evaluate; repeat to compare jev models (default: jev-1.13.0 for jev)
   --repetitions <count>  Runs per model (default: 1)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
@@ -67,8 +67,11 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
 
 /** The requested models, or the provider's default when `--model` is omitted. */
 export const parseModels = (provider: string, models: string[] | undefined): string[] => {
-  const { defaultModel } = evalProvider(provider);
+  const { defaultModel, oneModelPerRun } = evalProvider(provider);
   if (models !== undefined) {
+    if (oneModelPerRun === true && models.length > 1) {
+      throw new Error(`${provider} serves one model per --base-url, so pass one --model per run`);
+    }
     return models;
   }
   if (defaultModel === undefined) {
