@@ -26,8 +26,8 @@ const provider = kevProvider({ baseURL: "http://127.0.0.1:8008", model: "kev-4b"
 | `apiKey`      | `"kev-local"` | Needed only when the server sets `KEV_API_KEY` |
 | `model`       | Required      | Checkpoint the server loads with `--run`       |
 | `concurrency` | `1`           | Maximum simultaneous provider requests         |
-| `timeoutMs`   | `60000`       | Request timeout in milliseconds                |
-| `maxRetries`  | `0`           | SDK retry count                                |
+| `timeoutMs`   | `10000`       | Request timeout in milliseconds                |
+| `maxRetries`  | `2`           | SDK retry count                                |
 | `fetch`       | Runtime fetch | Custom fetch implementation                    |
 
 The Kev server answers under whatever `model` it receives, and the provider `id` includes `model`.

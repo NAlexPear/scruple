@@ -38,8 +38,8 @@ export const kevProvider = (options: KevProviderOptions): DecisionProvider => {
     apiKey: options.apiKey ?? "kev-local",
     baseURL: options.baseURL,
     defaultModel: model,
-    timeout: options.timeoutMs ?? 60_000,
-    retry: { maxRetries: options.maxRetries ?? 0 },
+    timeout: options.timeoutMs ?? 10_000,
+    retry: { maxRetries: options.maxRetries ?? 2 },
   };
   if (options.fetch !== undefined) {
     clientConfig.fetch = options.fetch;
@@ -52,8 +52,8 @@ export const kevProvider = (options: KevProviderOptions): DecisionProvider => {
 
     async evaluate(request: DecisionRequest, signal?: AbortSignal): Promise<DecisionResponse> {
       const requestOptions: RequestOptions = {
-        timeout: options.timeoutMs ?? 60_000,
-        retry: { maxRetries: options.maxRetries ?? 0 },
+        timeout: options.timeoutMs ?? 10_000,
+        retry: { maxRetries: options.maxRetries ?? 2 },
       };
       if (signal !== undefined) {
         requestOptions.signal = signal;
