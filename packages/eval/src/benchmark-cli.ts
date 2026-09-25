@@ -9,10 +9,15 @@ import {
   sizeBenchmarkWorkload,
   type BenchmarkReport,
 } from "@scruple/eval/benchmark";
-import { BENCHMARK_HELP, parseBenchmarkOptions } from "@scruple/eval/benchmark-options";
+import {
+  BENCHMARK_HELP,
+  parseBenchmarkOptions,
+  type BenchmarkProvider,
+} from "@scruple/eval/benchmark-options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
+import { createDeciderProvider } from "./decider-provider.js";
 import { createJevProvider } from "./jev-provider.js";
 
 const plugins = evaluationPlugins();
@@ -32,20 +37,28 @@ const loadBenchmarkFixtureIds = async (): Promise<string[]> => {
 };
 
 const runModel = async (
+  providerName: BenchmarkProvider,
   model: string,
   fixtures: readonly EvalFixture[],
   warmups: number,
   repetitions: number,
   concurrency: number,
+  baseURL?: string,
 ): Promise<BenchmarkReport> => {
-  const provider = createJevProvider(model, { concurrency });
+  const provider =
+    providerName === "decider"
+      ? createDeciderProvider(model, {
+          concurrency,
+          ...(baseURL === undefined ? {} : { baseURL }),
+        })
+      : createJevProvider(model, { concurrency });
   try {
     return await runBenchmark({
       fixtures,
       parser: oxcParser(),
       plugins,
       provider,
-      providerName: "jev",
+      providerName,
       requestedModel: model,
       warmups,
       repetitions,
@@ -57,22 +70,41 @@ const runModel = async (
 };
 
 const runModels = async (
+  providerName: BenchmarkProvider,
   models: readonly string[],
   fixtures: readonly EvalFixture[],
   warmups: number,
   repetitions: number,
   concurrency: number,
+  baseURL?: string,
   index = 0,
 ): Promise<BenchmarkReport[]> => {
   const model = models[index];
   if (model === undefined) {
     return [];
   }
-  process.stderr.write(`Benchmarking Jev/${model}...\n`);
-  const report = await runModel(model, fixtures, warmups, repetitions, concurrency);
+  process.stderr.write(`Benchmarking ${providerName}/${model}...\n`);
+  const report = await runModel(
+    providerName,
+    model,
+    fixtures,
+    warmups,
+    repetitions,
+    concurrency,
+    baseURL,
+  );
   return [
     report,
-    ...(await runModels(models, fixtures, warmups, repetitions, concurrency, index + 1)),
+    ...(await runModels(
+      providerName,
+      models,
+      fixtures,
+      warmups,
+      repetitions,
+      concurrency,
+      baseURL,
+      index + 1,
+    )),
   ];
 };
 
@@ -92,11 +124,13 @@ const main = async (): Promise<void> => {
       ? selectedFixtures
       : sizeBenchmarkWorkload(selectedFixtures, options.workloadSize);
   const runs = await runModels(
+    options.provider,
     options.models,
     workload,
     options.warmups,
     options.repetitions,
     options.concurrency,
+    options.baseURL,
   );
   const processors = cpus();
   process.stdout.write(

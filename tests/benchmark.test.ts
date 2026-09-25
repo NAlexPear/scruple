@@ -21,13 +21,17 @@ import { parseBenchmarkOptions } from "@scruple/eval/benchmark-options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-await test("benchmark options support repeated Jev models and run settings", () => {
+await test("benchmark options support providers, repeated models, and run settings", () => {
   assert.deepEqual(
     parseBenchmarkOptions([
+      "--provider",
+      "decider",
+      "--base-url",
+      "http://127.0.0.1:9000",
       "--model",
-      "jev-stable",
+      "decider-stable",
       "--model",
-      "jev-candidate",
+      "decider-candidate",
       "--fixture",
       "first",
       "--fixture",
@@ -42,18 +46,30 @@ await test("benchmark options support repeated Jev models and run settings", () 
       "5",
     ]),
     {
+      baseURL: "http://127.0.0.1:9000",
       concurrency: 2,
       fixtureIds: ["first", "second"],
       help: false,
-      models: ["jev-stable", "jev-candidate"],
+      models: ["decider-stable", "decider-candidate"],
+      provider: "decider",
       repetitions: 4,
       warmups: 0,
       workloadSize: 5,
     },
   );
-  assert.deepEqual(parseBenchmarkOptions([]).models, ["jev-1.13.0"]);
+  assert.deepEqual(parseBenchmarkOptions([]), {
+    concurrency: 1,
+    fixtureIds: [],
+    help: false,
+    models: ["jev-1.13.0"],
+    provider: "jev",
+    repetitions: 3,
+    warmups: 1,
+  });
+  assert.deepEqual(parseBenchmarkOptions(["--provider", "decider"]).models, ["decider-4b-v2.1"]);
   assert.throws(() => parseBenchmarkOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseBenchmarkOptions(["--workload-size", "0"]), /positive integer/u);
+  assert.throws(() => parseBenchmarkOptions(["--provider", "other"]), /jev.*decider/u);
 });
 
 await test("benchmark workload is stable, unique, and covers every plugin", async () => {

@@ -27,6 +27,7 @@
       "@scruple/eval/plugins": ["./packages/eval/src/plugins.ts"],
       "@scruple/observability": ["./packages/observability/src/index.ts"],
       "@scruple/parser-oxc": ["./packages/parser-oxc/src/index.ts"],
+      "@scruple/provider-decider": ["./packages/provider-decider/src/index.ts"],
       "@scruple/provider-jev": ["./packages/provider-jev/src/index.ts"],
       "@scruple/relational-databases": ["./packages/relational-databases/src/index.ts"],
       "@scruple/resources": ["./packages/resources/src/index.ts"],

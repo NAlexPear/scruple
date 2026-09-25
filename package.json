@@ -39,6 +39,7 @@
     "@scruple/eval": "workspace:*",
     "@scruple/observability": "workspace:*",
     "@scruple/parser-oxc": "workspace:*",
+    "@scruple/provider-decider": "workspace:*",
     "@scruple/provider-jev": "workspace:*",
     "@scruple/relational-databases": "workspace:*",
     "@scruple/resources": "workspace:*",
