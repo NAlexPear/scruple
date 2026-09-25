@@ -41,7 +41,7 @@ Reviews sleeps, pauses, `waitForTimeout`, and direct timers used to wait for rea
 
 ## `tests/no-nondeterministic-tests`
 
-Reviews test bodies with direct calls to common randomness and wall-clock sources. Seeded randomness, fake clocks, and tests explicitly asserting nondeterministic properties are accepted. Candidate selection is conservative, and opaque helpers or externally controlled inputs cause abstention.
+Reviews test bodies with direct calls to common randomness and wall-clock sources, including argument-free `new Date()`, Luxon's `DateTime.now()`, `DateTime.utc()`, and `DateTime.local()`, `moment()`, and `dayjs()`. Seeded randomness, fake clocks, injected clocks, and tests explicitly asserting nondeterministic properties are accepted. Candidate selection is conservative, and opaque helpers or externally controlled inputs cause abstention.
 
 ```ts
 rules: {
