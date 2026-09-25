@@ -42,6 +42,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     collapsed: true,
     items: [
       { text: "Overview", link: "/providers/" },
+      { text: "Decider", link: "/providers/decider" },
       { text: "Jev", link: "/providers/jev" },
       { text: "Kev", link: "/providers/kev" },
     ],

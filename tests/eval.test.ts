@@ -29,7 +29,6 @@ await test("evaluation options support repeated Jev models", () => {
   assert.deepEqual(
     parseEvalOptions(["--model", "jev-stable", "--model", "jev-candidate", "--repetitions", "2"]),
     {
-      baseURL: undefined,
       format: "json",
       help: false,
       models: ["jev-stable", "jev-candidate"],
@@ -38,6 +37,7 @@ await test("evaluation options support repeated Jev models", () => {
     },
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
+  assert.deepEqual(parseEvalOptions(["--provider", "decider"]).models, ["decider-4b-v2.1"]);
   assert.deepEqual(
     parseEvalOptions([
       "--provider",
@@ -61,7 +61,10 @@ await test("evaluation options support repeated Jev models", () => {
     () => parseEvalOptions(["--provider", "kev", "--model", "kev-4b", "--model", "kev-9b"]),
     /kev serves one model per --base-url/u,
   );
-  assert.throws(() => parseEvalOptions(["--provider", "other"]), /Unknown provider: other/u);
+  assert.throws(
+    () => parseEvalOptions(["--provider", "other"]),
+    /--provider must be one of: jev, decider, kev/u,
+  );
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);

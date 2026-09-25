@@ -42,7 +42,7 @@ const runModel = async (
 ): Promise<BenchmarkReport> => {
   const provider = evalProvider(options.provider).create({
     model,
-    baseURL: options.baseURL,
+    ...(options.baseURL === undefined ? {} : { baseURL: options.baseURL }),
     concurrency: options.concurrency,
   });
   try {

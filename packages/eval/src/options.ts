@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 import { evalProvider } from "./provider.js";
 
 export interface EvalOptions {
-  baseURL: string | undefined;
+  baseURL?: string;
   format: "json" | "stylish";
   help: boolean;
   models: string[];
@@ -17,15 +17,18 @@ Usage:
   pnpm eval [options]
 
 Options:
-  --provider <name>      jev or kev (default: jev)
-  --base-url <url>       Provider API root; required for kev
-  --model <model>        Model to evaluate; repeat to compare jev models (default: jev-1.13.0 for jev)
+  --provider <name>      jev, decider, or kev (default: jev)
+  --base-url <url>       Provider API root; required for kev (decider default: http://127.0.0.1:8000)
+  --model <model>        Model to evaluate; repeat to compare models (default: jev-1.13.0 for jev,
+                         decider-4b-v2.1 for decider)
   --repetitions <count>  Runs per model (default: 1)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
 
 Environment:
   TYPESAFE_API_KEY  Required by jev
+  DECIDER_BASE_URL  Optional Decider API base URL
+  DECIDER_API_KEY   Optional bearer token for a Decider proxy
   KEV_API_KEY       Sent to kev when the server sets one
 
 Examples:
@@ -56,7 +59,7 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     throw new Error(`Unknown output format: ${values.format}`);
   }
   return {
-    baseURL: values["base-url"],
+    ...(values["base-url"] === undefined ? {} : { baseURL: values["base-url"] }),
     format: values.format,
     help: values.help,
     models: parseModels(values.provider, values.model),

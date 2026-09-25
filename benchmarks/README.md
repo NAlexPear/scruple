@@ -2,14 +2,13 @@
 
 Scruple's own engine has two benchmark commands:
 
-- `pnpm benchmark` measures rule accuracy and speed against Jev. It requires a Typesafe API key and
-  always calls the model.
+- `pnpm benchmark` measures rule accuracy and speed against Jev or Decider. It always calls the model.
 - `pnpm benchmark-cache` measures uncached, cold-cache, warm-cache, and one-file-change runs. It uses
   a local fixed-delay provider, so it needs no API key.
 
-## Benchmark Scruple with Jev
+## Benchmark Scruple with a decision model
 
-This benchmark runs a versioned semantic-rule workload against Jev. It measures Scruple end to end, including parsing, candidate collection, provider requests, and diagnosis.
+This benchmark runs a versioned semantic-rule workload against Jev or Decider. It measures Scruple end to end, including parsing, candidate collection, provider requests, and diagnosis.
 
 The default workload selects ten cases from `tests/eval-fixtures.json`. Its IDs are pinned in `fixtures.json` so correctness-corpus growth does not silently change benchmark results.
 
@@ -21,7 +20,17 @@ TYPESAFE_API_KEY=your-key pnpm benchmark > jev-benchmark.json
 
 Jev is a hosted service. [Current model pricing](https://docs.typesafe.ai/models) is $0.042 per million input tokens for Jev 1.13, with output tokens free. The report records input and output token counts so costs can be recalculated if pricing changes.
 
-To compare Jev models on the same workload, repeat `--model`:
+To benchmark a local Decider 4B v2.1 server against the same pinned workload:
+
+```sh
+pnpm benchmark --provider decider --base-url http://127.0.0.1:8000 \
+  --model decider-4b-v2.1 > decider-benchmark.json
+```
+
+Start it with Decider's `scripts/serve.sh Mapika/decider-4b 8000` first. You can alternatively set
+`DECIDER_BASE_URL` and, for an authenticating proxy, `DECIDER_API_KEY`.
+
+To compare model versions from the selected provider on the same workload, repeat `--model`:
 
 ```sh
 TYPESAFE_API_KEY=your-key pnpm benchmark \
@@ -54,7 +63,7 @@ The JSON report includes:
 
 Warmup work is excluded from measured samples and token totals. Keep workload, concurrency, warmups, repetitions, and environment identical when comparing models.
 
-This model-quality benchmark deliberately bypasses the decision cache so every case reaches Jev.
+This model-quality benchmark deliberately bypasses the decision cache so every case reaches the provider.
 Use the separate local cache benchmark to compare uncached, cold, warm, and one-file-change runs:
 
 ```sh

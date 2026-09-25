@@ -136,6 +136,9 @@ importers:
       '@scruple/parser-oxc':
         specifier: workspace:*
         version: link:packages/parser-oxc
+      '@scruple/provider-decider':
+        specifier: workspace:*
+        version: link:packages/provider-decider
       '@scruple/provider-jev':
         specifier: workspace:*
         version: link:packages/provider-jev
@@ -261,6 +264,9 @@ importers:
       '@scruple/parser-oxc':
         specifier: workspace:*
         version: link:../parser-oxc
+      '@scruple/provider-decider':
+        specifier: workspace:*
+        version: link:../provider-decider
       '@scruple/provider-jev':
         specifier: workspace:*
         version: link:../provider-jev
@@ -294,6 +300,15 @@ importers:
       oxc-parser:
         specifier: ^0.150.0
         version: 0.150.0
+
+  packages/provider-decider:
+    dependencies:
+      '@scruple/core':
+        specifier: workspace:*
+        version: link:../core
+      '@typesafe-ai/sdk':
+        specifier: ^0.6.0
+        version: 0.6.0
 
   packages/provider-jev:
     dependencies:

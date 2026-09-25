@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 import { parseModels } from "@scruple/eval/options";
 
 export interface BenchmarkOptions {
-  baseURL: string | undefined;
+  baseURL?: string;
   concurrency: number;
   fixtureIds: string[];
   help: boolean;
@@ -20,9 +20,10 @@ Usage:
   pnpm benchmark [options]
 
 Options:
-  --provider <name>      jev or kev (default: jev)
-  --base-url <url>       Provider API root; required for kev
-  --model <model>        Model to benchmark; repeat to compare models (default: jev-1.13.0 for jev)
+  --provider <name>      jev, decider, or kev (default: jev)
+  --base-url <url>       Provider API root; required for kev (decider default: http://127.0.0.1:8000)
+  --model <model>        Model to benchmark; repeat to compare models (default: jev-1.13.0 for jev,
+                         decider-4b-v2.1 for decider)
   --fixture <id>         Benchmark only this fixture; repeat to select several
   --workload-size <n>    Cycle selected fixtures to create exactly n cases
   --warmups <count>      Unmeasured runs per model (default: 1)
@@ -32,12 +33,15 @@ Options:
 
 Environment:
   TYPESAFE_API_KEY  Required by jev
+  DECIDER_BASE_URL  Optional Decider API base URL
+  DECIDER_API_KEY   Optional bearer token for a Decider proxy
   KEV_API_KEY       Sent to kev when the server sets one
 
 Examples:
   pnpm benchmark
   pnpm benchmark --model jev-1.13.0 --repetitions 5
   pnpm benchmark --model jev-1.13.0 --model jev-latest
+  pnpm benchmark --provider decider --model decider-4b-v2.1
   pnpm benchmark --provider kev --base-url http://127.0.0.1:8008 --model kev-4b
 `;
 
@@ -64,7 +68,7 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
       ? undefined
       : parseCount(values["workload-size"], "--workload-size", false);
   return {
-    baseURL: values["base-url"],
+    ...(values["base-url"] === undefined ? {} : { baseURL: values["base-url"] }),
     concurrency,
     fixtureIds: values.fixture ?? [],
     help: values.help,

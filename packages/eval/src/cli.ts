@@ -22,7 +22,10 @@ const runModel = async (
   options: EvalOptions,
   fixtures: readonly EvalFixture[],
 ): Promise<EvalRunReport[]> => {
-  const provider = evalProvider(options.provider).create({ model, baseURL: options.baseURL });
+  const provider = evalProvider(options.provider).create({
+    model,
+    ...(options.baseURL === undefined ? {} : { baseURL: options.baseURL }),
+  });
   try {
     return await Promise.all(
       Array.from({ length: options.repetitions }, (_, index) =>
