@@ -78,6 +78,33 @@ test("uses injected controls", () => {
   );
 });
 
+await test("nondeterministic tests select argument-free clock reads but not fixed dates", () => {
+  const document = oxcParser().parse(
+    "clock.test.ts",
+    `function stampNow() { return new Date(); }
+test("constructs the current date", () => expect(windowFor(new Date())).toEqual(expected));
+test("constructs a fixed date", () => expect(windowFor(new Date("2026-01-15T12:00:00Z"))).toEqual(expected));
+test("reads the current luxon time", () => expect(periodKey()).toBe(DateTime.now().toFormat("yyyy-MM")));
+test("reads the current utc time", () => expect(periodKey()).toBe(DateTime.utc().toFormat("yyyy-MM")));
+test("builds a fixed utc time", () => expect(periodKey(DateTime.utc(2026, 1, 15))).toBe("2026-01"));
+test("reads the current moment", () => expect(label()).toBe(moment().format("MMMM")));
+test("uses a fixed moment", () => expect(label(moment("2026-01-15"))).toBe("January"));
+test("uses helper time", () => expect(isFresh(stampNow())).toBe(true));
+`,
+  );
+
+  assert.deepEqual(
+    selectedTestNames(tests().rules["no-nondeterministic-tests"]().collect(document)),
+    [
+      "constructs the current date",
+      "reads the current luxon time",
+      "reads the current utc time",
+      "reads the current moment",
+      "uses helper time",
+    ],
+  );
+});
+
 await test("no-vacuous-tests distinguishes explicit checks, intentional smoke tests, and vacuity", () => {
   const rule = tests().rules["no-vacuous-tests"]();
   const candidates = rule.collect(
