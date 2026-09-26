@@ -1,6 +1,6 @@
 {
   "name": "@scruple/comments",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Semantic rules for source-code comments.",
   "keywords": [
     "code-quality",

@@ -1,6 +1,6 @@
 {
   "name": "@scruple/security",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Advisory semantic rules for security-sensitive code.",
   "keywords": [
     "authorization",

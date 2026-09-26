@@ -1,6 +1,6 @@
 {
   "name": "@scruple/provider-jev",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "TypeSafe Jev decision provider for Scruple.",
   "keywords": [
     "ai",

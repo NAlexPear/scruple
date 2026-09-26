@@ -1,6 +1,6 @@
 {
   "name": "@scruple/tests",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Semantic rules for automated tests.",
   "keywords": [
     "code-quality",
