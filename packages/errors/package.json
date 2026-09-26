@@ -1,6 +1,6 @@
 {
   "name": "@scruple/errors",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Semantic rules for error handling.",
   "keywords": [
     "code-quality",

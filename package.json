@@ -1,6 +1,6 @@
 {
   "name": "scruple-workspace",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Semantic code rules powered by typed decisions.",
   "homepage": "https://github.com/NAlexPear/scruple#readme",
