@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+import type { DecisionProvider } from "@scruple/core";
 import {
   formatEvalRuns,
   hasEvalFailures,
@@ -13,33 +14,67 @@ import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
+import { createDeciderProvider } from "./decider-provider.js";
 import { createJevProvider } from "./jev-provider.js";
 
 const plugins = evaluationPlugins();
 
 const runModel = async (
+  providerName: "jev" | "decider",
   model: string,
   repetitions: number,
+  concurrency: number,
   fixtures: readonly EvalFixture[],
+  baseURL?: string,
 ): Promise<EvalRunReport[]> => {
-  const provider = createJevProvider(model);
+  const provider =
+    providerName === "decider"
+      ? createDeciderProvider(model, {
+          concurrency,
+          ...(baseURL === undefined ? {} : { baseURL }),
+        })
+      : createJevProvider(model, { concurrency });
   try {
-    return await Promise.all(
-      Array.from({ length: repetitions }, (_, index) =>
-        runEvaluation({
-          fixtures,
-          parser: oxcParser(),
-          plugins,
-          provider,
-          providerName: "jev",
-          requestedModel: model,
-          repetition: index + 1,
-        }),
-      ),
-    );
+    return await runRepetitions(providerName, model, repetitions, concurrency, fixtures, provider);
   } finally {
     await provider.close?.();
   }
+};
+
+const runRepetitions = async (
+  providerName: "jev" | "decider",
+  model: string,
+  repetitions: number,
+  concurrency: number,
+  fixtures: readonly EvalFixture[],
+  provider: DecisionProvider,
+  index = 0,
+): Promise<EvalRunReport[]> => {
+  if (index >= repetitions) {
+    return [];
+  }
+  const report = await runEvaluation({
+    concurrency,
+    fixtures,
+    parser: oxcParser(),
+    plugins,
+    provider,
+    providerName,
+    requestedModel: model,
+    repetition: index + 1,
+  });
+  return [
+    report,
+    ...(await runRepetitions(
+      providerName,
+      model,
+      repetitions,
+      concurrency,
+      fixtures,
+      provider,
+      index + 1,
+    )),
+  ];
 };
 
 try {
@@ -54,7 +89,16 @@ try {
     await validateEvalCorpus(fixtures, oxcParser(), plugins);
     const runs = (
       await Promise.all(
-        options.models.map((model) => runModel(model, options.repetitions, fixtures)),
+        options.models.map((model) =>
+          runModel(
+            options.provider,
+            model,
+            options.repetitions,
+            options.concurrency,
+            fixtures,
+            options.baseURL,
+          ),
+        ),
       )
     ).flat();
     process.stdout.write(
