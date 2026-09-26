@@ -151,7 +151,7 @@ jobs:
             if pnpm view "$name@$version" version >/dev/null 2>&1; then
               echo "$name@$version is already published; skipping."
             else
-              pnpm publish "$archive" --access public --provenance --no-git-checks
+              npm publish "$archive" --access public --provenance
             fi
           done < <(node -e '
             const packages = require("./release/packages.json");
