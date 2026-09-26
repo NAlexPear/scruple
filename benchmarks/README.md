@@ -63,6 +63,12 @@ The JSON report includes:
 
 Warmup work is excluded from measured samples and token totals. Keep workload, concurrency, warmups, repetitions, and environment identical when comparing models.
 
+Published result data:
+
+- [Decider 4B v2.1 on Apple MPS](results/decider-4b-v2.1/2026-09-26-apple-mps/)
+- [Jev 1.13.0](results/jev-1.13.0/2026-09-20/)
+- [Jev 1.13.0 after rule calibration](results/jev-1.13.0/2026-09-20-post-calibration/)
+
 This model-quality benchmark deliberately bypasses the decision cache so every case reaches the provider.
 Use the separate local cache benchmark to compare uncached, cold, warm, and one-file-change runs:
 

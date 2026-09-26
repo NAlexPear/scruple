@@ -78,6 +78,22 @@ The first run exposed three different problems that one correctness percentage h
 
 The rules now ask more direct questions about code that can run at the same time, database-only key matching, and values visible in logs. New counterexamples cover missing concurrency guarantees, application-only decryption, mixed redacted and raw secrets, and harmless token-count metrics. Across those three rules, 19 fixtures over five measured repetitions produced 95/95 strict matches, including 10 cases where the rule correctly declined to decide. This is evidence for these fixed examples, not a claim that the rules are perfect on unseen code.
 
+## Decider 4B on Apple MPS
+
+We ran Decider 4B v2.1 locally on an Apple M5 Max using MPS. The run used the same ten pinned fixtures, one unmeasured warmup, and three measured repetitions at each concurrency. That is 10 unique fixtures repeated three times, not 30 independent examples.
+
+| Concurrency | Label agreement | Diagnostic agreement | Strict agreement | Mean case time | Cases per second |
+| ----------: | --------------: | -------------------: | ---------------: | -------------: | ---------------: |
+|           1 |   27/30 (90.0%) |        18/30 (60.0%) |    15/30 (50.0%) |         168 ms |            5.967 |
+|           2 |   27/30 (90.0%) |        18/30 (60.0%) |    15/30 (50.0%) |         348 ms |            5.399 |
+|           4 |   27/30 (90.0%) |        18/30 (60.0%) |    15/30 (50.0%) |         680 ms |            5.128 |
+
+Label agreement checks the answer before rule thresholds. Diagnostic agreement checks whether Scruple reported or suppressed a finding as expected. Strict agreement requires the expected label, diagnostic behavior, candidate count, and abstention behavior together. The results were stable across repetitions: 9 of the 10 unique fixtures had the expected label, 6 had the expected diagnostic outcome, and 5 were strict matches.
+
+The probability and confidence thresholds stayed fixed for like-for-like comparison with other models. Four fixtures had the expected label but did not clear the threshold needed to report a finding. One fixture had the wrong label but still produced the expected no-diagnostic outcome because confidence was too low to report it. The MPS path used fp16, while Decider's published calibration reference uses bf16.
+
+Concurrency 1 was fastest for this local workload. Do not compare its throughput directly with hosted Jev throughput. The Decider result used one Apple MPS machine; Jev runs on hosted hardware whose serving configuration is not part of this benchmark.
+
 ## How the comparisons work
 
 The workload IDs are pinned in [`benchmarks/fixtures.json`](https://github.com/NAlexPear/scruple/blob/main/benchmarks/fixtures.json).
@@ -147,6 +163,7 @@ change the number of unmeasured cycles.
 The hosted runs require API keys. The static tools have their own installation requirements. See each runner's README for setup details:
 
 - [Jev](https://github.com/NAlexPear/scruple/blob/main/benchmarks/README.md)
+- [Decider](https://github.com/NAlexPear/scruple/blob/main/apps/docs/providers/decider.md)
 - [Direct hosted LLM](https://github.com/NAlexPear/scruple/blob/main/benchmarks/llm-README.md)
 - [Semgrep](https://github.com/NAlexPear/scruple/blob/main/benchmarks/semgrep/README.md)
 - [CodeQL](https://github.com/NAlexPear/scruple/blob/main/benchmarks/codeql/README.md)
@@ -163,6 +180,7 @@ The Jev benchmark cannot separate internet travel time from work inside Jev. Scr
 ## Saved data
 
 - [Equal-size comparison](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/comparison/2026-09-20)
+- [Decider 4B v2.1 on Apple MPS](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/decider-4b-v2.1/2026-09-26-apple-mps)
 - [Jev 1.13.0](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20)
 - [Jev 1.13.0 after rule calibration](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20-post-calibration)
 

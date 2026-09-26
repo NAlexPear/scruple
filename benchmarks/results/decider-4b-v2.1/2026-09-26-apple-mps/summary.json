@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-26",
+  "commit": "3c16bb121742f01670f2990626544ff65c76a90f",
+  "provider": "decider",
+  "requestedModel": "decider-4b-v2.1",
+  "resolvedModel": "decider-4b-v2.1",
+  "model": {
+    "hubId": "Mapika/decider-4b",
+    "hubRevision": "eb5fbdfc9448473ec25e399882912863afbdb70e"
+  },
+  "environment": {
+    "node": "v22.23.2",
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "machine": "MacBook Pro (Mac17,6)",
+    "cpu": "Apple M5 Max",
+    "logicalCpuCount": 18,
+    "totalMemoryBytes": 51539607552,
+    "device": "mps"
+  },
+  "workload": {
+    "baseFixtureCount": 10,
+    "fixtureCount": 10,
+    "warmups": 1,
+    "repetitions": 3,
+    "measuredCasesPerConcurrency": 30
+  },
+  "results": [
+    {
+      "concurrency": 1,
+      "strictMatches": 15,
+      "labelMatches": 27,
+      "diagnosticMatches": 18,
+      "abstentionMatches": 30,
+      "actualAbstentions": 0,
+      "expectedAbstentions": 0,
+      "durationMs": { "mean": 1675.812, "p50": 1675.943, "p95": 1681.417 },
+      "caseLatencyMs": { "mean": 167.575, "p50": 163.619, "p95": 204.636 },
+      "throughputCasesPerSecond": 5.967,
+      "inputTokens": 13440,
+      "outputTokens": 0,
+      "modelCalls": 30,
+      "rawReport": "raw/concurrency-1.json.gz"
+    },
+    {
+      "concurrency": 2,
+      "strictMatches": 15,
+      "labelMatches": 27,
+      "diagnosticMatches": 18,
+      "abstentionMatches": 30,
+      "actualAbstentions": 0,
+      "expectedAbstentions": 0,
+      "durationMs": { "mean": 1852.339, "p50": 1869.896, "p95": 1881.411 },
+      "caseLatencyMs": { "mean": 347.698, "p50": 366.755, "p95": 414.9 },
+      "throughputCasesPerSecond": 5.399,
+      "inputTokens": 13440,
+      "outputTokens": 0,
+      "modelCalls": 30,
+      "rawReport": "raw/concurrency-2.json.gz"
+    },
+    {
+      "concurrency": 4,
+      "strictMatches": 15,
+      "labelMatches": 27,
+      "diagnosticMatches": 18,
+      "abstentionMatches": 30,
+      "actualAbstentions": 0,
+      "expectedAbstentions": 0,
+      "durationMs": { "mean": 1950.017, "p50": 1963.344, "p95": 1974.258 },
+      "caseLatencyMs": { "mean": 679.531, "p50": 757.324, "p95": 820.01 },
+      "throughputCasesPerSecond": 5.128,
+      "inputTokens": 13440,
+      "outputTokens": 0,
+      "modelCalls": 30,
+      "rawReport": "raw/concurrency-4.json.gz"
+    }
+  ]
+}

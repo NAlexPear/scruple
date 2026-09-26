@@ -1,0 +1,18 @@
+# Isolated Decider installation
+uv python install 3.12
+uv venv --python 3.12 .amp/in/decider-venv
+git clone --filter=blob:none https://github.com/Mapika/decider.git .amp/in/decider-src/repo
+uv pip install --python .amp/in/decider-venv/bin/python -e '.amp/in/decider-src/repo[serve,metal]'
+
+# Official Apple Silicon MPS serving path (run from .amp/in/decider-src/repo)
+env DECIDER_MODEL=Mapika/decider-4b DECIDER_DEVICE=mps DECIDER_COMPILE=0 DECIDER_FP8=0 DECIDER_SHARED_FORK_GB=2 DECIDER_MAX_BATCH=32 DECIDER_BATCH_ADAPTIVE_WAIT_MS=2 ../../decider-venv/bin/uvicorn decider.serve:app --host 127.0.0.1 --port 8001
+
+# Health verification
+curl -fsS http://127.0.0.1:8001/health
+
+# Full pinned benchmark at initial safe concurrency
+node packages/eval/dist/benchmark-cli.js --provider decider --base-url http://127.0.0.1:8001 --model decider-4b-v2.1 --warmups 1 --repetitions 3 --concurrency 1 > .amp/in/artifacts/decider-pinned-c1-w1-r3.json 2> .amp/in/artifacts/decider-pinned-c1-w1-r3.stderr
+
+# Bounded concurrency sweep (run sequentially for concurrency 2 and 4)
+node packages/eval/dist/benchmark-cli.js --provider decider --base-url http://127.0.0.1:8001 --model decider-4b-v2.1 --warmups 1 --repetitions 3 --concurrency 2 > .amp/in/artifacts/decider-pinned-c2-w1-r3.json 2> .amp/in/artifacts/decider-pinned-c2-w1-r3.stderr
+node packages/eval/dist/benchmark-cli.js --provider decider --base-url http://127.0.0.1:8001 --model decider-4b-v2.1 --warmups 1 --repetitions 3 --concurrency 4 > .amp/in/artifacts/decider-pinned-c4-w1-r3.json 2> .amp/in/artifacts/decider-pinned-c4-w1-r3.stderr

@@ -47,3 +47,6 @@ authenticating TLS proxy in front of it. The provider sends `apiKey` as a bearer
 
 The provider disables retries by default because cancelling an HTTP request does not remove work already
 queued by Decider's standard server. Retrying a timed-out request could therefore duplicate model work.
+
+See the [benchmark results](../reference/benchmarks.md#decider-4b-on-apple-mps) for the recorded Decider 4B
+v2.1 label, diagnostic, strict-agreement, latency, and throughput measurements on Apple MPS.
