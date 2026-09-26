@@ -1,0 +1,57 @@
+INFO:     Started server process [3516]
+INFO:     Waiting for application startup.
+Loading weights:   0%|          | 0/426 [00:00<?, ?it/s]Loading weights: 100%|██████████| 426/426 [00:00<00:00, 8506.82it/s]
+[serve] engine {'compile': False, 'fp8': False, 'conv_patch': False, 'graphs': True, 'token_budget': 32768, 'device': 'cuda:0', 'layout': 'plain'}
+[transformers] `causal_conv1d_fn` is falling back to its reference PyTorch implementation because `causal_conv1d` is not installed. This is correct but much slower; install `causal_conv1d` for the optimized kernel.
+[engine_v2] 10/17 graphs, 4s
+[serve] captured 17 graphs in 11s
+[serve] ready {"model": "decider-4b-v2.1", "layout": "plain", "temperature": 1.099, "temperature_by_type": {"choice": 1.11, "noul": 1.56, "score": 1.287}, "isolated_levels": true, "schema_first": false, "shared": false, "graphs": 17, "limits": {"max_rows": 1024, "max_row_tokens": 36864, "max_request_tokens": 1048576, "max_queue_rows": 4096}}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49886 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37036 - "GET /stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37038 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37050 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37066 - "GET /stats HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3516]

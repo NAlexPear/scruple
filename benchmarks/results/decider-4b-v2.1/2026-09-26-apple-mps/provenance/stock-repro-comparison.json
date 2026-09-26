@@ -1,0 +1,99 @@
+{
+  "stockReport": "decider-pinned-c1-w1-r3.json",
+  "reproReport": "decider-mps-repro-c1-w1-r3.json",
+  "comparedCases": 30,
+  "answerComparison": {
+    "labelDifferences": 0,
+    "answerObjectDifferences": 0,
+    "probabilityValueDifferences": 0,
+    "maximumProbabilityAbsoluteDifference": 0,
+    "maximumConfidenceAbsoluteDifference": 0,
+    "precisionNote": "Answer objects are exactly equal at the values emitted in the raw JSON reports; Decider emits probabilities and confidence rounded to four decimal places."
+  },
+  "outcomes": {
+    "identical": true,
+    "labelAgreement": { "correct": 27, "total": 30, "rate": 0.9 },
+    "diagnosticAgreement": { "correct": 18, "total": 30, "rate": 0.6 },
+    "strictAgreement": { "correct": 15, "total": 30, "rate": 0.5 },
+    "actualAbstentions": 0
+  },
+  "latencyAndThroughput": {
+    "meanCaseMilliseconds": {
+      "stock": 167.5749084,
+      "repro": 173.58420413333323,
+      "absoluteDifference": 6.009295733333232,
+      "percentDifference": 3.586035517315689
+    },
+    "p50CaseMilliseconds": {
+      "stock": 163.61912499999926,
+      "repro": 171.20154099999854,
+      "absoluteDifference": 7.582415999999284,
+      "percentDifference": 4.634186865379775
+    },
+    "p95CaseMilliseconds": {
+      "stock": 204.6360420000001,
+      "repro": 211.78437500000018,
+      "absoluteDifference": 7.148333000000093,
+      "percentDifference": 3.4931935401683045
+    },
+    "throughputCasesPerSecond": {
+      "stock": 5.967256075045754,
+      "repro": 5.76067072604529,
+      "absoluteDifference": -0.20658534900046455,
+      "percentDifference": -3.461982298101407
+    }
+  },
+  "perFixtureMeanLatencyMilliseconds": {
+    "useless-restates-assignment": {
+      "stock": 114.22180600000002,
+      "repro": 114.32773600000003,
+      "difference": 0.10593000000001496
+    },
+    "swallowed-empty-catch": {
+      "stock": 165.51322233333318,
+      "repro": 171.91758333333368,
+      "difference": 6.404361000000506
+    },
+    "async-independent-loads-serialized": {
+      "stock": 166.51018033333335,
+      "repro": 172.85906966666684,
+      "difference": 6.348889333333489
+    },
+    "unactionable-generic-error": {
+      "stock": 204.46643033333294,
+      "repro": 205.88479133333325,
+      "difference": 1.418361000000317
+    },
+    "database-join-done-in-memory": {
+      "stock": 162.9572360000002,
+      "repro": 173.59409699999955,
+      "difference": 10.636860999999357
+    },
+    "resource-file-handle-falls-through": {
+      "stock": 131.59768066666675,
+      "repro": 143.8362639999999,
+      "difference": 12.238583333333139
+    },
+    "authorization-gates-access-with-request-role": {
+      "stock": 200.55597233333356,
+      "repro": 207.8801806666664,
+      "difference": 7.324208333332848
+    },
+    "vacuous-test-tautology": {
+      "stock": 164.24019466666655,
+      "repro": 170.2024026666662,
+      "difference": 5.9622079999996345
+    },
+    "validation-express-body-unchecked": {
+      "stock": 163.15759733333348,
+      "repro": 171.3389166666666,
+      "difference": 8.181319333333107
+    },
+    "sensitive-log-redacted-token": {
+      "stock": 202.52876400000014,
+      "repro": 204.0009999999999,
+      "difference": 1.4722359999997536
+    }
+  },
+  "latencyCaveat": "The reproducibility server ran while the prior stock server was idle but resident on the same unified-memory Mac. Treat the small latency regression as observed rather than causally attributable to DECIDER_SHARED=0 or DECIDER_MAX_BATCH=1."
+}

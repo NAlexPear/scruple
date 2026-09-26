@@ -76,5 +76,28 @@
       "modelCalls": 30,
       "rawReport": "raw/concurrency-4.json.gz"
     }
-  ]
+  ],
+  "reproducibility": {
+    "description": "Concurrency-1 side of the paired MPS-versus-CUDA run",
+    "server": {
+      "shared": false,
+      "maxBatch": 1,
+      "dtype": "torch.float16",
+      "graphCaptures": 0,
+      "eagerForwards": 40
+    },
+    "strictMatches": 15,
+    "labelMatches": 27,
+    "diagnosticMatches": 18,
+    "abstentionMatches": 30,
+    "actualAbstentions": 0,
+    "expectedAbstentions": 0,
+    "durationMs": { "mean": 1735.909, "p50": 1737.838, "p95": 1740.452 },
+    "caseLatencyMs": { "mean": 173.584, "p50": 171.202, "p95": 211.784 },
+    "throughputCasesPerSecond": 5.761,
+    "inputTokens": 13440,
+    "outputTokens": 0,
+    "modelCalls": 30,
+    "rawReport": "raw/concurrency-1-repro.json.gz"
+  }
 }

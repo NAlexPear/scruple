@@ -1,0 +1,54 @@
+# Scruple source and JavaScript dependencies
+git clone https://github.com/NAlexPear/scruple.git scruple-decider-cuda
+cd scruple-decider-cuda
+git checkout --detach 3c16bb121742f01670f2990626544ff65c76a90f
+pnpm install --frozen-lockfile
+pnpm build
+
+# Pinned Decider source and Python environment
+git clone https://github.com/Mapika/decider.git .amp/in/decider-src/repo
+git -C .amp/in/decider-src/repo checkout --detach a5120cce45b9ff70964fac54ea6e8c1ac5b08c7f
+uv python install 3.12.14
+uv venv --python 3.12.14 .amp/in/decider-venv
+uv pip install --python .amp/in/decider-venv/bin/python \
+  'torch==2.14.0' 'transformers==5.17.0' 'numpy==1.26.4'
+uv pip install --python .amp/in/decider-venv/bin/python \
+  -e '.amp/in/decider-src/repo[serve]'
+
+# Pinned model snapshot
+MODEL_SNAPSHOT=$(.amp/in/decider-venv/bin/python - <<'PY'
+from huggingface_hub import snapshot_download
+print(snapshot_download(
+    "Mapika/decider-4b",
+    revision="eb5fbdfc9448473ec25e399882912863afbdb70e",
+))
+PY
+)
+
+# CUDA bf16 server; port 8002 was used because the Runpod image's nginx occupied 8001
+CUDA_VISIBLE_DEVICES=0 \
+DECIDER_MODEL="$MODEL_SNAPSHOT" \
+DECIDER_DEVICE=cuda:0 \
+DECIDER_COMPILE=0 \
+DECIDER_FP8=0 \
+DECIDER_SHARED=0 \
+DECIDER_MAX_BATCH=1 \
+DECIDER_B_BUCKETS=1 \
+.amp/in/decider-venv/bin/uvicorn decider.serve:app \
+  --host 127.0.0.1 --port 8002
+
+# Health, stats, and paired concurrency-1 benchmark
+curl -fsS http://127.0.0.1:8002/health
+curl -fsS http://127.0.0.1:8002/stats \
+  > .amp/in/artifacts/decider-cuda-repro-stats-before.json
+node packages/eval/dist/benchmark-cli.js \
+  --provider decider \
+  --base-url http://127.0.0.1:8002 \
+  --model decider-4b-v2.1 \
+  --warmups 1 \
+  --repetitions 3 \
+  --concurrency 1 \
+  > .amp/in/artifacts/decider-cuda-repro-c1-w1-r3.json \
+  2> .amp/in/artifacts/decider-cuda-repro-c1-w1-r3.stderr
+curl -fsS http://127.0.0.1:8002/stats \
+  > .amp/in/artifacts/decider-cuda-repro-stats-after.json

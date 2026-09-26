@@ -16,3 +16,9 @@ node packages/eval/dist/benchmark-cli.js --provider decider --base-url http://12
 # Bounded concurrency sweep (run sequentially for concurrency 2 and 4)
 node packages/eval/dist/benchmark-cli.js --provider decider --base-url http://127.0.0.1:8001 --model decider-4b-v2.1 --warmups 1 --repetitions 3 --concurrency 2 > .amp/in/artifacts/decider-pinned-c2-w1-r3.json 2> .amp/in/artifacts/decider-pinned-c2-w1-r3.stderr
 node packages/eval/dist/benchmark-cli.js --provider decider --base-url http://127.0.0.1:8001 --model decider-4b-v2.1 --warmups 1 --repetitions 3 --concurrency 4 > .amp/in/artifacts/decider-pinned-c4-w1-r3.json 2> .amp/in/artifacts/decider-pinned-c4-w1-r3.stderr
+
+# Reproducibility-focused MPS server (run from .amp/in/decider-src/repo)
+env DECIDER_MODEL=Mapika/decider-4b DECIDER_DEVICE=mps DECIDER_COMPILE=0 DECIDER_FP8=0 DECIDER_SHARED=0 DECIDER_MAX_BATCH=1 ../../decider-venv/bin/uvicorn decider.serve:app --host 127.0.0.1 --port 8002
+
+# Reproducibility-focused MPS baseline
+node packages/eval/dist/benchmark-cli.js --provider decider --base-url http://127.0.0.1:8002 --model decider-4b-v2.1 --warmups 1 --repetitions 3 --concurrency 1 > .amp/in/artifacts/decider-mps-repro-c1-w1-r3.json 2> .amp/in/artifacts/decider-mps-repro-c1-w1-r3.stderr

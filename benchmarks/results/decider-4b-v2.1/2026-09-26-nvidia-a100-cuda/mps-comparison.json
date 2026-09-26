@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "mpsReport": "../2026-09-26-apple-mps/raw/concurrency-1-repro.json.gz",
+  "cudaReport": "raw/concurrency-1.json.gz",
+  "comparedCases": 30,
+  "decisionComparison": {
+    "labelDifferences": 0,
+    "actualFindingDifferences": 0,
+    "actualChoiceDifferences": 0,
+    "acceptanceDifferences": 0,
+    "diagnosticCountDifferences": 0,
+    "abstentionDifferences": 0,
+    "answerObjectDifferences": 30
+  },
+  "numericDifferences": {
+    "maximumProbabilityAbsoluteDifference": 0.0114,
+    "meanProbabilityAbsoluteDifference": 0.001918,
+    "maximumConfidenceAbsoluteDifference": 0.0152,
+    "meanConfidenceAbsoluteDifference": 0.00387,
+    "maximumCertaintyAbsoluteDifference": 0.0144,
+    "meanCertaintyAbsoluteDifference": 0.00507
+  },
+  "mps": {
+    "device": "Apple M5 Max MPS fp16",
+    "caseLatencyMs": { "mean": 173.584, "p50": 171.202, "p95": 211.784 },
+    "throughputCasesPerSecond": 5.761
+  },
+  "cuda": {
+    "device": "NVIDIA A100-SXM4-80GB CUDA bf16",
+    "caseLatencyMs": { "mean": 38.931, "p50": 40.223, "p95": 44.081 },
+    "throughputCasesPerSecond": 25.679
+  },
+  "speedup": {
+    "meanCaseLatency": 4.459,
+    "p50CaseLatency": 4.256,
+    "p95CaseLatency": 4.804,
+    "throughput": 4.458
+  }
+}

@@ -66,6 +66,7 @@ Warmup work is excluded from measured samples and token totals. Keep workload, c
 Published result data:
 
 - [Decider 4B v2.1 on Apple MPS](results/decider-4b-v2.1/2026-09-26-apple-mps/)
+- [Decider 4B v2.1 on NVIDIA A100 CUDA](results/decider-4b-v2.1/2026-09-26-nvidia-a100-cuda/)
 - [Jev 1.13.0](results/jev-1.13.0/2026-09-20/)
 - [Jev 1.13.0 after rule calibration](results/jev-1.13.0/2026-09-20-post-calibration/)
 

@@ -94,6 +94,17 @@ The probability and confidence thresholds stayed fixed for like-for-like compari
 
 Concurrency 1 was fastest for this local workload. Do not compare its throughput directly with hosted Jev throughput. The Decider result used one Apple MPS machine; Jev runs on hosted hardware whose serving configuration is not part of this benchmark.
 
+### Paired MPS and CUDA run
+
+We repeated concurrency 1 on MPS and an NVIDIA A100 with shared-prefix execution disabled and maximum batch 1. Both sides used the same Scruple, Decider, and model revisions; fixtures; prompts; temperatures; thresholds; warmup; and repetitions. MPS used fp16 and eager forwards. CUDA used bf16 and graph replay.
+
+| Device                          | Label agreement | Diagnostic agreement | Strict agreement | Mean case time | p95 case time | Cases per second |
+| ------------------------------- | --------------: | -------------------: | ---------------: | -------------: | ------------: | ---------------: |
+| Apple M5 Max MPS fp16           |   27/30 (90.0%) |        18/30 (60.0%) |    15/30 (50.0%) |      173.58 ms |     211.78 ms |            5.761 |
+| NVIDIA A100-SXM4-80GB CUDA bf16 |   27/30 (90.0%) |        18/30 (60.0%) |    15/30 (50.0%) |       38.93 ms |      44.08 ms |           25.679 |
+
+All 30 selected labels and thresholded outcomes matched between devices. Probability values were not bit-identical: the maximum absolute probability difference was 0.0114 and the maximum confidence difference was 0.0152. None crossed a fixed rule threshold. CUDA delivered 4.458 times the MPS throughput in this run. That result describes these machines and serving paths; it is not a general hardware ranking.
+
 ## How the comparisons work
 
 The workload IDs are pinned in [`benchmarks/fixtures.json`](https://github.com/NAlexPear/scruple/blob/main/benchmarks/fixtures.json).
@@ -181,6 +192,7 @@ The Jev benchmark cannot separate internet travel time from work inside Jev. Scr
 
 - [Equal-size comparison](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/comparison/2026-09-20)
 - [Decider 4B v2.1 on Apple MPS](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/decider-4b-v2.1/2026-09-26-apple-mps)
+- [Decider 4B v2.1 on NVIDIA A100 CUDA](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/decider-4b-v2.1/2026-09-26-nvidia-a100-cuda)
 - [Jev 1.13.0](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20)
 - [Jev 1.13.0 after rule calibration](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20-post-calibration)
 

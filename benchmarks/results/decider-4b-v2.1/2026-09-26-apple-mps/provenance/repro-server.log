@@ -1,0 +1,51 @@
+INFO:     Started server process [86068]
+INFO:     Waiting for application startup.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/426 [00:00<?, ?it/s]Loading weights:   0%|          | 1/426 [00:02<17:25,  2.46s/it]Loading weights:  52%|█████▏    | 220/426 [00:02<00:01, 117.43it/s]Loading weights:  72%|███████▏  | 307/426 [00:03<00:01, 91.28it/s] Loading weights:  84%|████████▍ | 357/426 [00:04<00:00, 86.06it/s]Loading weights:  92%|█████████▏| 391/426 [00:05<00:00, 76.30it/s]Loading weights:  97%|█████████▋| 414/426 [00:05<00:00, 68.06it/s]Loading weights: 100%|██████████| 426/426 [00:06<00:00, 70.57it/s]
+[serve] engine {'compile': False, 'fp8': False, 'conv_patch': False, 'graphs': False, 'token_budget': 32768, 'device': 'mps', 'layout': 'plain'}
+[serve] ready {"model": "decider-4b-v2.1", "layout": "plain", "temperature": 1.099, "temperature_by_type": {"choice": 1.11, "noul": 1.56, "score": 1.287}, "isolated_levels": true, "schema_first": false, "shared": false, "graphs": 0, "limits": {"max_rows": 1024, "max_row_tokens": 36864, "max_request_tokens": 1048576, "max_queue_rows": 4096}}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57117 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57118 - "GET /stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "POST /v1/systemone HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57171 - "GET /stats HTTP/1.1" 200 OK
