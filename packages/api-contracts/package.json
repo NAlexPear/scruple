@@ -1,6 +1,6 @@
 {
   "name": "@scruple/api-contracts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Semantic rules for function and API contracts.",
   "keywords": [
     "api-contracts",
