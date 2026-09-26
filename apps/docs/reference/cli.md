@@ -27,18 +27,20 @@ Dependencies, `dist`, `build`, coverage output, and `.git` are always ignored. `
 
 ## Decision cache
 
-The CLI stores successful provider responses in `node_modules/.cache/scruple`. The key includes the
-provider ID and the complete request, so it covers both collection classifications and final decisions.
-Changing the evidence, question, answer labels, or provider ID produces a miss. Changing only a rule's
-warning threshold or message reuses the existing answer.
+By default, the CLI stores successful provider responses in `node_modules/.cache/scruple`. Set
+`config.cache` to another `DecisionCache` strategy for remote, multi-tier, or other storage, or to
+`false` to disable caching. The key includes the provider ID and the complete request, so it covers
+both collection classifications and final decisions. Changing the evidence, question, answer labels,
+or provider ID produces a miss. Changing only a rule's warning threshold or message reuses the
+existing answer.
 
 Cache hits do not make provider requests or add tokens to the current run. JSON statistics report
 `cacheHits` separately from `requests`. Invalid entries are discarded, and cache read or write failures
 do not stop the check.
 
-Use `--no-cache` when checking live provider behavior. Use `--cache-dir` to choose another location.
-Delete the cache directory to clear all saved decisions. Pin moving model aliases when results must
-remain tied to one model version.
+Use `--no-cache` when checking live provider behavior. Use `--cache-dir` to replace either the default
+or configured strategy with a filesystem cache for that invocation. Delete the cache directory to
+clear all saved decisions. Pin moving model aliases when results must remain tied to one model version.
 
 ## Configuration discovery
 

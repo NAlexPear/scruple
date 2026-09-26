@@ -135,6 +135,91 @@ export default {
   }
 });
 
+await test("CLI uses and closes a configured cache unless a flag overrides it", async () => {
+  const cacheRoot = join(process.cwd(), "node_modules/.cache");
+  await mkdir(cacheRoot, { recursive: true });
+  const directory = await mkdtemp(join(cacheRoot, "scruple-config-cache-"));
+  const callsPath = join(directory, "calls.txt");
+  try {
+    await writeFile(
+      join(directory, "scruple.config.mjs"),
+      `import { appendFile } from "node:fs/promises";
+import { oxcParser } from "@scruple/parser-oxc";
+
+const callsPath = process.env["SCRUPLE_TEST_CALLS"];
+if (callsPath === undefined) throw new Error("SCRUPLE_TEST_CALLS is required");
+
+const cache = {
+  async get(_providerId, request) {
+    return {
+      model: "configured-cache-model",
+      answers: Object.fromEntries(
+        Object.keys(request.questions).map((id) => [id, { type: "noul", noul: 0.1 }]),
+      ),
+    };
+  },
+  async set() {},
+  async close() { await appendFile(callsPath, "cache closed\\n", "utf8"); },
+};
+
+const provider = {
+  id: "configured-cache-fixture",
+  async evaluate(request) {
+    await appendFile(callsPath, "provider called\\n", "utf8");
+    return {
+      model: "provider-model",
+      answers: Object.fromEntries(
+        Object.keys(request.questions).map((id) => [id, { type: "noul", noul: 0.1 }]),
+      ),
+    };
+  },
+};
+
+const plugin = {
+  rules: {
+    check: () => ({
+      description: "Exercise a configured cache.",
+      collect(document) {
+        const target = document.functions[0];
+        return target === undefined
+          ? []
+          : [{
+              target,
+              state: { source: target.source },
+              question: { type: "noul", instructions: "Is this fixture unsafe?" },
+            }];
+      },
+      diagnose: () => null,
+    }),
+  },
+};
+
+export default {
+  parser: oxcParser(),
+  provider,
+  cache,
+  plugins: { fixture: plugin },
+  rules: { "fixture/check": "warn" },
+};
+`,
+      "utf8",
+    );
+    await writeFile(join(directory, "source.ts"), "function fixture() { return true; }\n", "utf8");
+
+    assert.deepEqual(runCacheFixture(directory, callsPath), { requests: 0, cacheHits: 1 });
+    assert.deepEqual(runCacheFixture(directory, callsPath, ["--no-cache"]), {
+      requests: 1,
+      cacheHits: 0,
+    });
+    assert.equal(
+      await readFile(callsPath, "utf8"),
+      "cache closed\nprovider called\ncache closed\n",
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 await test("CodeQL benchmark help does not require the CodeQL executable", () => {
   const output = execFileSync(
     process.execPath,
