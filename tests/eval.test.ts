@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import type {
   ChoiceAnswer,
@@ -31,10 +32,39 @@ await test("evaluation options support repeated Jev models", () => {
       format: "json",
       help: false,
       models: ["jev-stable", "jev-candidate"],
+      provider: "jev",
       repetitions: 2,
     },
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
+  assert.deepEqual(parseEvalOptions(["--provider", "decider"]).models, ["decider-4b-v2.1"]);
+  assert.deepEqual(
+    parseEvalOptions([
+      "--provider",
+      "kev",
+      "--base-url",
+      "http://127.0.0.1:8008",
+      "--model",
+      "kev-4b",
+    ]),
+    {
+      baseURL: "http://127.0.0.1:8008",
+      format: "json",
+      help: false,
+      models: ["kev-4b"],
+      provider: "kev",
+      repetitions: 1,
+    },
+  );
+  assert.throws(() => parseEvalOptions(["--provider", "kev"]), /--model is required for kev/u);
+  assert.throws(
+    () => parseEvalOptions(["--provider", "kev", "--model", "kev-4b", "--model", "kev-9b"]),
+    /kev serves one model per --base-url/u,
+  );
+  assert.throws(
+    () => parseEvalOptions(["--provider", "other"]),
+    /--provider must be one of: jev, decider, kev/u,
+  );
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
@@ -53,6 +83,15 @@ await test("evaluation CLI reaches provider validation", () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /TYPESAFE_API_KEY is required for Jev evaluations/u);
   assert.doesNotMatch(result.stderr, /before initialization/u);
+
+  const kev = spawnSync(
+    process.execPath,
+    ["packages/eval/dist/cli.js", "--provider", "kev", "--model", "kev-4b"],
+    { cwd: new URL("..", import.meta.url), encoding: "utf8", env: environment },
+  );
+
+  assert.equal(kev.status, 2);
+  assert.match(kev.stderr, /--base-url is required for Kev evaluations/u);
 });
 
 await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {
@@ -329,6 +368,50 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
   assert.deepEqual(report.usage, { inputTokens: 14, modelCalls: 2, outputTokens: 6 });
   assert.equal(report.cases[0]?.model, "resolved-model");
   assert.equal(hasEvalFailures([report]), false);
+});
+
+await test("evaluation runner bounds cases by provider concurrency", async () => {
+  let active = 0;
+  let peak = 0;
+  const scoring = makeScoringProvider();
+  const provider: DecisionProvider = {
+    ...scoring,
+    concurrency: 2,
+    async evaluate(request): Promise<DecisionResponse> {
+      active += 1;
+      peak = Math.max(peak, active);
+      await delay(5);
+      active -= 1;
+      return scoring.evaluate(request);
+    },
+  };
+  const fixtures: EvalFixture[] = ["a", "b", "c", "d", "e"].map((id) => ({
+    id,
+    filename: `${id}.ts`,
+    source: "function good() { return 1; }",
+    ruleId: "test/bad-rule",
+    expectedFinding: false,
+    expectedCandidates: 1,
+    expectedChoices: ["good"],
+    rationale: "Exercise bounded case concurrency.",
+    tags: ["concurrency"],
+  }));
+  const report = await runEvaluation({
+    fixtures,
+    parser: oxcParser(),
+    plugins: { test: makeTestPlugin() },
+    provider,
+    providerName: "fixture",
+    requestedModel: "requested",
+    repetition: 1,
+  });
+
+  assert.equal(peak, 2);
+  assert.deepEqual(
+    report.cases.map((result) => result.id),
+    ["a", "b", "c", "d", "e"],
+  );
+  assert.equal(report.summary.passed, 5);
 });
 
 await test("evaluation runner distinguishes exact safe decisions from abstentions", async () => {
