@@ -52,7 +52,7 @@
     "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2002",
     "typescript": "^7.0.2",
-    "wrangler": "^4.135.0"
+    "wrangler": "^4.137.0"
   },
   "engines": {
     "node": ">=22.18.0"
