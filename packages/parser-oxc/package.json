@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@scruple/core": "workspace:*",
-    "oxc-parser": "^0.150.0"
+    "oxc-parser": "^0.151.0"
   },
   "engines": {
     "node": ">=22.18.0"
