@@ -4,6 +4,7 @@ import { evalProvider } from "./provider.js";
 
 export interface EvalOptions {
   baseURL?: string;
+  concurrency: number;
   format: "json" | "stylish";
   help: boolean;
   models: string[];
@@ -22,6 +23,7 @@ Options:
   --model <model>        Model to evaluate; repeat to compare models (default: jev-1.13.0 for jev,
                          decider-4b-v2.1 for decider)
   --repetitions <count>  Runs per model (default: 1)
+  --concurrency <count>  Maximum cases in flight (default: 64 for jev, 1 for decider and kev)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
 
@@ -36,6 +38,7 @@ Examples:
   pnpm eval --format stylish
   pnpm eval --model jev-1.13.0 --repetitions 3
   pnpm eval --model jev-1.13.0 --model jev-latest
+  pnpm eval --provider decider --base-url http://127.0.0.1:8000
   pnpm eval --provider kev --base-url http://127.0.0.1:8008 --model kev-4b
 `;
 
@@ -47,6 +50,7 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
       "base-url": { type: "string" },
       model: { type: "string", multiple: true },
       repetitions: { type: "string", default: "1" },
+      concurrency: { type: "string" },
       format: { type: "string", short: "f", default: "json" },
       help: { type: "boolean", short: "h", default: false },
     },
@@ -55,11 +59,18 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
   if (!Number.isSafeInteger(repetitions) || repetitions < 1) {
     throw new Error("--repetitions must be a positive integer");
   }
+  const concurrency = Number(
+    values.concurrency ?? evalProvider(values.provider).defaultConcurrency,
+  );
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
+    throw new Error("--concurrency must be a positive integer");
+  }
   if (values.format !== "json" && values.format !== "stylish") {
     throw new Error(`Unknown output format: ${values.format}`);
   }
   return {
     ...(values["base-url"] === undefined ? {} : { baseURL: values["base-url"] }),
+    concurrency,
     format: values.format,
     help: values.help,
     models: parseModels(values.provider, values.model),

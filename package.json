@@ -1,6 +1,6 @@
 {
   "name": "scruple-workspace",
-  "version": "0.2.0",
+  "version": "0.3.2",
   "private": true,
   "description": "Semantic code rules powered by typed decisions.",
   "homepage": "https://github.com/NAlexPear/scruple#readme",
@@ -48,12 +48,12 @@
     "@scruple/tests": "workspace:*",
     "@types/node": "^22.20.4",
     "@types/picomatch": "^4.0.3",
-    "fast-check": "^4.10.1",
-    "oxfmt": "^0.68.0",
-    "oxlint": "^1.83.0",
+    "fast-check": "^4.10.2",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
     "oxlint-tsgolint": "^7.0.2002",
     "typescript": "^7.0.2",
-    "wrangler": "^4.135.0"
+    "wrangler": "^4.137.0"
   },
   "engines": {
     "node": ">=22.18.0"

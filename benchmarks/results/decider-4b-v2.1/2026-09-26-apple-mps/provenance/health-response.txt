@@ -1,0 +1,1 @@
+{"ok":true,"model":"Mapika/decider-4b","device":"mps","layout":"plain","temperature":1.099,"temperature_by_type":{"choice":1.11,"noul":1.56,"score":1.287}}

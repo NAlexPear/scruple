@@ -657,7 +657,7 @@ await test("collection can use the managed provider to classify possible candida
   });
 });
 
-await test("decision cache covers collection and final requests but not rule policy", async () => {
+await test("configured decision cache covers all requests and run options can disable it", async () => {
   const stored = new Map<string, DecisionResponse>();
   const cache: DecisionCache = {
     get(providerId, request) {
@@ -680,6 +680,7 @@ await test("decision cache covers collection and final requests but not rule pol
   const config = {
     parser: oxcParser(),
     provider,
+    cache,
     plugins: { comments: comments() },
     rules: { "comments/require-actionable-todos": "warn" as const },
   };
@@ -690,7 +691,7 @@ await test("decision cache covers collection and final requests but not rule pol
     },
   ];
 
-  const first = await runScruple(config, files, undefined, { cache });
+  const first = await runScruple(config, files);
   const second = await runScruple(
     {
       ...config,
@@ -702,9 +703,8 @@ await test("decision cache covers collection and final requests but not rule pol
       },
     },
     files,
-    undefined,
-    { cache },
   );
+  const uncached = await runScruple(config, files, undefined, { cache: false });
 
   assert.deepEqual(first.errors, []);
   assert.deepEqual(second.errors, []);
@@ -716,7 +716,9 @@ await test("decision cache covers collection and final requests but not rule pol
   assert.equal(second.stats.cacheHits, 2);
   assert.equal(second.stats.inputTokens, 0);
   assert.equal(second.stats.outputTokens, 0);
-  assert.equal(providerRequests, 2);
+  assert.equal(uncached.stats.requests, 2);
+  assert.equal(uncached.stats.cacheHits, 0);
+  assert.equal(providerRequests, 4);
 });
 
 await test("decision cache stores only successful provider responses", async () => {

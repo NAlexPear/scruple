@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { setTimeout as delay } from "node:timers/promises";
+import { setImmediate } from "node:timers/promises";
 
 import type {
   ChoiceAnswer,
@@ -25,15 +25,35 @@ import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-await test("evaluation options support repeated Jev models", () => {
+await test("evaluation options support providers, repeated models, and bounded concurrency", () => {
   assert.deepEqual(
     parseEvalOptions(["--model", "jev-stable", "--model", "jev-candidate", "--repetitions", "2"]),
     {
+      concurrency: 64,
       format: "json",
       help: false,
       models: ["jev-stable", "jev-candidate"],
       provider: "jev",
       repetitions: 2,
+    },
+  );
+  assert.deepEqual(
+    parseEvalOptions([
+      "--provider",
+      "decider",
+      "--base-url",
+      "http://127.0.0.1:9000",
+      "--concurrency",
+      "2",
+    ]),
+    {
+      baseURL: "http://127.0.0.1:9000",
+      concurrency: 2,
+      format: "json",
+      help: false,
+      models: ["decider-4b-v2.1"],
+      provider: "decider",
+      repetitions: 1,
     },
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
@@ -49,6 +69,7 @@ await test("evaluation options support repeated Jev models", () => {
     ]),
     {
       baseURL: "http://127.0.0.1:8008",
+      concurrency: 1,
       format: "json",
       help: false,
       models: ["kev-4b"],
@@ -67,6 +88,7 @@ await test("evaluation options support repeated Jev models", () => {
   );
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
+  assert.throws(() => parseEvalOptions(["--concurrency", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
   assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
 });
@@ -370,33 +392,37 @@ await test("evaluation runner scores findings and aggregates usage", async () =>
   assert.equal(hasEvalFailures([report]), false);
 });
 
-await test("evaluation runner bounds cases by provider concurrency", async () => {
+await test("evaluation runner bounds cases in flight", async () => {
   let active = 0;
-  let peak = 0;
-  const scoring = makeScoringProvider();
+  let maximumActive = 0;
+  const scoringProvider = makeScoringProvider();
   const provider: DecisionProvider = {
-    ...scoring,
-    concurrency: 2,
-    async evaluate(request): Promise<DecisionResponse> {
+    id: scoringProvider.id,
+    async evaluate(request, signal): Promise<DecisionResponse> {
       active += 1;
-      peak = Math.max(peak, active);
-      await delay(5);
-      active -= 1;
-      return scoring.evaluate(request);
+      maximumActive = Math.max(maximumActive, active);
+      await setImmediate();
+      try {
+        return await scoringProvider.evaluate(request, signal);
+      } finally {
+        active -= 1;
+      }
     },
   };
-  const fixtures: EvalFixture[] = ["a", "b", "c", "d", "e"].map((id) => ({
+  const fixtures: EvalFixture[] = ["first", "second", "third"].map((id) => ({
     id,
     filename: `${id}.ts`,
-    source: "function good() { return 1; }",
+    source: `function ${id}() { return 1; }`,
     ruleId: "test/bad-rule",
     expectedFinding: false,
     expectedCandidates: 1,
     expectedChoices: ["good"],
-    rationale: "Exercise bounded case concurrency.",
-    tags: ["concurrency"],
+    rationale: "The fixture provider identifies the function as good.",
+    tags: ["negative"],
   }));
+
   const report = await runEvaluation({
+    concurrency: 2,
     fixtures,
     parser: oxcParser(),
     plugins: { test: makeTestPlugin() },
@@ -406,12 +432,8 @@ await test("evaluation runner bounds cases by provider concurrency", async () =>
     repetition: 1,
   });
 
-  assert.equal(peak, 2);
-  assert.deepEqual(
-    report.cases.map((result) => result.id),
-    ["a", "b", "c", "d", "e"],
-  );
-  assert.equal(report.summary.passed, 5);
+  assert.equal(report.summary.passed, 3);
+  assert.equal(maximumActive, 2);
 });
 
 await test("evaluation runner distinguishes exact safe decisions from abstentions", async () => {

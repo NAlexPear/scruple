@@ -311,6 +311,7 @@ export interface DecisionCache {
   get(providerId: string, request: DecisionRequest): Promise<DecisionResponse | undefined>;
   /** Cache implementations must not reject when a successful response cannot be stored. */
   set(providerId: string, request: DecisionRequest, response: DecisionResponse): Promise<void>;
+  close?(): Promise<void> | void;
 }
 
 export interface CollectionProvider {
@@ -437,6 +438,8 @@ export type PluginMap = Record<string, ScruplePlugin>;
 export interface ScrupleConfig {
   parser: SourceParser;
   provider: DecisionProvider;
+  /** Uses the supplied strategy for all provider decisions, or disables caching when false. */
+  cache?: DecisionCache | false;
   plugins: PluginMap;
   rules: Record<string, RuleConfiguration>;
   include?: string[];
@@ -516,7 +519,8 @@ export interface DecisionRecord {
 
 export interface RunOptions {
   includeDecisions?: boolean;
-  cache?: DecisionCache;
+  /** Overrides the configured cache, or disables it for this run when false. */
+  cache?: DecisionCache | false;
 }
 
 export interface RunResult {
@@ -557,9 +561,10 @@ export const runScruple = async (
   let cacheHits = 0;
   let inputTokens = 0;
   let outputTokens = 0;
+  const configuredCache = options.cache ?? config.cache;
   const provider = managedProvider(
     config.provider,
-    options.cache,
+    configuredCache === false ? undefined : configuredCache,
     () => {
       requests += 1;
     },

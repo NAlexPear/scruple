@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+import type { DecisionProvider } from "@scruple/core";
 import {
   formatEvalRuns,
   hasEvalFailures,
@@ -25,24 +26,36 @@ const runModel = async (
   const provider = evalProvider(options.provider).create({
     model,
     ...(options.baseURL === undefined ? {} : { baseURL: options.baseURL }),
+    concurrency: options.concurrency,
   });
   try {
-    return await Promise.all(
-      Array.from({ length: options.repetitions }, (_, index) =>
-        runEvaluation({
-          fixtures,
-          parser: oxcParser(),
-          plugins,
-          provider,
-          providerName: options.provider,
-          requestedModel: model,
-          repetition: index + 1,
-        }),
-      ),
-    );
+    return await runRepetitions(model, options, fixtures, provider);
   } finally {
     await provider.close?.();
   }
+};
+
+const runRepetitions = async (
+  model: string,
+  options: EvalOptions,
+  fixtures: readonly EvalFixture[],
+  provider: DecisionProvider,
+  index = 0,
+): Promise<EvalRunReport[]> => {
+  if (index >= options.repetitions) {
+    return [];
+  }
+  const report = await runEvaluation({
+    concurrency: options.concurrency,
+    fixtures,
+    parser: oxcParser(),
+    plugins,
+    provider,
+    providerName: options.provider,
+    requestedModel: model,
+    repetition: index + 1,
+  });
+  return [report, ...(await runRepetitions(model, options, fixtures, provider, index + 1))];
 };
 
 try {

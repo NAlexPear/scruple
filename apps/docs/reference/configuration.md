@@ -4,14 +4,15 @@
 
 ## Fields
 
-| Field      | Required | Description                                              |
-| ---------- | -------- | -------------------------------------------------------- |
-| `parser`   | Yes      | `SourceParser` used for every supported file             |
-| `provider` | Yes      | `DecisionProvider` used by semantic rules                |
-| `plugins`  | Yes      | Namespace to plugin map                                  |
-| `rules`    | Yes      | Namespaced rule configurations                           |
-| `include`  | No       | Default CLI globs when no positional patterns are passed |
-| `ignore`   | No       | Additional CLI ignore globs                              |
+| Field      | Required | Description                                               |
+| ---------- | -------- | --------------------------------------------------------- |
+| `parser`   | Yes      | `SourceParser` used for every supported file              |
+| `provider` | Yes      | `DecisionProvider` used by semantic rules                 |
+| `cache`    | No       | A `DecisionCache` strategy, or `false` to disable caching |
+| `plugins`  | Yes      | Namespace to plugin map                                   |
+| `rules`    | Yes      | Namespaced rule configurations                            |
+| `include`  | No       | Default CLI globs when no positional patterns are passed  |
+| `ignore`   | No       | Additional CLI ignore globs                               |
 
 ## Rule configuration
 
@@ -40,7 +41,34 @@ can classify a bounded possible target, but cannot close or reconfigure the prov
 the same cancellation, concurrency, suppression, request counting, and token accounting to collection
 and final decision requests.
 
-`runScruple` also accepts an optional `DecisionCache` through its run options. A cache receives the
-provider ID and complete request, and may return a previous successful response. Cache implementations
-must treat unavailable or invalid storage as a miss rather than failing the analysis. The CLI supplies
-the default filesystem implementation.
+## Cache contract
+
+Set `cache` to a `DecisionCache` strategy to use local, remote, or multi-tier storage for every
+provider request. A cache receives the provider ID and complete request, and may return a previous
+successful response:
+
+```ts
+import type { DecisionCache } from "@scruple/core";
+
+const cache: DecisionCache = {
+  async get(providerId, request) {
+    // Read and validate a response from your cache service.
+    return undefined;
+  },
+  async set(providerId, request, response) {
+    // Store the successful response without exposing request data in logs or keys.
+  },
+  async close() {
+    // Optionally release client resources when the CLI exits.
+  },
+};
+```
+
+The provider ID is an input to the strategy, so one cache can namespace or route different providers
+without putting storage policy in each provider adapter. A strategy can also compose local and remote
+caches. Cache implementations must treat unavailable or invalid storage as a miss and failed writes as
+non-fatal rather than failing analysis.
+
+When `cache` is omitted, the CLI supplies its filesystem cache. Set `cache: false` to disable that
+default. `runScruple` accepts the same values through its run options, which override configuration for
+one run.

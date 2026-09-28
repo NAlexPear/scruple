@@ -8,6 +8,7 @@ import { parseArgs } from "node:util";
 import {
   runScruple,
   type DecisionAnswer,
+  type DecisionCache,
   type DecisionRecord,
   type Diagnostic,
   type ScrupleConfig,
@@ -77,23 +78,35 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
     onlyFiles: true,
   });
   const files = await readSourceFiles(cwd, filenames);
-  const cache = values["no-cache"]
-    ? undefined
-    : createFileDecisionCache({
-        directory: resolve(cwd, values["cache-dir"] ?? defaultCacheDirectory),
-        onWarning(message, cause) {
-          if (cause instanceof Error) {
-            process.stderr.write(`scruple: ${message} ${cause.message}\n`);
-          } else {
-            process.stderr.write(`scruple: ${message}\n`);
-          }
-        },
-      });
+  let cache: DecisionCache | false;
+  if (values["no-cache"]) {
+    cache = false;
+  } else if (values["cache-dir"] === undefined && config.cache !== undefined) {
+    cache = config.cache;
+  } else {
+    cache = createFileDecisionCache({
+      directory: resolve(cwd, values["cache-dir"] ?? defaultCacheDirectory),
+      onWarning(message, cause) {
+        if (cause instanceof Error) {
+          process.stderr.write(`scruple: ${message} ${cause.message}\n`);
+        } else {
+          process.stderr.write(`scruple: ${message}\n`);
+        }
+      },
+    });
+  }
+  const cachesToClose = new Set<DecisionCache>();
+  if (config.cache !== undefined && config.cache !== false) {
+    cachesToClose.add(config.cache);
+  }
+  if (cache !== false) {
+    cachesToClose.add(cache);
+  }
 
   try {
     const result = await runScruple(config, files, undefined, {
       includeDecisions: values.explain,
-      ...(cache === undefined ? {} : { cache }),
+      cache,
     });
     if (values.format === "json") {
       process.stdout.write(`${JSON.stringify(result, jsonErrorReplacer, 2)}\n`);
@@ -114,7 +127,12 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
     }
     return result.diagnostics.some((diagnostic) => diagnostic.severity === "error") ? 1 : 0;
   } finally {
-    await config.provider.close?.();
+    await Promise.all([
+      Promise.resolve().then(() => config.provider.close?.()),
+      ...[...cachesToClose].map((configuredCache) =>
+        Promise.resolve().then(() => configuredCache.close?.()),
+      ),
+    ]);
   }
 };
 
@@ -201,6 +219,7 @@ const isScrupleConfig = (value: unknown): value is ScrupleConfig => {
   }
   const parser = value["parser"];
   const provider = value["provider"];
+  const cache = value["cache"];
   const plugins = value["plugins"];
   return (
     isRecord(parser) &&
@@ -208,6 +227,12 @@ const isScrupleConfig = (value: unknown): value is ScrupleConfig => {
     typeof parser["supports"] === "function" &&
     isRecord(provider) &&
     typeof provider["evaluate"] === "function" &&
+    (cache === undefined ||
+      cache === false ||
+      (isRecord(cache) &&
+        typeof cache["get"] === "function" &&
+        typeof cache["set"] === "function" &&
+        (cache["close"] === undefined || typeof cache["close"] === "function"))) &&
     isRecord(plugins) &&
     Object.values(plugins).every((plugin) => isRecord(plugin) && isRecord(plugin["rules"])) &&
     isRecord(value["rules"])

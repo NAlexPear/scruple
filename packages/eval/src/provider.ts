@@ -14,6 +14,8 @@ export interface EvalProvider {
   defaultModel?: string;
   /** Kev serves the one checkpoint it loaded with `--run` and echoes any model name. */
   oneModelPerRun?: boolean;
+  /** Eval's cases in flight when `--concurrency` is omitted. */
+  defaultConcurrency: number;
   create: (settings: EvalProviderSettings) => DecisionProvider;
 }
 
@@ -21,6 +23,7 @@ export interface EvalProvider {
 export const EVAL_PROVIDERS: Record<string, EvalProvider> = {
   jev: {
     defaultModel: "jev-1.13.0",
+    defaultConcurrency: 64,
     create: ({ baseURL, ...settings }) => {
       const apiKey = process.env["TYPESAFE_API_KEY"];
       if (apiKey === undefined || apiKey.length === 0) {
@@ -35,6 +38,7 @@ export const EVAL_PROVIDERS: Record<string, EvalProvider> = {
   },
   decider: {
     defaultModel: "decider-4b-v2.1",
+    defaultConcurrency: 1,
     create: ({ baseURL = process.env["DECIDER_BASE_URL"], ...settings }) => {
       const options: DeciderProviderOptions = settings;
       if (baseURL !== undefined) {
@@ -49,6 +53,7 @@ export const EVAL_PROVIDERS: Record<string, EvalProvider> = {
   },
   kev: {
     oneModelPerRun: true,
+    defaultConcurrency: 1,
     create: ({ baseURL, ...settings }) => {
       if (baseURL === undefined) {
         throw new Error("--base-url is required for Kev evaluations");

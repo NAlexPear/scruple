@@ -106,6 +106,7 @@ export interface EvalRunReport {
 }
 
 export interface RunEvaluationOptions {
+  concurrency?: number;
   fixtures: readonly EvalFixture[];
   parser: SourceParser;
   plugins: PluginMap;
@@ -449,26 +450,17 @@ const abstentionByRuleId = (
 };
 
 export const runEvaluation = async (options: RunEvaluationOptions): Promise<EvalRunReport> => {
-  const cases: EvalCaseResult[] = [];
-  const concurrency = Math.max(1, Math.floor(options.provider.concurrency ?? 1));
-  const entries = options.fixtures.entries();
-  const runWorker = async (): Promise<void> => {
-    const next = entries.next();
-    if (next.done !== true) {
-      const [index, fixture] = next.value;
-      cases[index] = await runEvalCase(
+  const cases = await mapConcurrent(
+    options.fixtures,
+    options.concurrency ?? options.fixtures.length,
+    (fixture) =>
+      runEvalCase(
         fixture,
         options.parser,
         options.plugins,
         options.rules?.[fixture.ruleId] ?? "warn",
         options.provider,
-      );
-      await runWorker();
-    }
-  };
-  // Each case runs its own runScruple, so bound cases by the provider's concurrency too.
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, options.fixtures.length) }, runWorker),
+      ),
   );
   const failures = cases.filter((result) => !result.accepted);
   const latencies = cases.map((result) => result.latencyMs);
@@ -498,6 +490,28 @@ export const runEvaluation = async (options: RunEvaluationOptions): Promise<Eval
       outputTokens: sum(cases, (result) => result.usage.outputTokens),
     },
   };
+};
+
+const mapConcurrent = async <Input, Output>(
+  values: readonly Input[],
+  concurrency: number,
+  run: (value: Input) => Promise<Output>,
+): Promise<Output[]> => {
+  const safeConcurrency = Math.max(1, Math.floor(concurrency));
+  const iterator = values.entries();
+  const runWorker = async (): Promise<{ index: number; value: Output }[]> => {
+    const next = iterator.next();
+    if (next.done === true) {
+      return [];
+    }
+    const [index, value] = next.value;
+    return [{ index, value: await run(value) }, ...(await runWorker())];
+  };
+  const workers = Array.from({ length: Math.min(safeConcurrency, values.length) }, runWorker);
+  return (await Promise.all(workers))
+    .flat()
+    .toSorted((left, right) => left.index - right.index)
+    .map((entry) => entry.value);
 };
 
 export const formatEvalRuns = (runs: readonly EvalRunReport[]): string => {

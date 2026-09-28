@@ -1,0 +1,96 @@
+{
+  "capturedAt": "2026-09-26T17:33:01Z",
+  "purpose": "Reproducibility-focused MPS side of a future paired MPS-vs-CUDA comparison",
+  "fixedInputs": {
+    "scrupleCommit": "3c16bb121742f01670f2990626544ff65c76a90f",
+    "scrupleTree": "9a59827d5e7f7b73253be164f2423ccb02854eae",
+    "scrupleWorktreeClean": true,
+    "deciderCommit": "a5120cce45b9ff70964fac54ea6e8c1ac5b08c7f",
+    "deciderTree": "ddb87f4c0278a0de06751264f8deb34026302ec4",
+    "deciderWorktreeClean": true,
+    "modelHubId": "Mapika/decider-4b",
+    "modelSnapshot": "eb5fbdfc9448473ec25e399882912863afbdb70e",
+    "modelWeightsBytes": 8411558400,
+    "modelWeightsSha256": "ee8ce585b3cedd93206dd149b09b4bdd683174874211f85c77a36090b90c9fdd",
+    "deciderConfigSha256": "fc83293b6f707172e20176d603ea88dd1a3be2abd3596fdb1ccbec9404626baf",
+    "benchmarkFixtureIdsSha256": "333f12e6062dcf4c33e327f0ed4dc8995a91c93f0662a8f8aa84014622f48c93",
+    "evalFixturesSha256": "71e174d510cf3bf4ab92005a1f8ec493bce5697548380126f8331bdec5e3bf24",
+    "evaluationPluginsSha256": "5df68b37094fd83a8ae5ff948bff2d43b93627147e0b349478f9dd046303035a",
+    "temperatureOverride": null,
+    "promptOverride": null,
+    "thresholdOverride": null
+  },
+  "machine": {
+    "modelIdentifier": "Mac17,6",
+    "chip": "Apple M5 Max",
+    "logicalCores": 18,
+    "memoryBytes": 51539607552,
+    "os": "macOS 26.6.2 build 25G83",
+    "kernelRelease": "25.6.0",
+    "architecture": "arm64"
+  },
+  "runtime": {
+    "python": "3.12.14",
+    "node": "v22.23.2",
+    "pnpm": "12.0.0",
+    "deciderAi": "1.5.0",
+    "torch": "2.14.0",
+    "transformers": "5.17.0",
+    "numpy": "1.26.4",
+    "mlx": "0.32.2",
+    "mlxMetal": "0.32.2",
+    "torchCudaAvailable": false,
+    "torchMpsBuilt": true,
+    "torchMpsAvailable": true
+  },
+  "server": {
+    "url": "http://127.0.0.1:8002",
+    "model": "Mapika/decider-4b",
+    "resolvedModel": "decider-4b-v2.1",
+    "device": "mps",
+    "dtype": "torch.float16",
+    "layout": "plain",
+    "temperature": 1.099,
+    "temperatureByType": {
+      "choice": 1.11,
+      "noul": 1.56,
+      "score": 1.287
+    },
+    "compile": false,
+    "fp8": false,
+    "shared": false,
+    "maxBatch": 1,
+    "otherServerSettings": "Decider 1.5.0 defaults",
+    "statsAfter": {
+      "requests": 40,
+      "batches": 40,
+      "decisions": 40,
+      "rows": 40,
+      "sharedPrefixRequests": 0,
+      "errors": 0,
+      "rejectedTooLarge": 0,
+      "rejectedOverloaded": 0,
+      "batchHistogram": { "1": 40 },
+      "forwards": 40,
+      "eagerForwards": 40,
+      "sharedCalls": 0
+    }
+  },
+  "benchmark": {
+    "workload": "Pinned 10-fixture Scruple benchmark workload",
+    "warmups": 1,
+    "repetitions": 3,
+    "concurrency": 1,
+    "measuredCases": 30,
+    "inputTokens": 13440,
+    "outputTokens": 0,
+    "modelCalls": 30
+  },
+  "resourceObservations": {
+    "swapOutsBeforeMeasuredRun": 393848,
+    "swapOutsAfterMeasuredRun": 393848,
+    "swapOutDeltaDuringMeasuredRun": 0,
+    "systemMemoryFreePercentAfter": 60,
+    "caveat": "The prior stock MPS server remained idle but resident on port 8001 while this server ran. This does not affect answer comparison, but it can affect latency and cumulative memory observations; use an otherwise idle single-server NVIDIA runner for the paired CUDA run."
+  }
+}

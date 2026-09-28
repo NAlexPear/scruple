@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-26",
+  "commit": "3c16bb121742f01670f2990626544ff65c76a90f",
+  "provider": "decider",
+  "requestedModel": "decider-4b-v2.1",
+  "resolvedModel": "decider-4b-v2.1",
+  "model": {
+    "hubId": "Mapika/decider-4b",
+    "hubRevision": "eb5fbdfc9448473ec25e399882912863afbdb70e",
+    "weightsSha256": "ee8ce585b3cedd93206dd149b09b4bdd683174874211f85c77a36090b90c9fdd"
+  },
+  "environment": {
+    "node": "v26.10.0",
+    "platform": "linux",
+    "release": "6.8.0-100-generic",
+    "architecture": "x64",
+    "cpu": "AMD EPYC 7742 64-Core Processor",
+    "logicalCpuCount": 128,
+    "totalMemoryBytes": 2151618048000,
+    "cloud": "Runpod Secure Cloud",
+    "dataCenter": "US-MD-1",
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "gpuMemoryMiB": 81920,
+    "driver": "580.126.16",
+    "cuda": "13.0",
+    "computeCapability": "8.0",
+    "device": "cuda:0",
+    "dtype": "torch.bfloat16"
+  },
+  "server": {
+    "deciderCommit": "a5120cce45b9ff70964fac54ea6e8c1ac5b08c7f",
+    "deciderVersion": "1.5.0",
+    "python": "3.12.14",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "layout": "plain",
+    "compile": false,
+    "fp8": false,
+    "shared": false,
+    "maxBatch": 1,
+    "batchBuckets": 1,
+    "graphCaptures": 17
+  },
+  "workload": {
+    "baseFixtureCount": 10,
+    "fixtureCount": 10,
+    "warmups": 1,
+    "repetitions": 3,
+    "concurrency": 1,
+    "measuredCases": 30
+  },
+  "result": {
+    "strictMatches": 15,
+    "labelMatches": 27,
+    "diagnosticMatches": 18,
+    "abstentionMatches": 30,
+    "actualAbstentions": 0,
+    "expectedAbstentions": 0,
+    "durationMs": { "mean": 389.42, "p50": 389.545, "p95": 389.657 },
+    "caseLatencyMs": { "mean": 38.931, "p50": 40.223, "p95": 44.081 },
+    "throughputCasesPerSecond": 25.679,
+    "inputTokens": 13440,
+    "outputTokens": 0,
+    "modelCalls": 30,
+    "rawReport": "raw/concurrency-1.json.gz"
+  }
+}
