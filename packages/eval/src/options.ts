@@ -1,8 +1,6 @@
 import { parseArgs } from "node:util";
 
-export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
-
-export type EvalProvider = "jev" | "decider";
+import { evalProvider } from "./provider.js";
 
 export interface EvalOptions {
   baseURL?: string;
@@ -10,7 +8,7 @@ export interface EvalOptions {
   format: "json" | "stylish";
   help: boolean;
   models: string[];
-  provider: EvalProvider;
+  provider: string;
   repetitions: number;
 }
 
@@ -20,13 +18,20 @@ Usage:
   pnpm eval [options]
 
 Options:
-  --provider <name>      Provider to evaluate: jev or decider (default: jev)
-  --base-url <url>       Decider API base URL (default: http://127.0.0.1:8000)
-  --model <model>        Model to evaluate; repeat to compare models
+  --provider <name>      jev, decider, or kev (default: jev)
+  --base-url <url>       Provider API root; required for kev (decider default: http://127.0.0.1:8000)
+  --model <model>        Model to evaluate; repeat to compare models (default: jev-1.13.0 for jev,
+                         decider-4b-v2.1 for decider)
   --repetitions <count>  Runs per model (default: 1)
-  --concurrency <count>  Maximum cases in flight (default: 64 for Jev, 1 for Decider)
+  --concurrency <count>  Maximum cases in flight (default: 64 for jev, 1 for decider and kev)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
+
+Environment:
+  TYPESAFE_API_KEY  Required by jev
+  DECIDER_BASE_URL  Optional Decider API base URL
+  DECIDER_API_KEY   Optional bearer token for a Decider proxy
+  KEV_API_KEY       Sent to kev when the server sets one
 
 Examples:
   pnpm eval
@@ -34,13 +39,14 @@ Examples:
   pnpm eval --model jev-1.13.0 --repetitions 3
   pnpm eval --model jev-1.13.0 --model jev-latest
   pnpm eval --provider decider --base-url http://127.0.0.1:8000
+  pnpm eval --provider kev --base-url http://127.0.0.1:8008 --model kev-4b
 `;
 
 export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
   const { values } = parseArgs({
     args: [...argv],
     options: {
-      provider: { type: "string" },
+      provider: { type: "string", default: "jev" },
       "base-url": { type: "string" },
       model: { type: "string", multiple: true },
       repetitions: { type: "string", default: "1" },
@@ -49,15 +55,13 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
       help: { type: "boolean", short: "h", default: false },
     },
   });
-  if (values.provider !== undefined && values.provider !== "jev" && values.provider !== "decider") {
-    throw new Error(`--provider must be either "jev" or "decider"`);
-  }
-  const provider = values.provider ?? "jev";
   const repetitions = Number(values.repetitions);
   if (!Number.isSafeInteger(repetitions) || repetitions < 1) {
     throw new Error("--repetitions must be a positive integer");
   }
-  const concurrency = Number(values.concurrency ?? (provider === "decider" ? "1" : "64"));
+  const concurrency = Number(
+    values.concurrency ?? evalProvider(values.provider).defaultConcurrency,
+  );
   if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
     throw new Error("--concurrency must be a positive integer");
   }
@@ -69,8 +73,23 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     concurrency,
     format: values.format,
     help: values.help,
-    models: values.model ?? [provider === "decider" ? "decider-4b-v2.1" : DEFAULT_EVAL_MODEL],
-    provider,
+    models: parseModels(values.provider, values.model),
+    provider: values.provider,
     repetitions,
   };
+};
+
+/** The requested models, or the provider's default when `--model` is omitted. */
+export const parseModels = (provider: string, models: string[] | undefined): string[] => {
+  const { defaultModel, oneModelPerRun } = evalProvider(provider);
+  if (models !== undefined) {
+    if (oneModelPerRun === true && models.length > 1) {
+      throw new Error(`${provider} serves one model per --base-url, so pass one --model per run`);
+    }
+    return models;
+  }
+  if (defaultModel === undefined) {
+    throw new Error(`--model is required for ${provider}`);
+  }
+  return [defaultModel];
 };
