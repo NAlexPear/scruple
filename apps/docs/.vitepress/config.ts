@@ -42,6 +42,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     collapsed: true,
     items: [
       { text: "Overview", link: "/providers/" },
+      { text: "Cloudflare Clef", link: "/providers/cloudflare" },
       { text: "Decider", link: "/providers/decider" },
       { text: "Jev", link: "/providers/jev" },
     ],

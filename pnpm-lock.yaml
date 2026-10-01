@@ -136,6 +136,9 @@ importers:
       '@scruple/parser-oxc':
         specifier: workspace:*
         version: link:packages/parser-oxc
+      '@scruple/provider-cloudflare':
+        specifier: workspace:*
+        version: link:packages/provider-cloudflare
       '@scruple/provider-decider':
         specifier: workspace:*
         version: link:packages/provider-decider
@@ -294,6 +297,12 @@ importers:
       oxc-parser:
         specifier: ^0.151.0
         version: 0.151.0
+
+  packages/provider-cloudflare:
+    dependencies:
+      '@scruple/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/provider-decider:
     dependencies:
