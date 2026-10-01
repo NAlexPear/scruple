@@ -4,6 +4,30 @@
       <header>
         <div>
           <span>Hosted</span>
+          <h3>Cloudflare Clef</h3>
+        </div>
+        <p>Run Clef or Clef-flash through Cloudflare Workers AI.</p>
+      </header>
+
+      <div class="provider-card-code">
+        <h4>Configuration</h4>
+        <pre><code><span class="code-keyword">import</span> {
+  <span class="code-function">cloudflareProvider</span>,
+} <span class="code-keyword">from</span> <span class="code-string">"@scruple/provider-cloudflare"</span>;
+
+<span class="code-keyword">const</span> provider = <span class="code-function">cloudflareProvider</span>({
+  <span class="code-property">accountId</span>,
+  <span class="code-property">apiToken</span>,
+});</code></pre>
+      </div>
+
+      <a href="/providers/cloudflare">Read the Cloudflare guide</a>
+    </article>
+
+    <article class="provider-card">
+      <header>
+        <div>
+          <span>Hosted</span>
           <h3>Jev</h3>
         </div>
         <p>Send rule questions and selected code to Jev over HTTPS.</p>
@@ -24,7 +48,7 @@
       <a href="/providers/jev">Read the Jev guide</a>
     </article>
 
-    <article class="provider-card">
+    <article class="provider-card provider-card-custom">
       <header>
         <div>
           <span>Custom</span>
@@ -70,6 +94,27 @@
   border-radius: 5px;
   background: var(--vp-c-bg);
   overflow: hidden;
+}
+
+.provider-card-custom {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(180px, 0.75fr) minmax(360px, 1.25fr);
+  grid-template-rows: 1fr auto;
+  column-gap: 24px;
+}
+
+.provider-card-custom > header {
+  margin-bottom: 0;
+}
+
+.provider-card-custom header p {
+  min-height: auto;
+}
+
+.provider-card-custom .provider-card-code {
+  grid-column: 2;
+  grid-row: 1 / 3;
 }
 
 .provider-card > header {
@@ -156,6 +201,11 @@
 @media (max-width: 1280px) {
   .provider-options {
     grid-template-columns: 1fr;
+  }
+
+  .provider-card-custom {
+    display: flex;
+    grid-column: auto;
   }
 
   .provider-card header p {
