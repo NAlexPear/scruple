@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { nextTick, ref } from "vue";
 
-const providerIds = ["cloudflare", "jev", "custom"] as const;
+const providerIds = ["jev", "cloudflare", "custom"] as const;
 type ProviderId = (typeof providerIds)[number];
 
-const activeProvider = ref<ProviderId>("cloudflare");
+const activeProvider = ref<ProviderId>("jev");
 
 const selectProvider = (provider: ProviderId, focus = false): void => {
   activeProvider.value = provider;
@@ -59,37 +59,6 @@ const selectAdjacentProvider = (event: KeyboardEvent, index: number): void => {
     </div>
 
     <article
-      v-show="activeProvider === 'cloudflare'"
-      id="provider-panel-cloudflare"
-      class="provider-card"
-      role="tabpanel"
-      aria-labelledby="provider-tab-cloudflare"
-      tabindex="0"
-    >
-      <header>
-        <div>
-          <span>Hosted</span>
-          <h3>Cloudflare Clef</h3>
-        </div>
-        <p>Run Clef or Clef-flash through Cloudflare Workers AI.</p>
-      </header>
-
-      <div class="provider-card-code">
-        <h4>Configuration</h4>
-        <pre><code><span class="code-keyword">import</span> {
-  <span class="code-function">cloudflareProvider</span>,
-} <span class="code-keyword">from</span> <span class="code-string">"@scruple/provider-cloudflare"</span>;
-
-<span class="code-keyword">const</span> provider = <span class="code-function">cloudflareProvider</span>({
-  <span class="code-property">accountId</span>,
-  <span class="code-property">apiToken</span>,
-});</code></pre>
-      </div>
-
-      <a href="/providers/cloudflare">Read the Cloudflare guide</a>
-    </article>
-
-    <article
       v-show="activeProvider === 'jev'"
       id="provider-panel-jev"
       class="provider-card"
@@ -99,10 +68,13 @@ const selectAdjacentProvider = (event: KeyboardEvent, index: number): void => {
     >
       <header>
         <div>
-          <span>Hosted</span>
+          <span>Recommended</span>
           <h3>Jev</h3>
         </div>
-        <p>Send rule questions and selected code to Jev over HTTPS.</p>
+        <p>
+          Best overall across strict accuracy, diagnostics, recall, F1, throughput, and API cost in
+          Scruple's 187-fixture evaluation.
+        </p>
       </header>
 
       <div class="provider-card-code">
@@ -118,6 +90,40 @@ const selectAdjacentProvider = (event: KeyboardEvent, index: number): void => {
       </div>
 
       <a href="/providers/jev">Read the Jev guide</a>
+    </article>
+
+    <article
+      v-show="activeProvider === 'cloudflare'"
+      id="provider-panel-cloudflare"
+      class="provider-card"
+      role="tabpanel"
+      aria-labelledby="provider-tab-cloudflare"
+      tabindex="0"
+    >
+      <header>
+        <div>
+          <span>Cloudflare-native</span>
+          <h3>Cloudflare Clef</h3>
+        </div>
+        <p>
+          A hosted alternative with the best raw label accuracy and precision, but much lower recall
+          in the 187-fixture evaluation.
+        </p>
+      </header>
+
+      <div class="provider-card-code">
+        <h4>Configuration</h4>
+        <pre><code><span class="code-keyword">import</span> {
+  <span class="code-function">cloudflareProvider</span>,
+} <span class="code-keyword">from</span> <span class="code-string">"@scruple/provider-cloudflare"</span>;
+
+<span class="code-keyword">const</span> provider = <span class="code-function">cloudflareProvider</span>({
+  <span class="code-property">accountId</span>,
+  <span class="code-property">apiToken</span>,
+});</code></pre>
+      </div>
+
+      <a href="/providers/cloudflare">Read the Cloudflare guide</a>
     </article>
 
     <article
