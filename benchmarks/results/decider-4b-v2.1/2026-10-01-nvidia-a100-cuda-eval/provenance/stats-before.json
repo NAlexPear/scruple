@@ -1,0 +1,31 @@
+{
+  "requests": 0,
+  "batches": 0,
+  "decisions": 0,
+  "rows": 0,
+  "shared_prefix_requests": 0,
+  "errors": 0,
+  "rejected_too_large": 0,
+  "rejected_overloaded": 0,
+  "batch_hist": {},
+  "bucket_hist": {},
+  "outstanding_rows": 0,
+  "engine": {
+    "graph_captures": 17,
+    "forwards": 17,
+    "replays": 17,
+    "eager_forwards": 0,
+    "eager_rows": 0,
+    "shared_calls": 0,
+    "unbucketed_requests": 0
+  },
+  "graphs": 17,
+  "sealed": true,
+  "schema_cache": null,
+  "limits": {
+    "max_rows": 1024,
+    "max_row_tokens": 36864,
+    "max_request_tokens": 1048576,
+    "max_queue_rows": 4096
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-01",
+  "commit": "f76ac795557e5042afe8e30996e0b83c7691aa0b",
+  "provider": "decider",
+  "requestedModel": "decider-4b-v2.1",
+  "resolvedModel": "decider-4b-v2.1",
+  "model": {
+    "hubId": "Mapika/decider-4b",
+    "hubRevision": "eb5fbdfc9448473ec25e399882912863afbdb70e",
+    "weightsSha256": "ee8ce585b3cedd93206dd149b09b4bdd683174874211f85c77a36090b90c9fdd"
+  },
+  "environment": {
+    "cloud": "Runpod Secure Cloud",
+    "dataCenter": "US-MD-1",
+    "template": "runpod-torch-v280",
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "gpuMemoryMiB": 81920,
+    "driver": "580.126.16",
+    "cuda": "13.0",
+    "computeCapability": "8.0",
+    "device": "cuda:0",
+    "dtype": "torch.bfloat16",
+    "node": "v26.10.0",
+    "pnpm": "12.0.0"
+  },
+  "server": {
+    "deciderCommit": "a5120cce45b9ff70964fac54ea6e8c1ac5b08c7f",
+    "deciderVersion": "1.5.0",
+    "python": "3.12.14",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "layout": "plain",
+    "compile": false,
+    "fp8": false,
+    "shared": false,
+    "maxBatch": 1,
+    "batchBuckets": 1,
+    "graphCaptures": 17
+  },
+  "workload": {
+    "fixtureCount": 187,
+    "expectedFindings": 81,
+    "expectedSafe": 106,
+    "repetitions": 1,
+    "concurrency": 1,
+    "modelCalls": 188,
+    "fixtureCorpusSha256": "71e174d510cf3bf4ab92005a1f8ec493bce5697548380126f8331bdec5e3bf24"
+  },
+  "result": {
+    "passed": 106,
+    "failed": 81,
+    "passRate": 0.5668449197860963,
+    "labelMatches": 135,
+    "labelMatchRate": 0.7219251336898396,
+    "diagnosticMatches": 138,
+    "diagnosticMatchRate": 0.7379679144385026,
+    "candidateMatches": 187,
+    "detection": {
+      "invalid": 0,
+      "truePositives": 37,
+      "falsePositives": 5,
+      "trueNegatives": 101,
+      "falseNegatives": 44,
+      "precision": 0.8809523809523809,
+      "recall": 0.4567901234567901,
+      "f1": 0.6016260162601625,
+      "falsePositiveRate": 0.04716981132075472,
+      "specificity": 0.9528301886792453
+    },
+    "abstention": {
+      "expected": 15,
+      "actual": 17,
+      "correct": 4,
+      "unexpected": 13
+    },
+    "caseLatencyMs": {
+      "mean": 34.88590443315506,
+      "p50": 39.719240000000354,
+      "p95": 45.17655300000001,
+      "min": 0.08973999999989246,
+      "max": 116.924867
+    },
+    "harnessDurationMs": 6523.664129,
+    "commandWallSeconds": 6.8,
+    "harnessThroughputCasesPerSecond": 28.664872424795554,
+    "commandThroughputCasesPerSecond": 27.5,
+    "inputTokens": 71262,
+    "outputTokens": 0,
+    "operationalErrors": 0,
+    "rawReport": "raw/eval-report.json.gz"
+  },
+  "infrastructure": {
+    "podId": "guw9c133xv5j2y",
+    "createdAt": "2026-10-01T18:23:09.024Z",
+    "terminatedAtApprox": "2026-10-01T18:35:00Z",
+    "hourlyRateUsd": 1.59,
+    "estimatedCostUsd": 0.32,
+    "finalizedBillingAvailable": false,
+    "cleanupVerified": true
+  },
+  "compatibility": {
+    "harnessCompatible": true,
+    "invalidFixtures": 0,
+    "serverErrors": 0,
+    "environmentIssue": "The template lacked GNU /usr/bin/time; the first wrapper exited 127 before Node or Decider ran. Installing the time package resolved it."
+  }
+}

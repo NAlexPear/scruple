@@ -1,0 +1,6 @@
+Scruple source: git checkout --detach f76ac795557e5042afe8e30996e0b83c7691aa0b
+Decider source: git checkout --detach a5120cce45b9ff70964fac54ea6e8c1ac5b08c7f
+Model download: snapshot_download("Mapika/decider-4b", revision="eb5fbdfc9448473ec25e399882912863afbdb70e")
+Server environment: CUDA_VISIBLE_DEVICES=0 DECIDER_DEVICE=cuda:0 DECIDER_COMPILE=0 DECIDER_FP8=0 DECIDER_SHARED=0 DECIDER_MAX_BATCH=1 DECIDER_B_BUCKETS=1
+Server command: .amp/in/decider-venv/bin/uvicorn decider.serve:app --host 127.0.0.1 --port 8002
+Evaluation command: node packages/eval/dist/cli.js --provider decider --base-url http://127.0.0.1:8002 --model decider-4b-v2.1 --repetitions 1 --concurrency 1 --format json

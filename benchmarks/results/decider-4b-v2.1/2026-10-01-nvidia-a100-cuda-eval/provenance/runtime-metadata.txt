@@ -1,0 +1,360 @@
++ date -u +%FT%TZ
+2026-10-01T18:28:28Z
++ uname -a
+Linux 189bc4362f29 6.8.0-100-generic #100-Ubuntu SMP PREEMPT_DYNAMIC Tue Jan 13 16:40:06 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
++ cat /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.3 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.3 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
++ lscpu
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           43 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  128
+On-line CPU(s) list:                     0-127
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD EPYC 7742 64-Core Processor
+CPU family:                              23
+Model:                                   49
+Thread(s) per core:                      1
+Core(s) per socket:                      64
+Socket(s):                               2
+Stepping:                                0
+Frequency boost:                         enabled
+CPU(s) scaling MHz:                      110%
+CPU max MHz:                             2250.0000
+CPU min MHz:                             1500.0000
+BogoMIPS:                                4491.85
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca sev sev_es ibpb_exit_to_user
+Virtualization:                          AMD-V
+L1d cache:                               4 MiB (128 instances)
+L1i cache:                               4 MiB (128 instances)
+L2 cache:                                64 MiB (128 instances)
+L3 cache:                                512 MiB (32 instances)
+NUMA node(s):                            2
+NUMA node0 CPU(s):                       0-63
+NUMA node1 CPU(s):                       64-127
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Mitigation; untrained return thunk; SMT disabled
+Vulnerability Spec rstack overflow:      Mitigation; SMT disabled
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Mitigation; IBPB before exit to userspace
++ free -b
+               total        used        free      shared  buff/cache   available
+Mem:     2151618048000 120144064512 923834343424  5961515008 1131684134912 2031473983488
+Swap:              0           0           0
++ nvidia-smi -q
+
+==============NVSMI LOG==============
+
+Timestamp                                              : Thu Oct  1 18:28:28 2026
+Driver Version                                         : 580.126.16
+CUDA Version                                           : 13.0
+
+Attached GPUs                                          : 1
+GPU 00000000:47:00.0
+    Product Name                                       : NVIDIA A100-SXM4-80GB
+    Product Brand                                      : NVIDIA
+    Product Architecture                               : Ampere
+    Display Mode                                       : Requested functionality has been deprecated
+    Display Attached                                   : Yes
+    Display Active                                     : Disabled
+    Persistence Mode                                   : Enabled
+    Addressing Mode                                    : None
+    MIG Mode
+        Current                                        : Disabled
+        Pending                                        : Disabled
+    Accounting Mode                                    : Disabled
+    Accounting Mode Buffer Size                        : 4000
+    Driver Model
+        Current                                        : N/A
+        Pending                                        : N/A
+    Serial Number                                      : 1323822017693
+    GPU UUID                                           : GPU-54415f7f-e285-2961-f6f7-a3c22497d868
+    GPU PDI                                            : 0xbc49350ede628cc1
+    Minor Number                                       : 2
+    VBIOS Version                                      : 92.00.9E.00.16
+    MultiGPU Board                                     : No
+    Board ID                                           : 0x4700
+    Board Part Number                                  : 692-2G510-0210-0R3
+    GPU Part Number                                    : 20B2-896-A1
+    FRU Part Number                                    : N/A
+    Platform Info
+        Chassis Serial Number                          : N/A
+        Slot Number                                    : N/A
+        Tray Index                                     : N/A
+        Host ID                                        : N/A
+        Peer Type                                      : N/A
+        Module Id                                      : 5
+        GPU Fabric GUID                                : N/A
+    Inforom Version
+        Image Version                                  : G510.0210.00.02
+        OEM Object                                     : 2.0
+        ECC Object                                     : 6.16
+        Power Management Object                        : N/A
+    Inforom BBX Object Flush
+        Latest Timestamp                               : 2026/08/29 05:34:39.576
+        Latest Duration                                : 87127 us
+    GPU Operation Mode
+        Current                                        : N/A
+        Pending                                        : N/A
+    GPU C2C Mode                                       : N/A
+    GPU Virtualization Mode
+        Virtualization Mode                            : None
+        Host VGPU Mode                                 : N/A
+        vGPU Heterogeneous Mode                        : N/A
+    GPU Recovery Action                                : None
+    GSP Firmware Version                               : 580.126.16
+    IBMNPU
+        Relaxed Ordering Mode                          : N/A
+    PCI
+        Bus                                            : 0x47
+        Device                                         : 0x00
+        Domain                                         : 0x0000
+        Base Classcode                                 : 0x3
+        Sub Classcode                                  : 0x2
+        Device Id                                      : 0x20B210DE
+        Bus Id                                         : 00000000:47:00.0
+        Sub System Id                                  : 0x146310DE
+        GPU Link Info
+            PCIe Generation
+                Max                                    : 4
+                Current                                : 4
+                Device Current                         : 4
+                Device Max                             : 4
+                Host Max                               : 4
+            Link Width
+                Max                                    : 16x
+                Current                                : 16x
+        Bridge Chip
+            Type                                       : N/A
+            Firmware                                   : N/A
+        Replays Since Reset                            : 0
+        Replay Number Rollovers                        : 0
+        Tx Throughput                                  : 341 KB/s
+        Rx Throughput                                  : 244 KB/s
+        Atomic Caps Outbound                           : N/A
+        Atomic Caps Inbound                            : N/A
+    Fan Speed                                          : N/A
+    Performance State                                  : P0
+    Clocks Event Reasons
+        Idle                                           : Active
+        Applications Clocks Setting                    : Not Active
+        SW Power Cap                                   : Not Active
+        HW Slowdown                                    : Not Active
+            HW Thermal Slowdown                        : Not Active
+            HW Power Brake Slowdown                    : Not Active
+        Sync Boost                                     : Not Active
+        SW Thermal Slowdown                            : Not Active
+        Display Clock Setting                          : Not Active
+    Clocks Event Reasons Counters
+        SW Power Capping                               : 7412511 us
+        Sync Boost                                     : 0 us
+        SW Thermal Slowdown                            : 0 us
+        HW Thermal Slowdown                            : 0 us
+        HW Power Braking                               : 0 us
+    Sparse Operation Mode                              : N/A
+    FB Memory Usage
+        Total                                          : 81920 MiB
+        Reserved                                       : 769 MiB
+        Used                                           : 0 MiB
+        Free                                           : 81152 MiB
+    BAR1 Memory Usage
+        Total                                          : 131072 MiB
+        Used                                           : 1 MiB
+        Free                                           : 131071 MiB
+    Conf Compute Protected Memory Usage
+        Total                                          : 0 MiB
+        Used                                           : 0 MiB
+        Free                                           : 0 MiB
+    Compute Mode                                       : Default
+    Utilization
+        GPU                                            : 0 %
+        Memory                                         : 0 %
+        Encoder                                        : 0 %
+        Decoder                                        : 0 %
+        JPEG                                           : 0 %
+        OFA                                            : 0 %
+    Encoder Stats
+        Active Sessions                                : 0
+        Average FPS                                    : 0
+        Average Latency                                : 0
+    FBC Stats
+        Active Sessions                                : 0
+        Average FPS                                    : 0
+        Average Latency                                : 0
+    DRAM Encryption Mode
+        Current                                        : N/A
+        Pending                                        : N/A
+    ECC Mode
+        Current                                        : Enabled
+        Pending                                        : Enabled
+    ECC Errors
+        Volatile
+            SRAM Correctable                           : 0
+            SRAM Uncorrectable Parity                  : 0
+            SRAM Uncorrectable SEC-DED                 : 0
+            DRAM Correctable                           : 0
+            DRAM Uncorrectable                         : 0
+        Aggregate
+            SRAM Correctable                           : 0
+            SRAM Uncorrectable Parity                  : 0
+            SRAM Uncorrectable SEC-DED                 : 0
+            DRAM Correctable                           : 0
+            DRAM Uncorrectable                         : 0
+            SRAM Threshold Exceeded                    : No
+        Aggregate Uncorrectable SRAM Sources
+            SRAM L2                                    : 0
+            SRAM SM                                    : 0
+            SRAM Microcontroller                       : 0
+            SRAM PCIE                                  : 0
+            SRAM Other                                 : 0
+        Channel Repair Pending                         : No
+        TPC Repair Pending                             : No
+    Retired Pages
+        Single Bit ECC                                 : N/A
+        Double Bit ECC                                 : N/A
+        Pending Page Blacklist                         : N/A
+    Remapped Rows
+        Correctable Error                              : 0
+        Uncorrectable Error                            : 0
+        Pending                                        : No
+        Remapping Failure Occurred                     : No
+        Bank Remap Availability Histogram
+            Max                                        : 640 bank(s)
+            High                                       : 0 bank(s)
+            Partial                                    : 0 bank(s)
+            Low                                        : 0 bank(s)
+            None                                       : 0 bank(s)
+    Temperature
+        GPU Current Temp                               : 29 C
+        GPU T.Limit Temp                               : N/A
+        GPU Shutdown Temp                              : 92 C
+        GPU Slowdown Temp                              : 89 C
+        GPU Max Operating Temp                         : 85 C
+        GPU Target Temperature                         : N/A
+        Memory Current Temp                            : 27 C
+        Memory Max Operating Temp                      : 95 C
+    GPU Power Readings
+        Average Power Draw                             : N/A
+        Instantaneous Power Draw                       : 59.52 W
+        Current Power Limit                            : 400.00 W
+        Requested Power Limit                          : 400.00 W
+        Default Power Limit                            : 400.00 W
+        Min Power Limit                                : 100.00 W
+        Max Power Limit                                : 400.00 W
+    GPU Memory Power Readings 
+        Average Power Draw                             : N/A
+        Instantaneous Power Draw                       : N/A
+    Module Power Readings
+        Average Power Draw                             : N/A
+        Instantaneous Power Draw                       : N/A
+        Current Power Limit                            : N/A
+        Requested Power Limit                          : N/A
+        Default Power Limit                            : N/A
+        Min Power Limit                                : N/A
+        Max Power Limit                                : N/A
+    Power Smoothing                                    : N/A
+    Workload Power Profiles
+        Requested Profiles                             : N/A
+        Enforced Profiles                              : N/A
+    Clocks
+        Graphics                                       : 210 MHz
+        SM                                             : 210 MHz
+        Memory                                         : 1593 MHz
+        Video                                          : 585 MHz
+    Applications Clocks
+        Graphics                                       : 1155 MHz
+        Memory                                         : 1593 MHz
+    Default Applications Clocks
+        Graphics                                       : 1155 MHz
+        Memory                                         : 1593 MHz
+    Deferred Clocks
+        Memory                                         : N/A
+    Max Clocks
+        Graphics                                       : 1410 MHz
+        SM                                             : 1410 MHz
+        Memory                                         : 1593 MHz
+        Video                                          : 1290 MHz
+    Max Customer Boost Clocks
+        Graphics                                       : 1410 MHz
+    Clock Policy
+        Auto Boost                                     : N/A
+        Auto Boost Default                             : N/A
+    Fabric
+        State                                          : N/A
+        Status                                         : N/A
+        CliqueId                                       : N/A
+        ClusterUUID                                    : N/A
+        Health
+            Summary                                    : N/A
+            Bandwidth                                  : N/A
+            Route Recovery in progress                 : N/A
+            Route Unhealthy                            : N/A
+            Access Timeout Recovery                    : N/A
+            Incorrect Configuration                    : N/A
+            Partition Assigned                         : N/A
+    Processes                                          : None
+    Capabilities
+        EGM                                            : disabled
+
++ nvidia-smi --query-gpu=index,uuid,name,pci.bus_id,driver_version,memory.total,memory.used,compute_cap,temperature.gpu,power.draw,clocks.current.sm,clocks.current.memory --format=csv
+index, uuid, name, pci.bus_id, driver_version, memory.total [MiB], memory.used [MiB], compute_cap, temperature.gpu, power.draw [W], clocks.current.sm [MHz], clocks.current.memory [MHz]
+0, GPU-54415f7f-e285-2961-f6f7-a3c22497d868, NVIDIA A100-SXM4-80GB, 00000000:47:00.0, 580.126.16, 81920 MiB, 0 MiB, 8.0, 29, 59.85 W, 210 MHz, 1593 MHz
++ git rev-parse HEAD
+f76ac795557e5042afe8e30996e0b83c7691aa0b
++ git -C .amp/in/decider-src/repo rev-parse HEAD
+a5120cce45b9ff70964fac54ea6e8c1ac5b08c7f
++ node --version
+v26.10.0
++ pnpm --version
+12.0.0
++ .amp/in/decider-venv/bin/python --version
+Python 3.12.14
++ .amp/in/decider-venv/bin/python -
+{
+  "platform": "Linux-6.8.0-100-generic-x86_64-with-glibc2.39",
+  "torch": "2.14.0+cu130",
+  "transformers": "5.17.0",
+  "cuda_available": true,
+  "cuda_runtime": "13.0",
+  "cudnn": 92400,
+  "gpu_count": 1,
+  "gpu_name": "NVIDIA A100-SXM4-80GB",
+  "gpu_capability": [
+    8,
+    0
+  ],
+  "bf16_supported": true
+}
++ sha256sum tests/eval-fixtures.json packages/eval/src/plugins.ts pnpm-lock.yaml
+71e174d510cf3bf4ab92005a1f8ec493bce5697548380126f8331bdec5e3bf24  tests/eval-fixtures.json
+5df68b37094fd83a8ae5ff948bff2d43b93627147e0b349478f9dd046303035a  packages/eval/src/plugins.ts
+373038dc1b42710f25911c4d4d9d742818280ef0c278487e66a3e165ffb9bf15  pnpm-lock.yaml
++ sha256sum /root/.cache/huggingface/hub/models--Mapika--decider-4b/snapshots/eb5fbdfc9448473ec25e399882912863afbdb70e/model.safetensors /root/.cache/huggingface/hub/models--Mapika--decider-4b/snapshots/eb5fbdfc9448473ec25e399882912863afbdb70e/decider_config.json /root/.cache/huggingface/hub/models--Mapika--decider-4b/snapshots/eb5fbdfc9448473ec25e399882912863afbdb70e/config.json
+ee8ce585b3cedd93206dd149b09b4bdd683174874211f85c77a36090b90c9fdd  /root/.cache/huggingface/hub/models--Mapika--decider-4b/snapshots/eb5fbdfc9448473ec25e399882912863afbdb70e/model.safetensors
+fc83293b6f707172e20176d603ea88dd1a3be2abd3596fdb1ccbec9404626baf  /root/.cache/huggingface/hub/models--Mapika--decider-4b/snapshots/eb5fbdfc9448473ec25e399882912863afbdb70e/decider_config.json
+63f47812d0f11118e4d252d2b3ad488707eb9287a11589f4fd382a1d31182724  /root/.cache/huggingface/hub/models--Mapika--decider-4b/snapshots/eb5fbdfc9448473ec25e399882912863afbdb70e/config.json
