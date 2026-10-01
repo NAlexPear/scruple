@@ -2,13 +2,14 @@
 
 Scruple's own engine has two benchmark commands:
 
-- `pnpm benchmark` measures rule accuracy and speed against Jev or Decider. It always calls the model.
+- `pnpm benchmark` measures rule accuracy and speed against Jev, Decider, or Cloudflare Clef. It
+  always calls the model.
 - `pnpm benchmark-cache` measures uncached, cold-cache, warm-cache, and one-file-change runs. It uses
   a local fixed-delay provider, so it needs no API key.
 
 ## Benchmark Scruple with a decision model
 
-This benchmark runs a versioned semantic-rule workload against Jev or Decider. It measures Scruple end to end, including parsing, candidate collection, provider requests, and diagnosis.
+This benchmark runs a versioned semantic-rule workload against Jev, Decider, or Cloudflare Clef. It measures Scruple end to end, including parsing, candidate collection, provider requests, and diagnosis.
 
 The default workload selects ten cases from `tests/eval-fixtures.json`. Its IDs are pinned in `fixtures.json` so correctness-corpus growth does not silently change benchmark results.
 
@@ -38,6 +39,38 @@ TYPESAFE_API_KEY=your-key pnpm benchmark \
 ```
 
 Models run one after another. Each model gets one unmeasured warmup and three measured repetitions by default. Cases run one at a time unless `--concurrency` is set.
+
+To compare Cloudflare's two Clef models through the `@scruple/provider-cloudflare` adapter:
+
+```sh
+CLOUDFLARE_ACCOUNT_ID=your-account-id \
+CLOUDFLARE_API_TOKEN=your-token \
+pnpm benchmark --provider cloudflare \
+  --model clef --model clef-flash \
+  --warmups 1 --repetitions 3 --concurrency 1 \
+  > cloudflare-clef.json
+```
+
+Create the token from **Workers AI → Use REST API** in the Cloudflare dashboard. A manually created
+token needs the account-level `Workers AI - Read` and `Workers AI - Edit` permissions. The account must
+have Workers AI access and billing sufficient to invoke both models. Start at concurrency 1 for a fair
+latency comparison and to stay well below account rate limits; run a separate, identical concurrency
+sweep for throughput.
+
+Cloudflare currently lists Clef at $0.24 per million input tokens and Clef-flash at $0.09 per million
+input tokens, with no output-token price listed for either model. Estimate the measured marginal cost
+from each run's `summary.usage.inputTokens`:
+
+```text
+Clef cost       = inputTokens × $0.24 ÷ 1,000,000
+Clef-flash cost = inputTokens × $0.09 ÷ 1,000,000
+```
+
+Warmup usage is deliberately excluded from the report, so include one additional workload's token use
+when estimating the full command cost. Check the current
+[model pages](https://developers.cloudflare.com/workers-ai/models/clef/) and
+[Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) before publishing
+an estimate.
 
 Use `--workload-size` to cycle the selected fixtures into a larger sustained workload:
 
@@ -81,3 +114,7 @@ The cache benchmark uses a deterministic delayed provider and does not require a
 mean, p50, and p95 run time; provider calls; cache hits; token savings; cache entries and bytes; and
 whether every scenario produced the same diagnostics. Run `pnpm benchmark-cache --help` to see its
 workload, warmup, repetition, concurrency, and provider-delay controls.
+
+This measures Scruple's provider-independent decision cache, not a Cloudflare server-side cache. A warm
+hit does not call `@scruple/provider-cloudflare`; its avoided calls and tokens can be priced with the
+same formulas above. The current harness does not expose or claim a Cloudflare server-side cache metric.

@@ -17,6 +17,7 @@ import {
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
+import { createCloudflareProvider } from "./cloudflare-provider.js";
 import { createDeciderProvider } from "./decider-provider.js";
 import { createJevProvider } from "./jev-provider.js";
 
@@ -51,7 +52,12 @@ const runModel = async (
           concurrency,
           ...(baseURL === undefined ? {} : { baseURL }),
         })
-      : createJevProvider(model, { concurrency });
+      : providerName === "cloudflare"
+        ? createCloudflareProvider(model, {
+            concurrency,
+            ...(baseURL === undefined ? {} : { baseURL }),
+          })
+        : createJevProvider(model, { concurrency });
   try {
     return await runBenchmark({
       fixtures,
