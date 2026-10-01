@@ -14,26 +14,21 @@ import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
+import { createCloudflareProvider } from "./cloudflare-provider.js";
 import { createDeciderProvider } from "./decider-provider.js";
 import { createJevProvider } from "./jev-provider.js";
 
 const plugins = evaluationPlugins();
 
 const runModel = async (
-  providerName: "jev" | "decider",
+  providerName: "jev" | "decider" | "cloudflare",
   model: string,
   repetitions: number,
   concurrency: number,
   fixtures: readonly EvalFixture[],
   baseURL?: string,
 ): Promise<EvalRunReport[]> => {
-  const provider =
-    providerName === "decider"
-      ? createDeciderProvider(model, {
-          concurrency,
-          ...(baseURL === undefined ? {} : { baseURL }),
-        })
-      : createJevProvider(model, { concurrency });
+  const provider = createProvider(providerName, model, concurrency, baseURL);
   try {
     return await runRepetitions(providerName, model, repetitions, concurrency, fixtures, provider);
   } finally {
@@ -42,7 +37,7 @@ const runModel = async (
 };
 
 const runRepetitions = async (
-  providerName: "jev" | "decider",
+  providerName: "jev" | "decider" | "cloudflare",
   model: string,
   repetitions: number,
   concurrency: number,
@@ -75,6 +70,24 @@ const runRepetitions = async (
       index + 1,
     )),
   ];
+};
+
+const createProvider = (
+  providerName: "jev" | "decider" | "cloudflare",
+  model: string,
+  concurrency: number,
+  baseURL?: string,
+): DecisionProvider => {
+  if (providerName === "jev") {
+    return createJevProvider(model, { concurrency });
+  }
+  const options = {
+    concurrency,
+    ...(baseURL === undefined ? {} : { baseURL }),
+  };
+  return providerName === "decider"
+    ? createDeciderProvider(model, options)
+    : createCloudflareProvider(model, options);
 };
 
 try {

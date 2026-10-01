@@ -57,10 +57,18 @@ await test("evaluation options support providers, repeated models, and bounded c
     },
   );
   assert.deepEqual(parseEvalOptions([]).models, ["jev-1.13.0"]);
+  assert.deepEqual(parseEvalOptions(["--provider", "cloudflare"]), {
+    concurrency: 4,
+    format: "json",
+    help: false,
+    models: ["clef"],
+    provider: "cloudflare",
+    repetitions: 1,
+  });
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--concurrency", "0"]), /positive integer/u);
-  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider/u);
+  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider.*cloudflare/u);
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
   assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
 });
@@ -77,6 +85,24 @@ await test("evaluation CLI reaches provider validation", () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /TYPESAFE_API_KEY is required for Jev evaluations/u);
   assert.doesNotMatch(result.stderr, /before initialization/u);
+});
+
+await test("evaluation CLI reports the Cloudflare credentials it needs", () => {
+  const environment = { ...process.env };
+  delete environment["CLOUDFLARE_ACCOUNT_ID"];
+  delete environment["CLOUDFLARE_API_TOKEN"];
+  const result = spawnSync(
+    process.execPath,
+    ["packages/eval/dist/cli.js", "--provider", "cloudflare"],
+    {
+      cwd: new URL("..", import.meta.url),
+      encoding: "utf8",
+      env: environment,
+    },
+  );
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /CLOUDFLARE_ACCOUNT_ID is required for Cloudflare runs/u);
 });
 
 await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {

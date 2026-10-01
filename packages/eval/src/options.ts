@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 
 export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
 
-export type EvalProvider = "jev" | "decider";
+export type EvalProvider = "jev" | "decider" | "cloudflare";
 
 export interface EvalOptions {
   baseURL?: string;
@@ -20,11 +20,11 @@ Usage:
   pnpm eval [options]
 
 Options:
-  --provider <name>      Provider to evaluate: jev or decider (default: jev)
-  --base-url <url>       Decider API base URL (default: http://127.0.0.1:8000)
+  --provider <name>      Provider to evaluate: jev, decider, or cloudflare (default: jev)
+  --base-url <url>       Alternate Decider or Cloudflare API base URL
   --model <model>        Model to evaluate; repeat to compare models
   --repetitions <count>  Runs per model (default: 1)
-  --concurrency <count>  Maximum cases in flight (default: 64 for Jev, 1 for Decider)
+  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
 
@@ -34,6 +34,7 @@ Examples:
   pnpm eval --model jev-1.13.0 --repetitions 3
   pnpm eval --model jev-1.13.0 --model jev-latest
   pnpm eval --provider decider --base-url http://127.0.0.1:8000
+  pnpm eval --provider cloudflare --model clef --model clef-flash
 `;
 
 export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
@@ -49,15 +50,22 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
       help: { type: "boolean", short: "h", default: false },
     },
   });
-  if (values.provider !== undefined && values.provider !== "jev" && values.provider !== "decider") {
-    throw new Error(`--provider must be either "jev" or "decider"`);
+  if (
+    values.provider !== undefined &&
+    values.provider !== "jev" &&
+    values.provider !== "decider" &&
+    values.provider !== "cloudflare"
+  ) {
+    throw new Error(`--provider must be "jev", "decider", or "cloudflare"`);
   }
   const provider = values.provider ?? "jev";
   const repetitions = Number(values.repetitions);
   if (!Number.isSafeInteger(repetitions) || repetitions < 1) {
     throw new Error("--repetitions must be a positive integer");
   }
-  const concurrency = Number(values.concurrency ?? (provider === "decider" ? "1" : "64"));
+  const concurrency = Number(
+    values.concurrency ?? (provider === "jev" ? "64" : provider === "cloudflare" ? "4" : "1"),
+  );
   if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
     throw new Error("--concurrency must be a positive integer");
   }
@@ -69,8 +77,15 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     concurrency,
     format: values.format,
     help: values.help,
-    models: values.model ?? [provider === "decider" ? "decider-4b-v2.1" : DEFAULT_EVAL_MODEL],
+    models: values.model ?? [defaultModel(provider)],
     provider,
     repetitions,
   };
+};
+
+const defaultModel = (provider: EvalProvider): string => {
+  if (provider === "decider") {
+    return "decider-4b-v2.1";
+  }
+  return provider === "cloudflare" ? "clef" : DEFAULT_EVAL_MODEL;
 };
