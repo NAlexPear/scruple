@@ -15,6 +15,10 @@ usage is billed separately.
 | [Decider](./decider.md)       | Local or self-hosted SystemOne decisions    | Self-hosted HTTP server |
 | [Jev](./jev.md)               | Hosted decisions with token usage reporting | HTTPS API               |
 
+See the [full provider evaluation](./evaluation.md) for quality, latency, throughput, and cost results
+across all 187 fixtures. Jev 1.13 is the strongest overall default; the other choices trade quality for
+Cloudflare-native hosting, private self-hosting, or lower hosted model cost.
+
 Model choice affects calibration. Use representative fixtures to choose thresholds rather than copying thresholds blindly between models.
 
 Every current Scruple rule uses the configured provider for a bounded semantic decision. Rules that
