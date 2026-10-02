@@ -87,7 +87,18 @@ rule can review suppression scope and rationale.
 
 ## File selection
 
-Use `include` when the CLI receives no positional patterns. `ignore` extends Scruple's built-in exclusions for dependencies, build output, coverage, and Git metadata.
+By default, the CLI discovers files using the `filePatterns` advertised by every configured parser.
+Configure `parser` with an array to analyze multiple languages in one run:
+
+```ts
+export default defineConfig({
+  parser: [javascriptParser(), anotherLanguageParser()],
+  // provider, plugins, rules
+});
+```
+
+Use `include` to override those parser patterns when the CLI receives no positional patterns. `ignore`
+extends Scruple's built-in exclusions for dependencies, build output, coverage, and Git metadata.
 
 ```ts
 export default defineConfig({
@@ -97,6 +108,6 @@ export default defineConfig({
 });
 ```
 
-Positional CLI patterns override `include` for that run.
+Positional CLI patterns override both `include` and parser-provided patterns for that run.
 
 See the [Configuration API](../reference/configuration.md) for the complete field reference.
