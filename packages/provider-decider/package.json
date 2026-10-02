@@ -1,6 +1,6 @@
 {
   "name": "@scruple/provider-decider",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Decider decision provider for Scruple.",
   "keywords": [
     "ai",

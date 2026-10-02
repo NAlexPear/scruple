@@ -1,6 +1,6 @@
 {
   "name": "@scruple/provider-kev",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Self-hosted Kev decision provider for Scruple.",
   "keywords": [
     "ai",
