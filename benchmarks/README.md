@@ -35,12 +35,18 @@ To benchmark a self-hosted Kev checkpoint, start the server with the pinned chec
 same immutable identity to the benchmark cache namespace:
 
 ```sh
+uv run --extra serve python -m kev.serve \
+  --run jaredpalmer/kev-4b@v1.0 --port 8009
+
 pnpm benchmark --provider kev --base-url http://127.0.0.1:8009 \
   --model jaredpalmer/kev-4b@v1.0 > kev-benchmark.json
 ```
 
 The server request still uses Kev's `kev-latest` System One alias; `--model` identifies the weights
-selected when the server started. You can alternatively set `KEV_BASE_URL` and `KEV_API_KEY`.
+selected when the server started. Change the startup `--run` and benchmark `--model` together. The
+released names are `jaredpalmer/kev-0.8b@v1.0`, `jaredpalmer/kev-4b@v1.0`,
+`jaredpalmer/kev-9b@v1.0`, and `jaredpalmer/kev-27b@v1.0`. You can alternatively set `KEV_BASE_URL`
+and `KEV_API_KEY`.
 
 To compare model versions from the selected provider on the same workload, repeat `--model`:
 
@@ -112,8 +118,16 @@ Published result data:
 - [Decider 4B v2.1 on Apple MPS](results/decider-4b-v2.1/2026-09-26-apple-mps/)
 - [Decider 4B v2.1 on NVIDIA A100 CUDA](results/decider-4b-v2.1/2026-09-26-nvidia-a100-cuda/)
 - [Decider 4B v2.1 full corpus on NVIDIA A100 CUDA](results/decider-4b-v2.1/2026-10-01-nvidia-a100-cuda-eval/)
+- [Kev v1.0 checkpoints on NVIDIA A100 CUDA](results/kev-v1.0/2026-10-02-nvidia-a100-cuda/)
+- [Kev v1.0 full 187-fixture evaluation](results/kev-v1.0/2026-10-02-nvidia-a100-cuda-eval/)
 - [Jev 1.13.0](results/jev-1.13.0/2026-09-20/)
 - [Jev 1.13.0 after rule calibration](results/jev-1.13.0/2026-09-20-post-calibration/)
+
+The Kev checkpoint benchmark repeats 10 pinned fixtures to compare concurrency and latency. Its
+concurrency-1 results are the fair quality comparison because threshold-adjacent outcomes changed at
+some higher concurrency levels. Use the separate 187-fixture evaluation for broader quality evidence.
+Kev is self-hosted; its recorded $0.499 Runpod estimate was infrastructure cost, not hosted endpoint
+or token pricing.
 
 This model-quality benchmark deliberately bypasses the decision cache so every case reaches the provider.
 Use the separate local cache benchmark to compare uncached, cold, warm, and one-file-change runs:

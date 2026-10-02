@@ -22,6 +22,25 @@ checkpoint.
 Kev also publishes an official [Modal deployment skill](https://github.com/jaredpalmer/kev/tree/main/skills/kev-deploy)
 for a scale-to-zero HTTPS endpoint.
 
+## Choose a checkpoint
+
+Start with 9B when label selection matters more than thresholded diagnostics, or 27B when diagnostic
+quality is the priority and an A100-class GPU is available. The smaller checkpoints use less memory
+but were substantially less accurate on Scruple's pinned workload.
+
+| Checkpoint                  | Label / diagnostic / strict | A100 memory | Practical concurrency |
+| --------------------------- | --------------------------- | ----------: | --------------------: |
+| `jaredpalmer/kev-0.8b@v1.0` | 40% / 10% / 10%             |   5,286 MiB |   c4 (13.239 cases/s) |
+| `jaredpalmer/kev-4b@v1.0`   | 80% / 20% / 20%             |  16,268 MiB |    c4 (8.711 cases/s) |
+| `jaredpalmer/kev-9b@v1.0`   | 100% / 20% / 20%            |  23,454 MiB |    c4 (7.226 cases/s) |
+| `jaredpalmer/kev-27b@v1.0`  | 100% / 80% / 80%            |  66,756 MiB |    c2 (3.150 cases/s) |
+
+These are resident server-memory measurements on one NVIDIA A100 80GB PCIe. For 9B, c8 reached
+7.517 cases/s but raised mean latency by 44% over c4 for only 4% more throughput, so c4 is the better
+operating point. The 27B checkpoint saturated at c2. See the
+[full latency and methodology results](../reference/benchmarks.md#kev-v10-on-nvidia-a100) before sizing
+a deployment.
+
 ## Configure Scruple
 
 ```sh
