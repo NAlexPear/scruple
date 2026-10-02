@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-02",
+  "scrupleBaseCommit": "eafda5d90b2af2ba485724248afef766b74b4772",
+  "evalHarnessPatchSha256": "981f5d3b7385c6377a7dc60bfccdd82194b8caf9d01656a2fc99fbfd24ed12fd",
+  "kevCommit": "6b719c3c3f367295f6ef336f4f751cf5ff970abc",
+  "provider": "kev",
+  "environment": {
+    "cloud": "Runpod Secure Cloud",
+    "dataCenter": "US-MD-1",
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "gpuMemoryMiB": 81920,
+    "driver": "580.126.16",
+    "cuda": "12.8",
+    "python": "3.12.3",
+    "torch": "2.8.0+cu128",
+    "transformers": "5.17.0",
+    "node": "v24.9.0",
+    "pnpm": "12.0.0"
+  },
+  "server": {
+    "backend": "torch",
+    "dtype": "bfloat16",
+    "fusedKernels": false,
+    "cudaGraphs": true,
+    "truncateStates": false,
+    "requestModel": "kev-latest"
+  },
+  "workload": {
+    "fixtureCount": 187,
+    "expectedFindings": 81,
+    "expectedSafe": 106,
+    "expectedAbstentions": 15,
+    "repetitions": 1,
+    "concurrency": 1,
+    "modelCallsPerCheckpoint": 188,
+    "fixtureCorpusSha256": "71e174d510cf3bf4ab92005a1f8ec493bce5697548380126f8331bdec5e3bf24"
+  },
+  "results": [
+    {
+      "checkpoint": "jaredpalmer/kev-0.8b@v1.0",
+      "hubRevision": "bf75a6a8848ea6960ff2ed108d9ed44c2941174f",
+      "base": "Qwen/Qwen3.5-0.8B-Base",
+      "baseRevision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+      "temperature": 2.3510958125672174,
+      "labelMatches": 76,
+      "diagnosticMatches": 106,
+      "strictMatches": 42,
+      "detection": {
+        "invalid": 0,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "trueNegatives": 106,
+        "falseNegatives": 81,
+        "precision": null,
+        "recall": 0,
+        "f1": null
+      },
+      "abstention": { "expected": 15, "actual": 74, "correct": 8, "unexpected": 66 },
+      "caseLatencyMs": {
+        "mean": 83.18951303743307,
+        "p50": 48.57907899999918,
+        "p95": 230.05258400000093
+      },
+      "commandWallSeconds": 15.7106,
+      "commandThroughputCasesPerSecond": 11.902791745700355,
+      "usage": { "inputTokens": 67208, "outputTokens": 17031, "modelCalls": 188 },
+      "operationalErrors": 0,
+      "serverStartSeconds": 85.4401,
+      "gpuMemoryUsedAfterMiB": 5211,
+      "rawReport": "raw/kev-0.8b-v1.0.json.gz"
+    },
+    {
+      "checkpoint": "jaredpalmer/kev-4b@v1.0",
+      "hubRevision": "6cfce5c2fa4b4bd64026336ab649c5ca78857d52",
+      "base": "Qwen/Qwen3.5-4B-Base",
+      "baseRevision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "temperature": 2.406050072164233,
+      "labelMatches": 129,
+      "diagnosticMatches": 111,
+      "strictMatches": 77,
+      "detection": {
+        "invalid": 0,
+        "truePositives": 5,
+        "falsePositives": 0,
+        "trueNegatives": 106,
+        "falseNegatives": 76,
+        "precision": 1,
+        "recall": 0.06172839506172839,
+        "f1": 0.11627906976744184
+      },
+      "abstention": { "expected": 15, "actual": 30, "correct": 6, "unexpected": 24 },
+      "caseLatencyMs": {
+        "mean": 125.20843534759358,
+        "p50": 88.85244599999714,
+        "p95": 306.69729000000007
+      },
+      "commandWallSeconds": 23.573237,
+      "commandThroughputCasesPerSecond": 7.932724725077002,
+      "usage": { "inputTokens": 67208, "outputTokens": 17025, "modelCalls": 188 },
+      "operationalErrors": 0,
+      "serverStartSeconds": 86.210794,
+      "gpuMemoryUsedAfterMiB": 16045,
+      "rawReport": "raw/kev-4b-v1.0.json.gz"
+    },
+    {
+      "checkpoint": "jaredpalmer/kev-9b@v1.0",
+      "hubRevision": "db029f08b290afd9fee4aa4bbcd9ae48602d1eb0",
+      "base": "Qwen/Qwen3.5-9B-Base",
+      "baseRevision": "68c46c4b3498877f3ef123c856ecfde50c39f404",
+      "temperature": 2.193649959389252,
+      "labelMatches": 140,
+      "diagnosticMatches": 116,
+      "strictMatches": 84,
+      "detection": {
+        "invalid": 0,
+        "truePositives": 11,
+        "falsePositives": 1,
+        "trueNegatives": 105,
+        "falseNegatives": 70,
+        "precision": 0.9166666666666666,
+        "recall": 0.13580246913580246,
+        "f1": 0.23655913978494622
+      },
+      "abstention": { "expected": 15, "actual": 14, "correct": 3, "unexpected": 11 },
+      "caseLatencyMs": {
+        "mean": 136.2917360267378,
+        "p50": 105.87935199999993,
+        "p95": 310.28327599999966
+      },
+      "commandWallSeconds": 25.642642,
+      "commandThroughputCasesPerSecond": 7.29254029284502,
+      "usage": { "inputTokens": 67208, "outputTokens": 17081, "modelCalls": 188 },
+      "operationalErrors": 0,
+      "serverStartSeconds": 121.186625,
+      "gpuMemoryUsedAfterMiB": 23253,
+      "rawReport": "raw/kev-9b-v1.0.json.gz"
+    },
+    {
+      "checkpoint": "jaredpalmer/kev-27b@v1.0",
+      "hubRevision": "af0e6d551bdc2cc724f3e9d7a8bee1cd4fb8f7bf",
+      "base": "Qwen/Qwen3.8-27B",
+      "baseRevision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+      "temperature": 1.319507910772894,
+      "labelMatches": 158,
+      "diagnosticMatches": 146,
+      "strictMatches": 120,
+      "detection": {
+        "invalid": 0,
+        "truePositives": 41,
+        "falsePositives": 1,
+        "trueNegatives": 105,
+        "falseNegatives": 40,
+        "precision": 0.9761904761904762,
+        "recall": 0.5061728395061729,
+        "f1": 0.6666666666666666
+      },
+      "abstention": { "expected": 15, "actual": 22, "correct": 10, "unexpected": 12 },
+      "caseLatencyMs": {
+        "mean": 330.2267588823528,
+        "p50": 280.28964900000574,
+        "p95": 679.0308010000008
+      },
+      "commandWallSeconds": 61.90428,
+      "commandThroughputCasesPerSecond": 3.020792746478919,
+      "usage": { "inputTokens": 67208, "outputTokens": 17059, "modelCalls": 188 },
+      "operationalErrors": 0,
+      "serverStartSeconds": 185.340694,
+      "gpuMemoryUsedAfterMiB": 66147,
+      "rawReport": "raw/kev-27b-v1.0.json.gz"
+    }
+  ],
+  "infrastructure": {
+    "podId": "v2o3g926avmxob",
+    "createdAt": "2026-10-02T01:38:37.436Z",
+    "cleanupVerifiedBy": "2026-10-02T01:57:09Z",
+    "hourlyRateUsd": 1.59,
+    "maximumObservedLifetimeSeconds": 1111.564,
+    "estimatedMaximumComputeCostUsd": 0.491,
+    "finalizedBillingAvailable": false,
+    "networkVolumesCreated": 0,
+    "cleanupVerified": true
+  },
+  "compatibility": {
+    "harnessCompatible": true,
+    "invalidFixtures": 0,
+    "serverErrors": 0,
+    "apiErrors": 0,
+    "cudaGraphCaptureFailures": 0,
+    "prefixCacheOomRetries": 0,
+    "environmentIssue": "The pod could not reach GitHub, so immutable source archives were transferred from the orb. Hugging Face, PyPI, and Node remained reachable.",
+    "fusedKernelNote": "The official serve extra does not install flash-linear-attention; the server logged that fused Qwen3.5 kernels were off and used its supported fallback."
+  }
+}

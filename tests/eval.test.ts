@@ -65,10 +65,31 @@ await test("evaluation options support providers, repeated models, and bounded c
     provider: "cloudflare",
     repetitions: 1,
   });
+  assert.deepEqual(parseEvalOptions(["--provider", "kev"]), {
+    concurrency: 1,
+    format: "json",
+    help: false,
+    models: ["jaredpalmer/kev-4b@v1.0"],
+    provider: "kev",
+    repetitions: 1,
+  });
+  assert.deepEqual(
+    parseEvalOptions([
+      "--provider",
+      "kev",
+      "--base-url",
+      "http://127.0.0.1:8009",
+      "--model",
+      "jaredpalmer/kev-0.8b@v1.0",
+      "--model",
+      "jaredpalmer/kev-27b@v1.0",
+    ]).models,
+    ["jaredpalmer/kev-0.8b@v1.0", "jaredpalmer/kev-27b@v1.0"],
+  );
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--concurrency", "0"]), /positive integer/u);
-  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider.*cloudflare/u);
+  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider.*cloudflare.*kev/u);
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
   assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
 });

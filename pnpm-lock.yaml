@@ -276,6 +276,9 @@ importers:
       '@scruple/provider-jev':
         specifier: workspace:*
         version: link:../provider-jev
+      '@scruple/provider-kev':
+        specifier: workspace:*
+        version: link:../provider-kev
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:../relational-databases

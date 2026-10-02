@@ -1,0 +1,3 @@
+522ad750623d91f51ada37761da11ee2aa138ff1f0e371592eee17078f96cf5c  /workspace/scruple-eafda5d.tar.gz
+96707ab9988b37e1a0b47e9835f5aeabe47a87c19a52719c9a63dab6917e71c2  /workspace/kev-6b719c3.tar.gz
+981f5d3b7385c6377a7dc60bfccdd82194b8caf9d01656a2fc99fbfd24ed12fd  /workspace/kev-eval-harness.patch

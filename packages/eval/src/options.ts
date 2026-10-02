@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 
 export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
 
-export type EvalProvider = "jev" | "decider" | "cloudflare";
+export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev";
 
 export interface EvalOptions {
   baseURL?: string;
@@ -20,11 +20,11 @@ Usage:
   pnpm eval [options]
 
 Options:
-  --provider <name>      Provider to evaluate: jev, decider, or cloudflare (default: jev)
-  --base-url <url>       Alternate Decider or Cloudflare API base URL
+  --provider <name>      Provider to evaluate: jev, decider, cloudflare, or kev (default: jev)
+  --base-url <url>       Alternate Decider, Cloudflare, or Kev API base URL
   --model <model>        Model to evaluate; repeat to compare models
   --repetitions <count>  Runs per model (default: 1)
-  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider)
+  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider/Kev)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
 
@@ -35,6 +35,7 @@ Examples:
   pnpm eval --model jev-1.13.0 --model jev-latest
   pnpm eval --provider decider --base-url http://127.0.0.1:8000
   pnpm eval --provider cloudflare --model clef --model clef-flash
+  pnpm eval --provider kev --base-url http://127.0.0.1:8009 --model jaredpalmer/kev-4b@v1.0
 `;
 
 export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
@@ -54,9 +55,10 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     values.provider !== undefined &&
     values.provider !== "jev" &&
     values.provider !== "decider" &&
-    values.provider !== "cloudflare"
+    values.provider !== "cloudflare" &&
+    values.provider !== "kev"
   ) {
-    throw new Error(`--provider must be "jev", "decider", or "cloudflare"`);
+    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
   }
   const provider = values.provider ?? "jev";
   const repetitions = Number(values.repetitions);
@@ -87,5 +89,8 @@ const defaultModel = (provider: EvalProvider): string => {
   if (provider === "decider") {
     return "decider-4b-v2.1";
   }
-  return provider === "cloudflare" ? "clef" : DEFAULT_EVAL_MODEL;
+  if (provider === "cloudflare") {
+    return "clef";
+  }
+  return provider === "kev" ? "jaredpalmer/kev-4b@v1.0" : DEFAULT_EVAL_MODEL;
 };

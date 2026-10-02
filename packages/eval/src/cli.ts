@@ -17,11 +17,12 @@ import { oxcParser } from "@scruple/parser-oxc";
 import { createCloudflareProvider } from "./cloudflare-provider.js";
 import { createDeciderProvider } from "./decider-provider.js";
 import { createJevProvider } from "./jev-provider.js";
+import { createKevProvider } from "./kev-provider.js";
 
 const plugins = evaluationPlugins();
 
 const runModel = async (
-  providerName: "jev" | "decider" | "cloudflare",
+  providerName: "jev" | "decider" | "cloudflare" | "kev",
   model: string,
   repetitions: number,
   concurrency: number,
@@ -37,7 +38,7 @@ const runModel = async (
 };
 
 const runRepetitions = async (
-  providerName: "jev" | "decider" | "cloudflare",
+  providerName: "jev" | "decider" | "cloudflare" | "kev",
   model: string,
   repetitions: number,
   concurrency: number,
@@ -73,7 +74,7 @@ const runRepetitions = async (
 };
 
 const createProvider = (
-  providerName: "jev" | "decider" | "cloudflare",
+  providerName: "jev" | "decider" | "cloudflare" | "kev",
   model: string,
   concurrency: number,
   baseURL?: string,
@@ -85,9 +86,12 @@ const createProvider = (
     concurrency,
     ...(baseURL === undefined ? {} : { baseURL }),
   };
-  return providerName === "decider"
-    ? createDeciderProvider(model, options)
-    : createCloudflareProvider(model, options);
+  if (providerName === "decider") {
+    return createDeciderProvider(model, options);
+  }
+  return providerName === "cloudflare"
+    ? createCloudflareProvider(model, options)
+    : createKevProvider(model, options);
 };
 
 try {

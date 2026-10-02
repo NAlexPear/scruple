@@ -1,0 +1,114 @@
+$ pnpm -r --sort build
+$ vitepress build
+$ tsc -p tsconfig.build.json
+
+  vitepress v1.6.4
+
+- building client + server bundles...
+llmstxt »   vitepress-plugin-llms initialized (client build) with workDir: /workspace/scruple-kev-eval/scruple/apps/docs
+llmstxt »   Build started, file collection cleared
+llmstxt »   Processing 75 markdown files from /workspace/scruple-kev-eval/scruple/apps/docs
+llmstxt »   Generating llms.txt...
+llmstxt »   Generating full documentation bundle (llms-full.txt)...
+llmstxt » ✓ Processed guide/agent-skills.md
+llmstxt » ✓ Processed plugins/async.md
+llmstxt » ✓ Processed reference/benchmarks.md
+llmstxt » ✓ Processed providers/cloudflare.md
+llmstxt » ✓ Processed concepts/evidence-and-decisions.md
+llmstxt » ✓ Generated llms.txt (~3.1K tokens, 9.63 kB) with 75 documentation links
+llmstxt » ✓ Generated llms-full.txt (~41.5K tokens, 152 kB) with 75 markdown files
+llmstxt » ✓ Processed reference/cli.md
+llmstxt » ✓ Processed plugins/comments.md
+llmstxt » ✓ Processed reference/configuration.md
+llmstxt » ✓ Processed guide/configuration.md
+llmstxt » ✓ Processed plugins/api-contracts.md
+llmstxt » ✓ Processed providers/decider.md
+llmstxt » ✓ Processed plugins/errors.md
+llmstxt » ✓ Processed guide/introduction.md
+llmstxt » ✓ Processed concepts/how-it-works.md
+llmstxt » ✓ Processed providers/kev.md
+llmstxt » ✓ Processed providers/jev.md
+llmstxt » ✓ Processed plugins/observability.md
+llmstxt » ✓ Processed plugins.md
+llmstxt » ✓ Processed providers/evaluation.md
+llmstxt » ✓ Processed providers.md
+llmstxt » ✓ Processed guide/quickstart.md
+llmstxt » ✓ Processed plugins/relational-databases.md
+llmstxt » ✓ Processed plugins/resources.md
+llmstxt » ✓ Processed plugins/tests.md
+llmstxt » ✓ Processed plugins/security.md
+llmstxt » ✓ Processed guide/writing-a-plugin.md
+llmstxt » ✓ Processed rules/api-contracts/no-ambiguous-failure-contracts.md
+llmstxt » ✓ Processed rules/async/no-async-initialization.md
+llmstxt » ✓ Processed rules/comments/no-change-history-comments.md
+llmstxt » ✓ Processed rules/errors/no-lossy-error-wrapping.md
+llmstxt » ✓ Processed rules/observability/no-duplicate-error-reporting.md
+llmstxt » ✓ Processed rules/relational-databases/no-query-in-loop.md
+llmstxt » ✓ Processed rules/resources/no-leaked-resources.md
+llmstxt » ✓ Processed rules/security/no-sensitive-data-exposure.md
+llmstxt » ✓ Processed rules/tests/no-fixed-delay-synchronization.md
+llmstxt » ✓ Processed rules/api-contracts/no-side-effects-in-safe-http-methods.md
+llmstxt » ✓ Processed rules/api-contracts/require-input-validation.md
+llmstxt » ✓ Processed rules/api-contracts/no-misleading-http-status.md
+llmstxt » ✓ Processed rules/async/no-serial-independent-work.md
+llmstxt » ✓ Processed rules/async/no-unobserved-async-work.md
+llmstxt » ✓ Processed rules/async/require-race-loser-cleanup.md
+llmstxt » ✓ Processed rules/api-contracts/no-ignored-significant-results.md
+llmstxt » ✓ Processed rules/async/require-abort-listener-cleanup.md
+llmstxt » ✓ Processed rules/async/no-unbounded-concurrency.md
+llmstxt » ✓ Processed rules/async/require-cancellation-propagation.md
+llmstxt » ✓ Processed rules/comments/no-misleading-comments.md
+llmstxt » ✓ Processed rules/comments/no-useless-comments.md
+llmstxt » ✓ Processed rules/comments/no-commented-out-code.md
+llmstxt » ✓ Processed rules/comments/require-justified-suppressions.md
+llmstxt » ✓ Processed rules/comments/prefer-concise-comments.md
+llmstxt » ✓ Processed rules/comments/require-actionable-deprecations.md
+llmstxt » ✓ Processed rules/comments/require-actionable-todos.md
+llmstxt » ✓ Processed rules/api-contracts/no-misleading-function-names.md
+llmstxt » ✓ Processed rules/errors/no-swallowed-errors.md
+llmstxt » ✓ Processed rules/errors/no-message-based-error-dispatch.md
+llmstxt » ✓ Processed rules/errors/no-useless-catch-boundaries.md
+llmstxt » ✓ Processed rules/observability/no-sensitive-logs.md
+llmstxt » ✓ Processed rules/observability/no-unactionable-errors.md
+llmstxt » ✓ Processed rules/observability/require-stable-telemetry-names.md
+llmstxt » ✓ Processed rules/observability/require-operation-context.md
+llmstxt » ✓ Processed rules/relational-databases/prefer-database-join.md
+llmstxt » ✓ Processed rules/relational-databases/require-transaction-scoped-client.md
+llmstxt » ✓ Processed rules/resources/require-cleanup-on-failure.md
+llmstxt » ✓ Processed rules/resources/require-complete-resource-cleanup.md
+llmstxt » ✓ Processed rules/resources/require-retry-time-budget.md
+llmstxt » ✓ Processed rules/relational-databases/require-deterministic-pagination-order.md
+llmstxt » ✓ Processed rules/resources/require-retry-backoff-with-jitter.md
+llmstxt » ✓ Processed rules/resources/require-bounded-retries.md
+llmstxt » ✓ Processed rules/security/no-unsafe-redirect.md
+llmstxt » ✓ Processed rules/security/no-untrusted-command-execution.md
+llmstxt » ✓ Processed rules/security/no-user-controlled-authorization.md
+llmstxt » ✓ Processed rules/tests/no-vacuous-tests.md
+llmstxt » ✓ Processed rules/security/no-untrusted-mass-assignment.md
+llmstxt » ✓ Processed rules/tests/no-nondeterministic-tests.md
+llmstxt » ✓ Processed rules/tests/require-specific-error-assertions.md
+llmstxt »   vitepress-plugin-llms initialized (SSR build) with workDir: /workspace/scruple-kev-eval/scruple/apps/docs
+llmstxt »   Build started, file collection cleared
+llmstxt »   Skipping LLMs docs generation in SSR build
+[32m✓[0m building client + server bundles...
+- rendering pages...
+[32m✓[0m rendering pages...
+- generating sitemap...
+[32m✓[0m generating sitemap...
+build complete in 6.76s.
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
+$ tsc -p tsconfig.build.json
