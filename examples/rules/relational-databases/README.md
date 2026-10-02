@@ -1,0 +1,14 @@
+# Relational database examples
+
+Checks for relational database work that joins query results in memory, queries once per item, escapes a transaction-scoped client, or paginates without visible ordering.
+
+Unsupported examples, not a published package. See the [example boundary](../README.md).
+Repository-only import: `@scruple/example-rules/relational-databases`.
+
+Rules review in-memory joins, per-item queries, transaction-scoped clients, and deterministic
+pagination order for recognizable relational database APIs. Pagination selection uses structured
+option keys and static SQL query text rather than arbitrary source substrings. Transaction checks
+can follow direct local aliases for a database client. They do not assume that a helper returns or
+uses the transaction-scoped client when the helper's behavior is not visible.
+
+Follow the published [quickstart](https://scruple.dev/guide/quickstart), browse the [rule registry](https://scruple.dev/plugins/), compare [providers](https://scruple.dev/providers/), or [write a custom rule](https://scruple.dev/guide/writing-a-plugin).

@@ -2,7 +2,11 @@
 aside: false
 ---
 
-# Plugins
+# Rule examples
+
+::: warning Unsupported examples
+The catalog below documents non-normative examples in `examples/rules`, not maintained public packages. They are tested evaluation subjects with no compatibility or coverage commitment. Their JavaScript/TypeScript and framework assumptions do not establish cross-language support.
+:::
 
 Scruple plugins package named, tested rules. They can check common engineering problems or standards your team repeats in review. Register each factory under the namespace used by its rule IDs, then enable individual rules in `rules`.
 
@@ -16,7 +20,7 @@ non-blocking warnings. Scores at or above error produce blocking errors. The rul
 must also meet `minConfidence`. Configuring a rule as `"warn"` caps output at warning; `"error"`
 allows either tier.
 
-| Plugin                                            | Choose it for                                                       |
+| Example                                           | Demonstrates                                                        |
 | ------------------------------------------------- | ------------------------------------------------------------------- |
 | [API Contracts](./api-contracts.md)               | Function contracts and explicit Fastify or Express route behavior   |
 | [Async](./async.md)                               | Concurrency, sequencing, cancellation, and async lifetime           |

@@ -1,14 +1,14 @@
 # Comments
 
-`@scruple/comments` checks whether source comments are useful, accurate, concise, and actionable.
+`examples/rules/comments` demonstrates checks for useful, accurate, concise, and actionable source comments.
 
-```sh
-pnpm add -D @scruple/comments
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { comments } from "@scruple/comments";
+import { comments } from "@scruple/example-rules/comments";
 
 export default defineConfig({
   parser,

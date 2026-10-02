@@ -1,14 +1,14 @@
 # API Contracts
 
-`@scruple/api-contracts` checks function and API contracts using only code visible in one file.
+`examples/rules/api-contracts` demonstrates function and API contract checks using only code visible in one file.
 
-```sh
-pnpm add -D @scruple/api-contracts
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { apiContracts } from "@scruple/api-contracts";
+import { apiContracts } from "@scruple/example-rules/api-contracts";
 
 export default defineConfig({
   parser,

@@ -109,30 +109,18 @@ importers:
 
   .:
     devDependencies:
-      '@scruple/api-contracts':
-        specifier: workspace:*
-        version: link:packages/api-contracts
-      '@scruple/async':
-        specifier: workspace:*
-        version: link:packages/async
       '@scruple/cli':
         specifier: workspace:*
         version: link:packages/cli
-      '@scruple/comments':
-        specifier: workspace:*
-        version: link:packages/comments
       '@scruple/core':
         specifier: workspace:*
         version: link:packages/core
-      '@scruple/errors':
-        specifier: workspace:*
-        version: link:packages/errors
       '@scruple/eval':
         specifier: workspace:*
         version: link:packages/eval
-      '@scruple/observability':
+      '@scruple/example-rules':
         specifier: workspace:*
-        version: link:packages/observability
+        version: link:examples/rules
       '@scruple/parser-oxc':
         specifier: workspace:*
         version: link:packages/parser-oxc
@@ -148,18 +136,6 @@ importers:
       '@scruple/provider-kev':
         specifier: workspace:*
         version: link:packages/provider-kev
-      '@scruple/relational-databases':
-        specifier: workspace:*
-        version: link:packages/relational-databases
-      '@scruple/resources':
-        specifier: workspace:*
-        version: link:packages/resources
-      '@scruple/security':
-        specifier: workspace:*
-        version: link:packages/security
-      '@scruple/tests':
-        specifier: workspace:*
-        version: link:packages/tests
       '@types/node':
         specifier: ^22.20.4
         version: 22.20.4
@@ -203,17 +179,11 @@ importers:
         specifier: ^3.3.11
         version: 3.3.11(typescript@6.0.3)
 
-  packages/api-contracts:
+  examples/rules:
     dependencies:
       '@scruple/core':
         specifier: workspace:*
-        version: link:../core
-
-  packages/async:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
+        version: link:../../packages/core
 
   packages/cli:
     dependencies:
@@ -227,43 +197,19 @@ importers:
         specifier: ^0.2.15
         version: 0.2.17
 
-  packages/comments:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/core: {}
-
-  packages/errors:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
 
   packages/eval:
     dependencies:
-      '@scruple/api-contracts':
-        specifier: workspace:*
-        version: link:../api-contracts
-      '@scruple/async':
-        specifier: workspace:*
-        version: link:../async
       '@scruple/cli':
         specifier: workspace:*
         version: link:../cli
-      '@scruple/comments':
-        specifier: workspace:*
-        version: link:../comments
       '@scruple/core':
         specifier: workspace:*
         version: link:../core
-      '@scruple/errors':
+      '@scruple/example-rules':
         specifier: workspace:*
-        version: link:../errors
-      '@scruple/observability':
-        specifier: workspace:*
-        version: link:../observability
+        version: link:../../examples/rules
       '@scruple/parser-oxc':
         specifier: workspace:*
         version: link:../parser-oxc
@@ -279,24 +225,6 @@ importers:
       '@scruple/provider-kev':
         specifier: workspace:*
         version: link:../provider-kev
-      '@scruple/relational-databases':
-        specifier: workspace:*
-        version: link:../relational-databases
-      '@scruple/resources':
-        specifier: workspace:*
-        version: link:../resources
-      '@scruple/security':
-        specifier: workspace:*
-        version: link:../security
-      '@scruple/tests':
-        specifier: workspace:*
-        version: link:../tests
-
-  packages/observability:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
 
   packages/parser-oxc:
     dependencies:
@@ -332,30 +260,6 @@ importers:
         version: 0.6.0
 
   packages/provider-kev:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/relational-databases:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/resources:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/security:
-    dependencies:
-      '@scruple/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/tests:
     dependencies:
       '@scruple/core':
         specifier: workspace:*

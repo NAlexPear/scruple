@@ -1,14 +1,14 @@
 # Observability
 
-`@scruple/observability` checks logging and telemetry calls.
+`examples/rules/observability` demonstrates checks for logging and telemetry calls.
 
-```sh
-pnpm add -D @scruple/observability
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { observability } from "@scruple/observability";
+import { observability } from "@scruple/example-rules/observability";
 
 export default defineConfig({
   parser,

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { DecisionAnswer, SemanticRule } from "@scruple/core";
-import { observability } from "@scruple/observability";
+import { observability } from "@scruple/example-rules/observability";
 import { oxcParser } from "@scruple/parser-oxc";
 
 const choice = (selected: string, probability: number, confidence: number): DecisionAnswer => {

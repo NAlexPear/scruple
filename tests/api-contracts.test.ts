@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { apiContracts } from "@scruple/api-contracts";
 import type { ChoiceAnswer, RuleCandidate } from "@scruple/core";
+import { apiContracts } from "@scruple/example-rules/api-contracts";
 import { oxcParser } from "@scruple/parser-oxc";
 
 const answer = (choice: string, probability: number, confidence: number): ChoiceAnswer => {

@@ -14,6 +14,8 @@ next: false
 
 # {{ $params.rule }}
 
+Unsupported example, not a maintained public rule. No compatibility or coverage commitment.
+
 {{ $params.summary }}
 
 ## What it checks
@@ -22,7 +24,7 @@ next: false
 
 ## Rule metadata
 
-- Package: `{{ $params.packageName }}`
+- Example source: `{{ $params.sourcePath }}`
 - Category: {{ $params.category }}
 - Tags: {{ $params.tags }}
 - Default threshold: `{{ $params.defaultThreshold }}`

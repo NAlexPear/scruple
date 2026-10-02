@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { DecisionAnswer } from "@scruple/core";
+import { resources } from "@scruple/example-rules/resources";
 import { oxcParser } from "@scruple/parser-oxc";
-import { resources } from "@scruple/resources";
 
 await test("resources plugin registers rules without enabling them", () => {
   assert.deepEqual(Object.keys(resources().rules), [

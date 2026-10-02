@@ -1,14 +1,14 @@
 # Async
 
-`@scruple/async` checks asynchronous control flow, including concurrency, cancellation, cleanup, and unobserved work.
+`examples/rules/async` demonstrates asynchronous control-flow checks, including concurrency, cancellation, cleanup, and unobserved work.
 
-```sh
-pnpm add -D @scruple/async
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { asyncRules } from "@scruple/async";
+import { asyncRules } from "@scruple/example-rules/async";
 
 export default defineConfig({
   parser,

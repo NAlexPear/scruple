@@ -63,6 +63,22 @@ await test("HTML pages advertise and render their Markdown alternatives", async 
   );
 });
 
+await test("rule catalog pages describe unsupported source examples, not installable packages", async () => {
+  const [html, markdown, plugin, index] = await Promise.all([
+    readOutput("rules/resources/require-cleanup-on-failure.html"),
+    readOutput("rules/resources/require-cleanup-on-failure.md"),
+    readOutput("plugins/resources.md"),
+    readOutput("plugins.md"),
+  ]);
+  for (const content of [html, markdown, plugin, index]) {
+    assert.match(content, /Unsupported example/u);
+    assert.doesNotMatch(content, /pnpm add|@scruple\/resources/u);
+  }
+  assert.match(html, /Repository-only setup/u);
+  assert.match(markdown, /examples\/rules\/resources\/index\.ts/u);
+  assert.match(plugin, /@scruple\/example-rules\/resources/u);
+});
+
 await test("HTML pages publish rich link preview metadata", async () => {
   const [home, guide, pluginIndex, socialCard] = await Promise.all([
     readOutput("index.html"),

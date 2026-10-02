@@ -1,14 +1,14 @@
 # Errors
 
-`@scruple/errors` checks error handling and caught failures.
+`examples/rules/errors` demonstrates checks for error handling and caught failures.
 
-```sh
-pnpm add -D @scruple/errors
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { errors } from "@scruple/errors";
+import { errors } from "@scruple/example-rules/errors";
 
 export default defineConfig({
   parser,

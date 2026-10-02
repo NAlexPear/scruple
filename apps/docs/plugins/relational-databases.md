@@ -1,14 +1,14 @@
 # Relational Databases
 
-`@scruple/relational-databases` checks relational queries, transactions, joins, and pagination.
+`examples/rules/relational-databases` demonstrates checks for relational queries, transactions, joins, and pagination.
 
-```sh
-pnpm add -D @scruple/relational-databases
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { relationalDatabases } from "@scruple/relational-databases";
+import { relationalDatabases } from "@scruple/example-rules/relational-databases";
 
 export default defineConfig({
   parser,

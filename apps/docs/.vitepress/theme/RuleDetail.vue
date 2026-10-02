@@ -43,6 +43,7 @@ const copyConfiguration = async () => {
       </div>
       <h1>{{ rule.id }}</h1>
       <MarkdownActions />
+      <p><strong>Unsupported example.</strong> No compatibility or coverage commitment.</p>
       <p>{{ rule.explanation }}</p>
       <div class="rule-tags">
         <span v-for="tag in rule.tags" :key="tag">{{ tag }}</span>
@@ -84,12 +85,13 @@ const copyConfiguration = async () => {
     </section>
 
     <section class="rule-section rule-setup">
-      <div class="section-label"><span>02</span> Enable it</div>
+      <div class="section-label"><span>02</span> Study the example</div>
       <div>
-        <h2>Setup</h2>
-        <p>Install the package, register its plugin factory, then enable the rule.</p>
-        <h3>Install the package</h3>
-        <pre class="setup-code"><code>pnpm add -D {{ rule.packageName }}</code></pre>
+        <h2>Repository-only setup</h2>
+        <p>
+          This example is not published. Adapt its source for your own policy, language, and
+          framework. The import below works only inside the Scruple repository.
+        </p>
         <template v-if="pluginFactory">
           <h3>Register the plugin</h3>
           <p>
@@ -98,7 +100,7 @@ const copyConfiguration = async () => {
           </p>
           <pre
             class="setup-code"
-          ><code>import { {{ pluginFactory }} } from "{{ rule.packageName }}";
+          ><code>import { {{ pluginFactory }} } from "@scruple/example-rules/{{ rule.plugin }}";
 
 plugins: {
   "{{ rule.plugin }}": {{ pluginFactory }}(),
@@ -111,9 +113,9 @@ plugins: {
         </div>
         <dl>
           <div>
-            <dt>Package</dt>
+            <dt>Example source</dt>
             <dd>
-              <code>{{ rule.packageName }}</code>
+              <code>examples/rules/{{ rule.plugin }}/index.ts</code>
             </dd>
           </div>
           <div>
@@ -390,7 +392,7 @@ plugins: {
 
 .rule-setup dl div {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 11px 0;
   border-bottom: 1px solid var(--vp-c-divider);
 }
@@ -399,6 +401,7 @@ plugins: {
 .rule-setup dd {
   margin: 0;
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .rule-setup dt {
@@ -412,7 +415,7 @@ plugins: {
 
 @media (max-width: 700px) {
   .rule-section {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
   }
 
