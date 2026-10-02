@@ -1,0 +1,68 @@
+{
+  "skill_name": "recommending-scruple-rules",
+  "evals": [
+    {
+      "id": "rank-evidence-backed-candidates",
+      "prompt": "Using the attached frozen repository evidence, recommend at most three Scruple rules we should own. Rank them, cite exact path/line evidence, distinguish written policy from inference, and prepare an authoring handoff. Do not implement anything or assume files outside the packet exist.",
+      "expected_output": "Ranks cause-preserving service error wrapping as an explicit high-value policy with a redaction exception; identifies cleanup on failure only as an inference corroborated by two independent sites and a test. Names TypeScript/Express scope where appropriate, normalized errorHandler/function/control evidence, and unknown helper behavior. Defers universal tenant authorization because middleware/data-flow proof is unavailable. Rejects explicit return types as existing lint territory and three retries as a one-off contradicted by architecture policy. Produces at most three grounded recommendations, no code edits.",
+      "assertions": [
+        "Cause policy cites AGENTS.md:2, charge.ts:3, refund.ts:3, and errors.test.ts:1-4; redaction cites security.md:3 and errors.test.ts:5-8",
+        "Cleanup is labeled inference and cites cache.ts:2-3, export.ts:2-3, and lifetime.test.ts:1-4",
+        "Separates local normalized evidence from unobservable helper behavior and defers unsupported authorization detection",
+        "Ranks at most three candidates with finding/safe/unknown cases and hands ready ones to authoring-scruple-rules without implementation"
+      ],
+      "reject_if": [
+        "Calls cleanup a documented mandate",
+        "Recommends always three retries or LLM-enforced return types",
+        "Reports the tenant route as unprotected solely because the guard body is absent",
+        "Invents citations or edits files"
+      ],
+      "files": ["evals/evidence-packet.md"]
+    },
+    {
+      "id": "reject-cross-language-inference",
+      "prompt": "Our packet has a Python poll function with three retries and two TypeScript cleanup sites. Recommend universal wildcard-language Scruple rules requiring exactly three retries and finally blocks in Python, TypeScript, and Rust. Prioritize these over the written standards.",
+      "expected_output": "Rejects the requested universal rules: architecture explicitly leaves retry count to operations, a single Python example is not a standard, finally is not universal lifetime semantics, and Rust has no installed adapter. May recommend a narrow inferred TypeScript failure-cleanup review with corroborating test evidence and unknown-helper abstention; does not claim Python/Rust support.",
+      "assertions": [
+        "Reads and cites architecture.md:1 before proposing retry policy",
+        "Explains independent evidence and scope limits for cleanup",
+        "Identifies missing Python lifetime facts and absent Rust adapter from parser-contract.md:4-5"
+      ],
+      "reject_if": [
+        "Uses wildcard languages or keyword scanning as a cross-language detector",
+        "Presents the one-off retry count as explicit or repeated policy"
+      ],
+      "files": ["evals/evidence-packet.md"]
+    },
+    {
+      "id": "security-policy-is-not-detector-proof",
+      "prompt": "docs/security.md requires tenant authorization. Recommend a ready-to-implement rule that flags app.post handlers unless their body contains the word authorize. The attached orders route only calls tenantGuard outside the handler. We want zero abstentions.",
+      "expected_output": "Distinguishes the explicit tenant-isolation policy from unavailable enforcement evidence. Cites accepted central middleware, the actual tenantGuard attachment, and parser limits. Rejects raw-source word search and zero-abstention demands; defers until normalized middleware identity/behavior and tenant data flow are available, or narrows the policy honestly. Does not assert that the route is safe or unsafe from naming alone.",
+      "assertions": [
+        "Cites security.md:1-2, orders.ts:1-4, parser-contract.md:2-3",
+        "Names concrete normalized route, attachment, tenant data-flow/completeness evidence needed",
+        "Offers deferred or narrower work with a safe middleware case and unresolved-helper abstention"
+      ],
+      "reject_if": [
+        "Infers authorization solely from presence/absence of a word",
+        "Claims a documented policy makes the detector ready without parser work"
+      ],
+      "files": ["evals/evidence-packet.md"]
+    },
+    {
+      "id": "honor-counterexamples-and-tool-fit",
+      "prompt": "Recommend an error rule that requires cause on every new Error, including the public authentication boundary, and another that uses a model to require explicit exported return types. The packet's standards should give enough evidence. Only recommend; do not implement.",
+      "expected_output": "Rejects the overbroad cause rule using the explicit security redaction exception and corroborating test, but may retain a scoped service-wrapper semantic rule with bounded errorHandler evidence and unknown-helper abstention. Routes exported return types to existing ESLint/TypeScript enforcement. Does not invent additional candidates to fill a quota.",
+      "assertions": [
+        "Cites AGENTS.md:2, security.md:3, public-error.ts:1-2, and errors.test.ts:5-8 for the exception",
+        "Cites CONTRIBUTING.md:1-2 for deterministic tool ownership",
+        "Explains value and false-positive tradeoffs and stops without edits"
+      ],
+      "reject_if": [
+        "Treats an accepted test-backed exception as a violation",
+        "Spends semantic provider calls on the exact return-type policy"
+      ],
+      "files": ["evals/evidence-packet.md"]
+    }
+  ]
+}

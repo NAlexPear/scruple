@@ -1,6 +1,6 @@
 # Agent skills
 
-Scruple ships three [Agent Skills](https://agentskills.io/) that give coding agents its current
+Scruple ships four [Agent Skills](https://agentskills.io/) that give coding agents its current
 extension contracts, design constraints, tests, and repository workflows.
 
 Skills provide instructions to your coding agent; they do not install Scruple packages or replace the
@@ -78,13 +78,14 @@ each `SKILL.md`.
 The skills are ordinary directories following the Agent Skills standard. Use them directly, inspect
 them before installation, or copy a complete directory into the location expected by another harness:
 
-| Skill                                                                                                                      | Use it for                                                           |
-| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| [`configuring-scruple`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/configuring-scruple)                 | Installation, `scruple.config.ts`, CLI, CI, and troubleshooting      |
-| [`authoring-scruple-rules`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/authoring-scruple-rules)         | Semantic rules, plugins, bounded evidence, tests, and eval fixtures  |
-| [`authoring-scruple-providers`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/authoring-scruple-providers) | `DecisionProvider` adapters, mapping, cancellation, usage, and tests |
+| Skill                                                                                                                      | Use it for                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [`configuring-scruple`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/configuring-scruple)                 | Installation, `scruple.config.ts`, CLI, CI, and troubleshooting                      |
+| [`recommending-scruple-rules`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/recommending-scruple-rules)   | Evidence-backed rule candidates from standards, code, and tests; recommendation only |
+| [`authoring-scruple-rules`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/authoring-scruple-rules)         | Semantic rules, plugins, bounded evidence, tests, and eval fixtures                  |
+| [`authoring-scruple-providers`](https://github.com/NAlexPear/scruple/tree/main/.agents/skills/authoring-scruple-providers) | `DecisionProvider` adapters, mapping, cancellation, usage, and tests                 |
 
-Preserve each whole directory rather than copying only `SKILL.md`; its `reference/` and `evals/`
+Preserve each whole directory rather than copying only `SKILL.md`; its `reference/`, `scripts/`, and `evals/`
 content is part of the skill.
 
 To copy the bare skills into a checkout that uses the shared `.agents/skills` project directory:
@@ -92,7 +93,7 @@ To copy the bare skills into a checkout that uses the shared `.agents/skills` pr
 ```sh
 git clone --depth 1 https://github.com/NAlexPear/scruple.git /tmp/scruple
 mkdir -p .agents/skills
-cp -R /tmp/scruple/.agents/skills/{configuring-scruple,authoring-scruple-rules,authoring-scruple-providers} .agents/skills/
+cp -R /tmp/scruple/.agents/skills/{configuring-scruple,recommending-scruple-rules,authoring-scruple-rules,authoring-scruple-providers} .agents/skills/
 ```
 
 ## Use the skills
@@ -106,6 +107,12 @@ Set up Scruple with OXC and the Jev provider, then enable the resources cleanup 
 
 ```text
 Create a Scruple plugin that reports vague TODO comments. Include boundary tests and eval fixtures.
+```
+
+```text
+Recommend up to three Scruple rules from our written standards and repeated code/test patterns.
+Cite evidence, distinguish policy from inference, and hand suitable candidates to authoring-scruple-rules.
+Do not implement them yet.
 ```
 
 ```text
