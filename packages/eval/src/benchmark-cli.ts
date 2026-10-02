@@ -17,9 +17,12 @@ import {
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { createCloudflareProvider } from "./cloudflare-provider.js";
-import { createDeciderProvider } from "./decider-provider.js";
-import { createJevProvider } from "./jev-provider.js";
+import {
+  createCloudflareProvider,
+  createDeciderProvider,
+  createJevProvider,
+  createKevProvider,
+} from "./provider-factories.js";
 
 const plugins = evaluationPlugins();
 
@@ -57,7 +60,12 @@ const runModel = async (
             concurrency,
             ...(baseURL === undefined ? {} : { baseURL }),
           })
-        : createJevProvider(model, { concurrency });
+        : providerName === "kev"
+          ? createKevProvider(model, {
+              concurrency,
+              ...(baseURL === undefined ? {} : { baseURL }),
+            })
+          : createJevProvider(model, { concurrency });
   try {
     return await runBenchmark({
       fixtures,

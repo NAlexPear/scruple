@@ -68,6 +68,15 @@ await test("benchmark options support providers, repeated models, and run settin
   });
   assert.deepEqual(parseBenchmarkOptions(["--provider", "decider"]).models, ["decider-4b-v2.1"]);
   assert.deepEqual(parseBenchmarkOptions(["--provider", "cloudflare"]).models, ["clef"]);
+  assert.deepEqual(parseBenchmarkOptions(["--provider", "kev"]), {
+    concurrency: 1,
+    fixtureIds: [],
+    help: false,
+    models: ["jaredpalmer/kev-4b@v1.0"],
+    provider: "kev",
+    repetitions: 3,
+    warmups: 1,
+  });
   assert.deepEqual(
     parseBenchmarkOptions(["--provider", "cloudflare", "--model", "clef", "--model", "clef-flash"])
       .models,
@@ -75,7 +84,10 @@ await test("benchmark options support providers, repeated models, and run settin
   );
   assert.throws(() => parseBenchmarkOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseBenchmarkOptions(["--workload-size", "0"]), /positive integer/u);
-  assert.throws(() => parseBenchmarkOptions(["--provider", "other"]), /jev.*decider.*cloudflare/u);
+  assert.throws(
+    () => parseBenchmarkOptions(["--provider", "other"]),
+    /jev.*decider.*cloudflare.*kev/u,
+  );
 });
 
 await test("benchmark workload is stable, unique, and covers every plugin", async () => {

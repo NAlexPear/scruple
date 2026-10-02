@@ -1,0 +1,23 @@
+{
+  "kevRepository": "https://github.com/jaredpalmer/kev",
+  "kevCommit": "84847f0a883d900f7de5b7a57eaa341ca7f9a6b4",
+  "servingInstructions": "https://github.com/jaredpalmer/kev/blob/main/docs/releases/kev-1.0.md",
+  "serverImplementation": "https://github.com/jaredpalmer/kev/blob/main/kev/serve.py",
+  "releaseRecord": "https://github.com/jaredpalmer/kev/blob/main/runs/release/kev-1.0.json",
+  "deploymentSettings": "https://github.com/jaredpalmer/kev/blob/main/skills/kev-deploy/scripts/kev_serve.py",
+  "modelRevisions": {
+    "jaredpalmer/kev-0.8b@v1.0": "bf75a6a8848ea6960ff2ed108d9ed44c2941174f",
+    "jaredpalmer/kev-4b@v1.0": "6cfce5c2fa4b4bd64026336ab649c5ca78857d52",
+    "jaredpalmer/kev-9b@v1.0": "db029f08b290afd9fee4aa4bbcd9ae48602d1eb0",
+    "jaredpalmer/kev-27b@v1.0": "af0e6d551bdc2cc724f3e9d7a8bee1cd4fb8f7bf"
+  },
+  "runpodStoragePricing": "https://docs.runpod.io/pods/storage/types",
+  "runpodPodId": "hzw339zps4fyt7",
+  "runpodCreatedAt": "2026-10-02T01:38:14.801Z",
+  "runpodDeletedBy": "DELETE /v2/pods/hzw339zps4fyt7 returned HTTP 204",
+  "cleanupVerification": {
+    "remainingPods": 0,
+    "registeredSshKeys": 0,
+    "networkVolumesCreated": 0
+  }
+}

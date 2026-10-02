@@ -2,14 +2,14 @@
 
 Scruple's own engine has two benchmark commands:
 
-- `pnpm benchmark` measures rule accuracy and speed against Jev, Decider, or Cloudflare Clef. It
+- `pnpm benchmark` measures rule accuracy and speed against Jev, Decider, Kev, or Cloudflare Clef. It
   always calls the model.
 - `pnpm benchmark-cache` measures uncached, cold-cache, warm-cache, and one-file-change runs. It uses
   a local fixed-delay provider, so it needs no API key.
 
 ## Benchmark Scruple with a decision model
 
-This benchmark runs a versioned semantic-rule workload against Jev, Decider, or Cloudflare Clef. It measures Scruple end to end, including parsing, candidate collection, provider requests, and diagnosis.
+This benchmark runs a versioned semantic-rule workload against Jev, Decider, Kev, or Cloudflare Clef. It measures Scruple end to end, including parsing, candidate collection, provider requests, and diagnosis.
 
 The default workload selects ten cases from `tests/eval-fixtures.json`. Its IDs are pinned in `fixtures.json` so correctness-corpus growth does not silently change benchmark results.
 
@@ -30,6 +30,17 @@ pnpm benchmark --provider decider --base-url http://127.0.0.1:8000 \
 
 Start it with Decider's `scripts/serve.sh Mapika/decider-4b 8000` first. You can alternatively set
 `DECIDER_BASE_URL` and, for an authenticating proxy, `DECIDER_API_KEY`.
+
+To benchmark a self-hosted Kev checkpoint, start the server with the pinned checkpoint and pass the
+same immutable identity to the benchmark cache namespace:
+
+```sh
+pnpm benchmark --provider kev --base-url http://127.0.0.1:8009 \
+  --model jaredpalmer/kev-4b@v1.0 > kev-benchmark.json
+```
+
+The server request still uses Kev's `kev-latest` System One alias; `--model` identifies the weights
+selected when the server started. You can alternatively set `KEV_BASE_URL` and `KEV_API_KEY`.
 
 To compare model versions from the selected provider on the same workload, repeat `--model`:
 

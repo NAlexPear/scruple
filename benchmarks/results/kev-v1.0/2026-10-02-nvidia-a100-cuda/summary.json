@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-02",
+  "scrupleBaseCommit": "eafda5d90b2af2ba485724248afef766b74b4772",
+  "provider": "kev",
+  "requestModel": "kev-latest",
+  "environment": {
+    "cloud": "Runpod Community Cloud",
+    "gpu": "NVIDIA A100 80GB PCIe",
+    "gpuMemoryMiB": 81920,
+    "driver": "550.54.15",
+    "cuda": "12.4",
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "python": "3.13.8",
+    "torch": "2.8.0+cu128",
+    "transformers": "5.17.0",
+    "kevCommit": "84847f0a883d900f7de5b7a57eaa341ca7f9a6b4"
+  },
+  "server": {
+    "backend": "torch",
+    "dtype": "bfloat16",
+    "cudaGraphs": true,
+    "fused": "auto",
+    "prefixCacheEntries": 4,
+    "prefixCacheMaxTokens": 65536,
+    "truncateStates": false,
+    "host": "0.0.0.0",
+    "port": 8009
+  },
+  "workload": {
+    "fixtureCount": 10,
+    "warmupsPerConcurrency": 1,
+    "repetitions": 3,
+    "measuredCasesPerConcurrency": 30,
+    "concurrencies": [1, 2, 4, 8]
+  },
+  "checkpoints": [
+    {
+      "name": "kev-0.8b",
+      "release": "jaredpalmer/kev-0.8b@v1.0",
+      "revision": "bf75a6a8848ea6960ff2ed108d9ed44c2941174f",
+      "base": "Qwen/Qwen3.5-0.8B-Base",
+      "residentGpuMemoryMiB": 5286,
+      "cleanConcurrency": 4,
+      "qualityAtConcurrency1": {
+        "labelAgreement": 0.4,
+        "diagnosticAgreement": 0.1,
+        "strictAgreement": 0.1,
+        "actualAbstentions": 18
+      },
+      "results": [
+        {
+          "concurrency": 1,
+          "meanMs": 164.876,
+          "p50Ms": 116.515,
+          "p95Ms": 378.861,
+          "casesPerSecond": 6.064
+        },
+        {
+          "concurrency": 2,
+          "meanMs": 198.31,
+          "p50Ms": 128.37,
+          "p95Ms": 419.928,
+          "casesPerSecond": 9.895
+        },
+        {
+          "concurrency": 4,
+          "meanMs": 276.575,
+          "p50Ms": 219.927,
+          "p95Ms": 486.759,
+          "casesPerSecond": 13.239
+        },
+        {
+          "concurrency": 8,
+          "meanMs": 519.065,
+          "p50Ms": 627.573,
+          "p95Ms": 665.664,
+          "casesPerSecond": 11.452
+        }
+      ]
+    },
+    {
+      "name": "kev-4b",
+      "release": "jaredpalmer/kev-4b@v1.0",
+      "revision": "6cfce5c2fa4b4bd64026336ab649c5ca78857d52",
+      "base": "Qwen/Qwen3.5-4B-Base",
+      "residentGpuMemoryMiB": 16268,
+      "cleanConcurrency": 4,
+      "qualityAtConcurrency1": {
+        "labelAgreement": 0.8,
+        "diagnosticAgreement": 0.2,
+        "strictAgreement": 0.2,
+        "actualAbstentions": 6
+      },
+      "results": [
+        {
+          "concurrency": 1,
+          "meanMs": 222.537,
+          "p50Ms": 163.946,
+          "p95Ms": 467.952,
+          "casesPerSecond": 4.493
+        },
+        {
+          "concurrency": 2,
+          "meanMs": 267.646,
+          "p50Ms": 186.392,
+          "p95Ms": 556.751,
+          "casesPerSecond": 7.301
+        },
+        {
+          "concurrency": 4,
+          "meanMs": 418.024,
+          "p50Ms": 365.11,
+          "p95Ms": 691.347,
+          "casesPerSecond": 8.711
+        },
+        {
+          "concurrency": 8,
+          "meanMs": 870.81,
+          "p50Ms": 909.268,
+          "p95Ms": 1102.988,
+          "casesPerSecond": 6.972
+        }
+      ]
+    },
+    {
+      "name": "kev-9b",
+      "release": "jaredpalmer/kev-9b@v1.0",
+      "revision": "db029f08b290afd9fee4aa4bbcd9ae48602d1eb0",
+      "base": "Qwen/Qwen3.5-9B-Base",
+      "residentGpuMemoryMiB": 23454,
+      "cleanConcurrency": 4,
+      "qualityAtConcurrency1": {
+        "labelAgreement": 1,
+        "diagnosticAgreement": 0.2,
+        "strictAgreement": 0.2,
+        "actualAbstentions": 0
+      },
+      "results": [
+        {
+          "concurrency": 1,
+          "meanMs": 248.055,
+          "p50Ms": 205.934,
+          "p95Ms": 469.711,
+          "casesPerSecond": 4.031
+        },
+        {
+          "concurrency": 2,
+          "meanMs": 303.746,
+          "p50Ms": 231.657,
+          "p95Ms": 588.746,
+          "casesPerSecond": 6.428
+        },
+        {
+          "concurrency": 4,
+          "meanMs": 482.077,
+          "p50Ms": 446.434,
+          "p95Ms": 763.805,
+          "casesPerSecond": 7.226
+        },
+        {
+          "concurrency": 8,
+          "meanMs": 855.029,
+          "p50Ms": 975.444,
+          "p95Ms": 1133.659,
+          "casesPerSecond": 7.517
+        }
+      ]
+    },
+    {
+      "name": "kev-27b",
+      "release": "jaredpalmer/kev-27b@v1.0",
+      "revision": "af0e6d551bdc2cc724f3e9d7a8bee1cd4fb8f7bf",
+      "base": "Qwen/Qwen3.8-27B",
+      "residentGpuMemoryMiB": 66756,
+      "cleanConcurrency": 2,
+      "qualityAtConcurrency1": {
+        "labelAgreement": 1,
+        "diagnosticAgreement": 0.8,
+        "strictAgreement": 0.8,
+        "actualAbstentions": 0
+      },
+      "results": [
+        {
+          "concurrency": 1,
+          "meanMs": 511.901,
+          "p50Ms": 398.378,
+          "p95Ms": 1018.531,
+          "casesPerSecond": 1.953
+        },
+        {
+          "concurrency": 2,
+          "meanMs": 601.889,
+          "p50Ms": 586.782,
+          "p95Ms": 1163.322,
+          "casesPerSecond": 3.15
+        },
+        {
+          "concurrency": 4,
+          "meanMs": 1172.16,
+          "p50Ms": 1190.799,
+          "p95Ms": 1719.919,
+          "casesPerSecond": 3.047
+        },
+        {
+          "concurrency": 8,
+          "meanMs": 1999.799,
+          "p50Ms": 2430.733,
+          "p95Ms": 2495.654,
+          "casesPerSecond": 3.135
+        }
+      ]
+    }
+  ],
+  "usageAtConcurrency1PerCheckpoint": {
+    "inputTokens": 12723,
+    "modelCalls": 30,
+    "outputTokensRange": [2706, 2712]
+  },
+  "operations": {
+    "measuredAndWarmupRequestsPerCheckpoint": 160,
+    "successfulHttpResponsesPerCheckpoint": 160,
+    "benchmarkErrors": 0,
+    "serverOomRetries": 0
+  },
+  "cost": {
+    "podRateUsdPerHour": 1.19,
+    "runtimeSeconds": 1470,
+    "estimatedGpuUsd": 0.486,
+    "estimatedStorageUsd": 0.013,
+    "estimatedTotalUsd": 0.499,
+    "apiTokenCostUsd": 0,
+    "billingLedgerStatus": "No record was available immediately after deletion; estimate uses the create response and official storage rates."
+  }
+}
