@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { ChoiceAnswer, RuleCandidate, SemanticRule } from "@scruple/core";
+import { security } from "@scruple/example-rules/security";
 import { oxcParser } from "@scruple/parser-oxc";
-import { security } from "@scruple/security";
 
 const answer = (choice: string, probability: number, confidence: number): ChoiceAnswer => {
   return {

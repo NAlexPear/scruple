@@ -1,14 +1,14 @@
 # Tests
 
-`@scruple/tests` checks that tests verify behavior, expect specific failures, and control inputs and timing.
+`examples/rules/tests` demonstrates checks that tests verify behavior, expect specific failures, and control inputs and timing.
 
-```sh
-pnpm add -D @scruple/tests
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { tests } from "@scruple/tests";
+import { tests } from "@scruple/example-rules/tests";
 
 export default defineConfig({
   parser,

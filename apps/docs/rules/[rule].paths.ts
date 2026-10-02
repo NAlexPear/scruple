@@ -9,7 +9,7 @@ export default {
         explanation: rule.explanation,
         category: rule.category,
         tags: rule.tags.join(", "),
-        packageName: rule.packageName,
+        sourcePath: `examples/rules/${rule.plugin}/index.ts`,
         defaultThreshold: String(rule.defaultThreshold ?? "plugin default"),
         minConfidence: String(rule.minConfidence ?? "plugin default"),
         incorrectExample: `\`\`\`ts\n${rule.incorrect}\n\`\`\``,

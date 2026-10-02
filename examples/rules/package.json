@@ -1,0 +1,60 @@
+{
+  "name": "@scruple/example-rules",
+  "private": true,
+  "description": "Unsupported rule examples and evaluation subjects; not a public API.",
+  "type": "module",
+  "exports": {
+    "./api-contracts": {
+      "source": "./api-contracts/index.ts",
+      "types": "./dist/api-contracts/index.d.ts",
+      "import": "./dist/api-contracts/index.js"
+    },
+    "./async": {
+      "source": "./async/index.ts",
+      "types": "./dist/async/index.d.ts",
+      "import": "./dist/async/index.js"
+    },
+    "./comments": {
+      "source": "./comments/index.ts",
+      "types": "./dist/comments/index.d.ts",
+      "import": "./dist/comments/index.js"
+    },
+    "./errors": {
+      "source": "./errors/index.ts",
+      "types": "./dist/errors/index.d.ts",
+      "import": "./dist/errors/index.js"
+    },
+    "./observability": {
+      "source": "./observability/index.ts",
+      "types": "./dist/observability/index.d.ts",
+      "import": "./dist/observability/index.js"
+    },
+    "./relational-databases": {
+      "source": "./relational-databases/index.ts",
+      "types": "./dist/relational-databases/index.d.ts",
+      "import": "./dist/relational-databases/index.js"
+    },
+    "./resources": {
+      "source": "./resources/index.ts",
+      "types": "./dist/resources/index.d.ts",
+      "import": "./dist/resources/index.js"
+    },
+    "./security": {
+      "source": "./security/index.ts",
+      "types": "./dist/security/index.d.ts",
+      "import": "./dist/security/index.js"
+    },
+    "./tests": {
+      "source": "./tests/index.ts",
+      "types": "./dist/tests/index.d.ts",
+      "import": "./dist/tests/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scruple/core": "workspace:*"
+  }
+}

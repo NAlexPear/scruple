@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { comments } from "@scruple/comments";
 import type {
   DecisionCache,
   DecisionAnswer,
@@ -12,10 +11,11 @@ import type {
   SourceParser,
 } from "@scruple/core";
 import { defineConfig, definePlugin, runScruple } from "@scruple/core";
-import { observability } from "@scruple/observability";
+import { comments } from "@scruple/example-rules/comments";
+import { observability } from "@scruple/example-rules/observability";
+import { relationalDatabases } from "@scruple/example-rules/relational-databases";
+import { tests as testRules } from "@scruple/example-rules/tests";
 import { oxcParser } from "@scruple/parser-oxc";
-import { relationalDatabases } from "@scruple/relational-databases";
-import { tests as testRules } from "@scruple/tests";
 
 const fixtureProvider = (): DecisionProvider => {
   return {

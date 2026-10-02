@@ -1,12 +1,12 @@
-import { apiContracts } from "@scruple/api-contracts";
-import { asyncRules } from "@scruple/async";
-import { comments } from "@scruple/comments";
 import { defineConfig, type ScrupleConfig } from "@scruple/core";
-import { errors } from "@scruple/errors";
+import { apiContracts } from "@scruple/example-rules/api-contracts";
+import { asyncRules } from "@scruple/example-rules/async";
+import { comments } from "@scruple/example-rules/comments";
+import { errors } from "@scruple/example-rules/errors";
+import { resources } from "@scruple/example-rules/resources";
+import { tests } from "@scruple/example-rules/tests";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
-import { resources } from "@scruple/resources";
-import { tests } from "@scruple/tests";
 
 const apiKey = process.env["TYPESAFE_API_KEY"];
 if (apiKey === undefined) {
@@ -16,7 +16,12 @@ if (apiKey === undefined) {
 const config: ScrupleConfig = defineConfig({
   parser: oxcParser(),
   provider: jevProvider({ apiKey }),
-  include: ["packages/*/src/**/*.ts", "scripts/**/*.ts", "tests/**/*.test.ts"],
+  include: [
+    "packages/*/src/**/*.ts",
+    "examples/rules/*/*.ts",
+    "scripts/**/*.ts",
+    "tests/**/*.test.ts",
+  ],
   plugins: {
     "api-contracts": apiContracts(),
     async: asyncRules(),

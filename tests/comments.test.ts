@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { comments } from "@scruple/comments";
 import type { ChoiceAnswer, JsonValue } from "@scruple/core";
+import { comments } from "@scruple/example-rules/comments";
 import { oxcParser } from "@scruple/parser-oxc";
 
 const answer = (choice: string, probability: number, confidence: number): ChoiceAnswer => {

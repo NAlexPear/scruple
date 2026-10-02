@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { asyncRules } from "@scruple/async";
 import type { ChoiceAnswer } from "@scruple/core";
+import { asyncRules } from "@scruple/example-rules/async";
 import { oxcParser } from "@scruple/parser-oxc";
 
 const parser = oxcParser();

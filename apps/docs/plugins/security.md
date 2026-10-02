@@ -1,14 +1,14 @@
 # Security
 
-`@scruple/security` checks security-sensitive code using evidence visible in one file. It reports nothing when the rule cannot see enough about trust boundaries or helper behavior.
+`examples/rules/security` demonstrates checks for security-sensitive code using evidence visible in one file. It reports nothing when the rule cannot see enough about trust boundaries or helper behavior.
 
-```sh
-pnpm add -D @scruple/security
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { security } from "@scruple/security";
+import { security } from "@scruple/example-rules/security";
 
 export default defineConfig({
   parser,

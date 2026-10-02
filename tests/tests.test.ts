@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { DecisionAnswer, RuleCandidate } from "@scruple/core";
+import { tests } from "@scruple/example-rules/tests";
 import { oxcParser } from "@scruple/parser-oxc";
-import { tests } from "@scruple/tests";
 
 const choice = (selected: string, probability: number, confidence: number): DecisionAnswer => {
   return {

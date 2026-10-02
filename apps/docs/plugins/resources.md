@@ -1,14 +1,14 @@
 # Resources
 
-`@scruple/resources` checks resource ownership, cleanup, and retries.
+`examples/rules/resources` demonstrates checks for resource ownership, cleanup, and retries.
 
-```sh
-pnpm add -D @scruple/resources
-```
+::: warning Unsupported examples
+These rules are not published or maintained public packages. They have no compatibility or coverage commitment. The import below works only inside the Scruple repository; adapt the source for your own policy.
+:::
 
 ```ts
 import { defineConfig } from "@scruple/core";
-import { resources } from "@scruple/resources";
+import { resources } from "@scruple/example-rules/resources";
 
 export default defineConfig({
   parser,

@@ -40,10 +40,12 @@ const filteredRules = computed(() => {
   <section class="rule-registry" aria-labelledby="rule-registry-heading">
     <div class="registry-heading">
       <div>
-        <p class="registry-kicker">Rule registry</p>
-        <h2 id="rule-registry-heading">Find the check you need.</h2>
+        <p class="registry-kicker">Unsupported rule examples</p>
+        <h2 id="rule-registry-heading">Explore rule implementations.</h2>
       </div>
-      <p>{{ rules.length }} semantic rules across {{ plugins.length - 1 }} plugins.</p>
+      <p>
+        {{ rules.length }} examples across {{ plugins.length - 1 }} domains. Not published packages.
+      </p>
     </div>
 
     <div class="registry-controls">

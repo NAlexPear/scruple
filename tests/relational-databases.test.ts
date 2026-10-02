@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { DecisionAnswer, SemanticRule } from "@scruple/core";
+import { relationalDatabases } from "@scruple/example-rules/relational-databases";
 import { oxcParser } from "@scruple/parser-oxc";
-import { relationalDatabases } from "@scruple/relational-databases";
 
 const parse = (source: string) => oxcParser().parse("database.ts", source);
 const choiceAnswer = (choice: string, probability: number, confidence: number): DecisionAnswer => {

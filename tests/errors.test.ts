@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { DecisionAnswer, DecisionProvider, DecisionResponse } from "@scruple/core";
 import { runScruple } from "@scruple/core";
-import { errors } from "@scruple/errors";
+import { errors } from "@scruple/example-rules/errors";
 import { oxcParser } from "@scruple/parser-oxc";
 
 const choice = (
