@@ -37,7 +37,10 @@ const example = computed(() => examples.find(({ id }) => id === selected.value) 
 </script>
 
 <template>
-  <div class="landing-example" aria-label="Scruple diagnostic examples">
+  <div
+    class="landing-example"
+    aria-label="Illustrative TypeScript rule diagnostics, not maintained rule packs"
+  >
     <div class="landing-example-select" role="group" aria-label="Choose an example">
       <button
         v-for="option in examples"
@@ -53,7 +56,7 @@ const example = computed(() => examples.find(({ id }) => id === selected.value) 
     <div class="landing-window-bar">
       <div class="landing-window-dots"><i></i><i></i><i></i></div>
       <span>{{ example.filename }}</span>
-      <span class="landing-window-state">01 finding</span>
+      <span class="landing-window-state">example finding</span>
     </div>
 
     <pre
@@ -97,7 +100,7 @@ const example = computed(() => examples.find(({ id }) => id === selected.value) 
       </p>
     </div>
 
-    <span class="landing-tag landing-tag-one">relevant code only</span>
+    <span class="landing-tag landing-tag-one">illustrative rules</span>
     <span class="landing-tag landing-tag-two">fixed warning</span>
   </div>
 </template>

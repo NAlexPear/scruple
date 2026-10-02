@@ -74,7 +74,8 @@ const pageUrl = (page: string): string => {
 
 export default defineConfig({
   title: "Scruple",
-  description: "Make good taste enforceable with named, tested code checks.",
+  description:
+    "A language-agnostic engine for semantic code checks, with language-specific parsers and rules you own.",
   cleanUrls: true,
   sitemap: { hostname: siteUrl },
   vite: {
@@ -84,9 +85,9 @@ export default defineConfig({
         customTemplateVariables: {
           title: "Scruple",
           description:
-            "Scruple turns engineering judgment into named, tested code checks that run from the command line.",
+            "Scruple turns engineering judgment into testable code checks with a language-agnostic engine, blessed language-specific parsers, and downstream rules.",
           details:
-            "Use these docs to install and configure Scruple, choose rules and providers, or build plugins and provider adapters.",
+            "Scruple maintains core interfaces, parsers, providers, authoring/testing skills, and eval tooling, not first-party rule packs. Use these docs to configure parsers and providers or author and test language-scoped rules.",
         },
       }),
     ],

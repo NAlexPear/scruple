@@ -3,6 +3,11 @@
 Scruple ships three [Agent Skills](https://agentskills.io/) that give coding agents its current
 extension contracts, design constraints, tests, and repository workflows.
 
+Rule-authoring and testing skills are part of Scruple's maintained surface alongside core interfaces,
+blessed language-specific parsers, providers, and eval tooling. They help downstream authors build
+and maintain their own language/framework rules; they do not supply a maintained first-party rule
+pack. Existing specialized rules are becoming unsupported examples and test implementations.
+
 Skills provide instructions to your coding agent; they do not install Scruple packages or replace the
 `scruple` CLI. Review agent changes and run the verification commands the skill recommends.
 
@@ -101,11 +106,11 @@ Describe the task normally. The agent selects a skill from its description; no s
 is required.
 
 ```text
-Set up Scruple with OXC and the Jev provider, then enable the resources cleanup rule.
+Set up Scruple with OXC and the Jev provider, then register our team's TypeScript rules.
 ```
 
 ```text
-Create a Scruple plugin that reports vague TODO comments. Include boundary tests and eval fixtures.
+Create a Scruple plugin for JavaScript and TypeScript that reports vague TODO comments. Declare its language scope and include boundary tests and eval fixtures for both languages.
 ```
 
 ```text

@@ -1,6 +1,9 @@
 # Write a plugin
 
-We will build a rule that checks TODO comments.
+We will build a downstream rule that checks TODO comments in JavaScript and TypeScript. You own its
+language scope, evidence, diagnostic policy, tests, and maintenance. Scruple supplies the interfaces,
+blessed language-specific parsers, providers, authoring/testing skills, and eval tooling; it does not
+publish maintained first-party rule packs.
 
 - `// TODO: fix later` is an obvious TODO and should warn.
 - `// Revisit this later` is less obvious, but should also warn.
@@ -270,7 +273,7 @@ Finish `src/index.ts`:
 ```ts [src/index.ts]
 export const todoPolicy = () =>
   definePlugin({
-    languages: "*",
+    languages: ["javascript", "typescript"],
     rules: {
       "require-specific-todo": requireSpecificTodo,
     },
@@ -279,14 +282,20 @@ export const todoPolicy = () =>
 
 ::: info Where the full rule name comes from
 The plugin supplies `require-specific-todo`. The project adds `todos/` when it registers the plugin.
-Its `"*"` scope is explicit because this rule uses normalized comments and works for every document
-language. Use an array such as `["javascript", "typescript"]` when all rules in a plugin are
-language-specific. An individual rule can return its own `languages` value to override that default.
+The declared scope is limited to `javascript` and `typescript`. OXC also produces `jsx` and `tsx`,
+which are separate IDs and are not enabled here. Add a language only after testing its parser output
+and the rule's assumptions. Normalized comments alone do not make this rule correct for every
+language. The `"*"` wildcard is available in the interface, but it opts into every document language;
+it is not evidence of portability. An individual rule can return `languages` to replace the plugin's
+default scope.
 :::
 
 ## 10. Enable the rule
 
-Add the plugin to `scruple.config.ts`:
+Add the plugin to `scruple.config.ts`. `@acme/scruple-todos` below is a placeholder for your own
+package; a local import is equally valid. Supply your configured parser and provider, as in the
+[quickstart](./quickstart.md). Neither the example package nor any migrated specialized rules are
+required Scruple dependencies.
 
 ```ts{7-10} [scruple.config.ts]
 import { defineConfig } from "@scruple/core";
@@ -324,9 +333,9 @@ import { todoPolicy } from "../src/index.js";
 
 const rule = todoPolicy().rules["require-specific-todo"]();
 
-const collectExample = async () => {
+const collectExample = async (filename = "work.ts") => {
   const document = oxcParser().parse(
-    "work.ts",
+    filename,
     "// TODO: fix later\n// Revisit this later.\n// Return the to-do list.\nexport const ready = false;\n",
   );
   const choices = ["todo", "other"][Symbol.iterator]();
@@ -374,6 +383,19 @@ test("keeps TODOs found by either filter", async () => {
   assert.equal(vagueTodo.target.location.start.line, 2);
 });
 
+test("collects the same TODOs from JavaScript", async () => {
+  const { candidates, commentsSentToModel } = await collectExample("work.js");
+  assert.deepEqual(
+    candidates.map(({ target }) => target.language),
+    ["javascript", "javascript"],
+  );
+  assert.deepEqual(
+    candidates.map(({ target }) => target.location.start.line),
+    [1, 2],
+  );
+  assert.equal(commentsSentToModel.length, 2);
+});
+
 test("warns only for a strong vague answer", async () => {
   const { candidates } = await collectExample();
   const [candidate] = candidates;
@@ -394,12 +416,18 @@ test("warns only for a strong vague answer", async () => {
 ```
 
 ::: info What the tests cover
-The first test checks what reaches the model. The second checks what becomes a TODO. The third checks
-exactly when a warning appears.
+The tests check what reaches the model, what becomes a TODO, collection in both declared languages,
+and exactly when a warning appears.
 :::
 
 Before publishing, also test a clear TODO, a suppressed comment, and an
-`insufficient_context` answer.
+`insufficient_context` answer. Add an engine-level test with `runScruple` to verify that non-matching
+languages never reach your collector; direct calls to `collect` do not apply language routing.
+
+Use the [rule-authoring skill](./agent-skills.md) and `@scruple/eval` tooling to evaluate representative
+positive, negative, and abstention fixtures with your chosen provider. Offline contract tests check
+your code; live evals check whether the model and thresholds implement the intended policy. Validate
+each supported language and framework separately before widening `languages`.
 
 ## Conclusion
 

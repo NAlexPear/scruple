@@ -1,10 +1,15 @@
 # How Scruple works
 
-Scruple uses a parser to find bounded code targets, rules to select candidates and define reporting
-policy, and a provider to answer narrow questions. A rule may use the provider once to decide whether
-an ambiguous target is relevant and again to decide whether a selected candidate violates the rule.
+Scruple's language-agnostic engine uses language-specific parsers to find bounded code targets,
+applicable downstream rules to select candidates and define reporting policy, and a provider to answer
+narrow questions. A rule may use the provider once to decide whether an ambiguous target is relevant
+and again to decide whether a selected candidate violates the rule.
 
 ## One resource bug, end to end
+
+This TypeScript example illustrates a specialized rule, not a maintained first-party rule pack. Its
+policy depends on JavaScript resource ownership and failure behavior; it is not a universal rule for
+other languages.
 
 Consider a file handle that closes only when every preceding operation succeeds:
 
@@ -67,9 +72,26 @@ The parser identifies the function, imports, and calls. The enabled rule asks wh
 
 ## Parse once
 
-The parser produces normalized documents with source locations, imports, comments, functions, tests, error handlers, API boundaries, and captured calls. Plugins depend on these contracts rather than a parser-specific syntax tree.
+Configure one `SourceParser` or a non-empty array. Each parser advertises concrete language IDs and
+default `filePatterns`; `supports(filename)` routes files to it. Overlapping support is an error, not
+a fallback order. The CLI uses parser patterns unless the caller supplies `include` or positional
+patterns.
 
-The OXC parser supports JavaScript and TypeScript extensions and can recognize custom test callees.
+A parser produces normalized documents with source locations and the targets and facts its language
+supports. Plugins consume these contracts rather than a serialized parser-specific syntax tree.
+Scruple maintains blessed language-specific parsers. OXC supports `javascript`, `jsx`, `typescript`,
+and `tsx` and can recognize custom test callees; another language needs its own parser.
+
+## Run only applicable rules
+
+Every plugin declares `languages`. A rule may replace that scope with its own. Scruple filters rules
+by the parsed document's language before collection and reports enabled rules that match none of the
+configured parser languages. The caller does not maintain an extension-to-rule table.
+
+Language applicability is an author-owned contract, not proof of semantic portability. Even rules
+that consume normalized comments need tests for the languages they claim to support. Downstream
+authors own their language/framework policy and its maintenance; Scruple maintains the interfaces,
+providers, authoring/testing skills, and eval tooling.
 
 ## Collect bounded candidates
 

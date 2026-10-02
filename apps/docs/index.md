@@ -1,17 +1,17 @@
 ---
 layout: home
 title: Code checks for problems linters miss
-description: Catch valid code that breaks your team's standards with named, tested checks that run on every change.
+description: A language-agnostic engine for semantic code checks, with blessed language-specific parsers, typed decision providers, and rules your team owns.
 ---
 
 <section class="landing-splash" aria-labelledby="landing-title">
   <ScrupleMark class="landing-mark" extended />
   <div class="landing-copy">
-      <p class="landing-kicker"><span></span>Code checks with judgment</p>
+      <p class="landing-kicker"><span></span>Language-agnostic code checks</p>
       <h1 id="landing-title">Make good taste<br><em>enforceable.</em></h1>
       <p>
-        Scruple catches problems linters miss. Use its built-in rules or write your own to turn your
-        team's engineering judgment into checks that run on every change.
+        Scruple turns engineering judgment into testable code checks. Combine blessed
+        language-specific parsers, typed decision providers, and rules your team owns.
       </p>
       <div class="landing-actions">
         <a class="landing-primary" href="/guide/quickstart">
@@ -30,15 +30,15 @@ description: Catch valid code that breaks your team's standards with named, test
 <section class="landing-principles" aria-label="Scruple principles">
   <article>
     <span>01</span>
-    <div><h2>Find the right code</h2><p>Rules inspect bounded parser targets and can ask the provider to resolve ambiguous candidates.</p></div>
+    <div><h2>Parse each language</h2><p>Language-specific parsers own file patterns and expose bounded source targets through a shared interface.</p></div>
   </article>
   <article>
     <span>02</span>
-    <div><h2>Apply a written standard</h2><p>Each rule asks one clear question with defined answers.</p></div>
+    <div><h2>Own your standards</h2><p>Downstream rules declare language applicability, select evidence, and ask narrow questions with defined answers.</p></div>
   </article>
   <article>
     <span>03</span>
-    <div><h2>Return a normal warning</h2><p>Rules control the message, severity, and source location.</p></div>
+    <div><h2>Test the judgment</h2><p>Authoring skills and eval tooling help you test rule-owned diagnostics against representative code.</p></div>
   </article>
 </section>
 
@@ -62,7 +62,7 @@ description: Catch valid code that breaks your team's standards with named, test
     </article>
     <article class="landing-fit-scruple">
       <h3>Scruple</h3>
-      <p>Catch valid code that breaks a written standard.</p>
+      <p>Your rules catch valid code that breaks a written standard.</p>
       <div class="landing-fit-demo" aria-label="Scruple catches a test with no effective verification">
         <span class="landing-fit-file">users.test.ts</span>
         <pre><code><span class="landing-fit-function">test</span>("creates a user", <span class="landing-fit-keyword">async</span> () =&gt; {
@@ -103,11 +103,15 @@ description: Catch valid code that breaks your team's standards with named, test
 
 <section class="landing-taste" aria-labelledby="landing-taste-title">
   <div class="landing-taste-copy">
-    <p class="landing-kicker"><span></span>Custom rules</p>
+    <p class="landing-kicker"><span></span>Your languages. Your rules.</p>
     <h2 id="landing-taste-title">Put your team's taste<br>in the repository.</h2>
     <p>
-      Every team has standards that live in review comments. Scruple turns those repeated comments
-      into named, tested rules that run the same way on every change.
+      Scruple maintains the core interfaces, blessed parsers, providers, authoring/testing skills,
+      and eval tooling. Downstream authors maintain language and framework rules—not Scruple.
+    </p>
+    <p>
+      First-party rule packs are being retired into unsupported examples and test implementations.
+      A shared engine does not make a rule correct for every language: declare its scope and test it.
     </p>
     <a href="/guide/writing-a-plugin">
       Write a rule
@@ -128,7 +132,7 @@ description: Catch valid code that breaks your team's standards with named, test
 </section>
 
 <section class="landing-closing" aria-labelledby="landing-closing-title">
-  <p class="landing-kicker"><span></span>Start with built-in rules</p>
+  <p class="landing-kicker"><span></span>Start with your own standard</p>
   <h2 id="landing-closing-title">Spend review time on decisions<br>that are still worth discussing.</h2>
   <div class="landing-actions">
     <a class="landing-primary" href="/guide/quickstart">
@@ -137,6 +141,6 @@ description: Catch valid code that breaks your team's standards with named, test
         <path d="M1 10h29M22 2l8 8-8 8" />
       </svg>
     </a>
-    <a class="landing-secondary" href="/plugins/">Browse the rules</a>
+    <a class="landing-secondary" href="/guide/writing-a-plugin">Write a rule</a>
   </div>
 </section>
