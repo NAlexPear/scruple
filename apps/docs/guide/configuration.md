@@ -97,6 +97,11 @@ export default defineConfig({
 });
 ```
 
+Parsers advertise the document language IDs they produce. Plugins declare the languages their rules
+support, and a rule can override its plugin's scope. Scruple skips rules for non-matching documents
+and reports an enabled rule that matches none of the configured parser languages. Projects do not
+repeat language scopes in configuration.
+
 Use `include` to override those parser patterns when the CLI receives no positional patterns. `ignore`
 extends Scruple's built-in exclusions for dependencies, build output, coverage, and Git metadata.
 

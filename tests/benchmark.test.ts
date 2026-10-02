@@ -119,6 +119,7 @@ await test("benchmark workload is stable, unique, and covers every plugin", asyn
 
 const makeBenchmarkPlugin = (): ScruplePlugin => {
   return definePlugin({
+    languages: "*",
     rules: {
       "bad-rule": () => ({
         description: "Benchmark fixture rule",
@@ -151,6 +152,7 @@ const makeBenchmarkPlugin = (): ScruplePlugin => {
 
 const makeChoiceBenchmarkPlugin = (): ScruplePlugin => {
   return definePlugin({
+    languages: "*",
     rules: {
       "choice-rule": () => ({
         description: "Benchmark choice outcomes",

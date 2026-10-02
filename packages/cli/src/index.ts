@@ -238,7 +238,10 @@ const isScrupleConfig = (value: unknown): value is ScrupleConfig => {
         typeof cache["set"] === "function" &&
         (cache["close"] === undefined || typeof cache["close"] === "function"))) &&
     isRecord(plugins) &&
-    Object.values(plugins).every((plugin) => isRecord(plugin) && isRecord(plugin["rules"])) &&
+    Object.values(plugins).every(
+      (plugin) =>
+        isRecord(plugin) && isLanguageScope(plugin["languages"]) && isRecord(plugin["rules"]),
+    ) &&
     isRecord(value["rules"])
   );
 };
@@ -251,6 +254,11 @@ const isSourceParser = (value: unknown): value is SourceParser => {
   return (
     isRecord(value) &&
     typeof value["id"] === "string" &&
+    Array.isArray(value["languages"]) &&
+    value["languages"].length > 0 &&
+    value["languages"].every(
+      (language: unknown) => typeof language === "string" && language.length > 0,
+    ) &&
     Array.isArray(value["filePatterns"]) &&
     value["filePatterns"].length > 0 &&
     value["filePatterns"].every(
@@ -258,6 +266,14 @@ const isSourceParser = (value: unknown): value is SourceParser => {
     ) &&
     typeof value["parse"] === "function" &&
     typeof value["supports"] === "function"
+  );
+};
+
+const isLanguageScope = (value: unknown): boolean => {
+  return (
+    value === "*" ||
+    (Array.isArray(value) &&
+      value.every((language: unknown) => typeof language === "string" && language.length > 0))
   );
 };
 

@@ -238,6 +238,7 @@ export interface ParsedDocument {
 
 export interface SourceParser {
   readonly id: string;
+  readonly languages: readonly string[];
   readonly filePatterns: readonly string[];
   supports(filename: string): boolean;
   parse(filename: string, source: string): ParsedDocument;
@@ -362,8 +363,11 @@ export interface Diagnostic {
 
 export type CollectionResult = RuleCandidate[] | Promise<RuleCandidate[]>;
 
+export type LanguageScope = "*" | readonly string[];
+
 export interface SemanticRule<Result extends CollectionResult = RuleCandidate[]> {
   readonly description: string;
+  readonly languages?: LanguageScope;
   collect(document: ParsedDocument, context?: CollectionContext): Result;
   diagnose(
     answer: DecisionAnswer,
@@ -433,6 +437,7 @@ const validateProbability = (name: string, value: number): void => {
 };
 
 export interface ScruplePlugin<Rules extends RuleFactories = RuleFactories> {
+  readonly languages: LanguageScope;
   readonly rules: Rules;
 }
 
@@ -537,6 +542,7 @@ export interface RunResult {
 interface ActiveRule {
   id: string;
   severity: DiagnosticSeverity;
+  languages: LanguageScope;
   rule: AnySemanticRule;
 }
 
@@ -558,8 +564,8 @@ export const runScruple = async (
 ): Promise<RunResult> => {
   const errors: OperationalError[] = [];
   const allPending: PendingCandidate[] = [];
-  const activeRules = resolveRules(config, errors);
   const parsers = resolveParsers(config.parser, errors);
+  const activeRules = resolveRules(config, parsers, errors);
   let parsedFiles = 0;
   let requests = 0;
   let cacheHits = 0;
@@ -600,11 +606,18 @@ export const runScruple = async (
     let document: ParsedDocument;
     try {
       document = parser.parse(file.filename, file.source);
-      parsedFiles += 1;
     } catch (cause) {
       errors.push({ filename: file.filename, message: errorMessage(cause), cause });
       continue;
     }
+    if (!parser.languages.includes(document.language)) {
+      errors.push({
+        filename: file.filename,
+        message: `Parser ${parser.id} returned unadvertised language ${document.language}`,
+      });
+      continue;
+    }
+    parsedFiles += 1;
 
     for (const issue of document.issues) {
       if (issue.severity === "error") {
@@ -616,31 +629,33 @@ export const runScruple = async (
     // Collect files sequentially to bound parsed documents and possible candidates held in memory.
     // eslint-disable-next-line no-await-in-loop
     const collections = await Promise.all(
-      activeRules.map(async (activeRule) => {
-        const rule = activeRule.rule;
-        try {
-          const collectionProvider: CollectionProvider = {
-            id: provider.id,
-            evaluate(target, request, collectionSignal) {
-              if (isSuppressed(activeRule.id, target)) {
-                return Promise.resolve(null);
-              }
-              return provider.evaluate(request, collectionSignal);
-            },
-          };
-          const context: CollectionContext = {
-            provider: collectionProvider,
-            ...(signal === undefined ? {} : { signal }),
-          };
-          const collected = await rule.collect(document, context);
-          const candidates = collected.filter(
-            (candidate) => !isSuppressed(activeRule.id, candidate.target),
-          );
-          return { activeRule, candidates };
-        } catch (cause) {
-          return { activeRule, cause };
-        }
-      }),
+      activeRules
+        .filter((activeRule) => matchesLanguage(activeRule.languages, document.language))
+        .map(async (activeRule) => {
+          const rule = activeRule.rule;
+          try {
+            const collectionProvider: CollectionProvider = {
+              id: provider.id,
+              evaluate(target, request, collectionSignal) {
+                if (isSuppressed(activeRule.id, target)) {
+                  return Promise.resolve(null);
+                }
+                return provider.evaluate(request, collectionSignal);
+              },
+            };
+            const context: CollectionContext = {
+              provider: collectionProvider,
+              ...(signal === undefined ? {} : { signal }),
+            };
+            const collected = await rule.collect(document, context);
+            const candidates = collected.filter(
+              (candidate) => !isSuppressed(activeRule.id, candidate.target),
+            );
+            return { activeRule, candidates };
+          } catch (cause) {
+            return { activeRule, cause };
+          }
+        }),
     );
     for (const collection of collections) {
       if ("cause" in collection) {
@@ -760,7 +775,11 @@ const isParserArray = (configured: ParserConfiguration): configured is readonly 
   return Array.isArray(configured);
 };
 
-const resolveRules = (config: ScrupleConfig, errors: OperationalError[]): ActiveRule[] => {
+const resolveRules = (
+  config: ScrupleConfig,
+  parsers: SourceParser[],
+  errors: OperationalError[],
+): ActiveRule[] => {
   const activeRules: ActiveRule[] = [];
 
   for (const [namespace, plugin] of Object.entries(config.plugins)) {
@@ -798,12 +817,25 @@ const resolveRules = (config: ScrupleConfig, errors: OperationalError[]): Active
     }
 
     try {
+      // The public config type checks options against this factory before runtime erases the type.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      const rule = factory(parsed.options as never);
+      const languages = rule.languages ?? plugin.languages;
+      if (
+        !parsers.some((parser) =>
+          parser.languages.some((language) => matchesLanguage(languages, language)),
+        )
+      ) {
+        errors.push({
+          message: `Rule ${ruleId} does not support any language advertised by the configured parsers`,
+        });
+        continue;
+      }
       activeRules.push({
         id: ruleId,
         severity: parsed.severity === "warn" ? "warning" : "error",
-        // The public config type checks options against this factory before runtime erases the type.
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        rule: factory(parsed.options as never),
+        languages,
+        rule,
       });
     } catch (cause) {
       errors.push({
@@ -814,6 +846,10 @@ const resolveRules = (config: ScrupleConfig, errors: OperationalError[]): Active
   }
 
   return activeRules;
+};
+
+const matchesLanguage = (scope: LanguageScope, language: string): boolean => {
+  return scope === "*" || scope.includes(language);
 };
 
 const parseRuleConfiguration = (

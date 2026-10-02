@@ -47,6 +47,7 @@ const maxFunctionCharacters = 12_000;
 
 export const resources = (): ResourcesPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "no-leaked-resources": noLeakedResources,
       "require-bounded-retries": requireBoundedRetries,

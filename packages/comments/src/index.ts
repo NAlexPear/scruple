@@ -36,6 +36,7 @@ export type CommentsPlugin = ScruplePlugin<{
 
 export const comments = (): CommentsPlugin => {
   return definePlugin({
+    languages: "*",
     rules: {
       "no-useless-comments": noUselessComments,
       "no-misleading-comments": noMisleadingComments,

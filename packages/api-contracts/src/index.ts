@@ -36,6 +36,7 @@ const contextCharacters = 600;
 
 export const apiContracts = (): ApiContractsPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "no-misleading-function-names": noMisleadingFunctionNames,
       "no-ambiguous-failure-contracts": noAmbiguousFailureContracts,

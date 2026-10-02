@@ -32,6 +32,7 @@ const maximumImports = 40;
 
 export const errors = (): ErrorsPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "no-swallowed-errors": noSwallowedErrors,
       "no-lossy-error-wrapping": noLossyErrorWrapping,

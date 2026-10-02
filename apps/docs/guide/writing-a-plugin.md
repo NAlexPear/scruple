@@ -270,6 +270,7 @@ Finish `src/index.ts`:
 ```ts [src/index.ts]
 export const todoPolicy = () =>
   definePlugin({
+    languages: "*",
     rules: {
       "require-specific-todo": requireSpecificTodo,
     },
@@ -278,6 +279,9 @@ export const todoPolicy = () =>
 
 ::: info Where the full rule name comes from
 The plugin supplies `require-specific-todo`. The project adds `todos/` when it registers the plugin.
+Its `"*"` scope is explicit because this rule uses normalized comments and works for every document
+language. Use an array such as `["javascript", "typescript"]` when all rules in a plugin are
+language-specific. An individual rule can return its own `languages` value to override that default.
 :::
 
 ## 10. Enable the rule

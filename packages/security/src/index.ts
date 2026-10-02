@@ -63,6 +63,7 @@ const evidenceBudgets = {
 
 export const security = (): SecurityPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "no-user-controlled-authorization": noUserControlledAuthorization,
       "no-sensitive-data-exposure": noSensitiveDataExposure,

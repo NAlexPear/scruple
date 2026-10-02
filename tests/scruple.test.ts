@@ -72,6 +72,7 @@ const fixtureProvider = (): DecisionProvider => {
 
 const fixtureParser = (id: string, extension: string): SourceParser => ({
   id,
+  languages: [id],
   filePatterns: [`**/*${extension}`],
   supports: (filename) => filename.endsWith(extension),
   parse(filename, source): ParsedDocument {
@@ -393,6 +394,103 @@ await test("engine delegates each supported file to exactly one configured parse
   assert.equal(result.stats.files, 2);
 });
 
+await test("engine applies plugin and rule language scopes to each parsed document", async () => {
+  const collections: string[] = [];
+  const trackingRule = (name: string): SemanticRule => ({
+    description: name,
+    collect(document) {
+      collections.push(`${name}:${document.language}`);
+      return [];
+    },
+    diagnose: () => null,
+  });
+  const result = await runScruple(
+    {
+      parser: [fixtureParser("alpha", ".alpha"), fixtureParser("beta", ".beta")],
+      provider: fixtureProvider(),
+      plugins: {
+        scoped: definePlugin({
+          languages: ["alpha"],
+          rules: {
+            inherited: () => trackingRule("inherited"),
+            overridden: () => ({ ...trackingRule("overridden"), languages: ["beta"] }),
+            portable: () => ({ ...trackingRule("portable"), languages: "*" }),
+          },
+        }),
+      },
+      rules: {
+        "scoped/inherited": "warn",
+        "scoped/overridden": "warn",
+        "scoped/portable": "warn",
+      },
+    },
+    [
+      { filename: "one.alpha", source: "alpha" },
+      { filename: "two.beta", source: "beta" },
+    ],
+  );
+
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(collections, [
+    "inherited:alpha",
+    "portable:alpha",
+    "overridden:beta",
+    "portable:beta",
+  ]);
+});
+
+await test("engine reports enabled rules with no configured parser language overlap", async () => {
+  let collections = 0;
+  const result = await runScruple(
+    {
+      parser: fixtureParser("alpha", ".alpha"),
+      provider: fixtureProvider(),
+      plugins: {
+        scoped: definePlugin({
+          languages: ["beta"],
+          rules: {
+            check: () => ({
+              description: "check",
+              collect() {
+                collections += 1;
+                return [];
+              },
+              diagnose: () => null,
+            }),
+          },
+        }),
+      },
+      rules: { "scoped/check": "warn" },
+    },
+    [{ filename: "one.alpha", source: "alpha" }],
+  );
+
+  assert.deepEqual(
+    result.errors.map(({ message }) => message),
+    ["Rule scoped/check does not support any language advertised by the configured parsers"],
+  );
+  assert.equal(collections, 0);
+});
+
+await test("engine rejects parser results with unadvertised languages", async () => {
+  const parser = fixtureParser("alpha", ".alpha");
+  const result = await runScruple(
+    {
+      parser: { ...parser, languages: ["beta"] },
+      provider: fixtureProvider(),
+      plugins: {},
+      rules: {},
+    },
+    [{ filename: "one.alpha", source: "alpha" }],
+  );
+
+  assert.deepEqual(
+    result.errors.map(({ filename, message }) => ({ filename, message })),
+    [{ filename: "one.alpha", message: "Parser alpha returned unadvertised language alpha" }],
+  );
+  assert.equal(result.stats.files, 0);
+});
+
 await test("engine reports ambiguous and duplicate parser configurations", async () => {
   const ambiguous = await runScruple(
     {
@@ -522,7 +620,7 @@ await test("engine optionally preserves accepted and abstained provider decision
   const config = defineConfig({
     parser: oxcParser(),
     provider,
-    plugins: { audit: definePlugin({ rules: { evidence: () => rule } }) },
+    plugins: { audit: definePlugin({ languages: "*", rules: { evidence: () => rule } }) },
     rules: { "audit/evidence": "warn" },
   });
   const files = [{ filename: "audit.ts", source: "export function audit() { return true; }" }];
@@ -844,7 +942,9 @@ await test("decision cache stores only successful provider responses", async () 
   const config = {
     parser: oxcParser(),
     provider,
-    plugins: { fixture: definePlugin({ rules: { check: () => makeRule("check") } }) },
+    plugins: {
+      fixture: definePlugin({ languages: "*", rules: { check: () => makeRule("check") } }),
+    },
     rules: { "fixture/check": "warn" as const },
   };
   const files = [{ filename: "fixture.ts", source: "function fixture() { return true; }" }];
@@ -1055,6 +1155,7 @@ await test("engine batches independent questions sharing identical evidence", as
       provider,
       plugins: {
         fixture: definePlugin({
+          languages: "*",
           rules: {
             one: () => makeRule("one"),
             two: () => makeRule("two"),
@@ -1079,6 +1180,7 @@ await test("engine suppresses rule-specific candidates before provider evaluatio
       provider: fixtureProvider(),
       plugins: {
         fixture: definePlugin({
+          languages: "*",
           rules: {
             one: () => reportingRule("one"),
             two: () => reportingRule("two"),
@@ -1131,6 +1233,7 @@ await test("engine supports all-rule suppression and selective re-enabling", asy
       provider: fixtureProvider(),
       plugins: {
         fixture: definePlugin({
+          languages: "*",
           rules: {
             one: () => reportingRule("one"),
             two: () => reportingRule("two"),
@@ -1250,6 +1353,7 @@ await test("engine honors the provider concurrency limit", async () => {
       provider,
       plugins: {
         fixture: definePlugin({
+          languages: "*",
           rules: {
             many: () => ({
               description: "many",
@@ -1283,7 +1387,7 @@ await test("engine rejects rules from missing plugins and unknown rule names", a
       parser: oxcParser(),
       provider: fixtureProvider(),
       plugins: {
-        fixture: definePlugin({ rules: { known: () => makeRule("known") } }),
+        fixture: definePlugin({ languages: "*", rules: { known: () => makeRule("known") } }),
       },
       rules: {
         "missing/rule": "warn",

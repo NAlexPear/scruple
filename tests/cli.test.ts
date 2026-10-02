@@ -66,6 +66,7 @@ await test("CLI discovers files from every configured parser pattern", async () 
       join(directory, "scruple.config.mjs"),
       `const parser = (id, extension) => ({
   id,
+  languages: [id],
   filePatterns: [\`**/*\${extension}\`],
   supports: (filename) => filename.endsWith(extension),
   parse: (filename, source) => ({
@@ -146,6 +147,7 @@ const provider = {
 };
 
 const plugin = {
+  languages: "*",
   rules: {
     check: () => ({
       description: "Exercise the CLI cache.",
@@ -235,6 +237,7 @@ const provider = {
 };
 
 const plugin = {
+  languages: "*",
   rules: {
     check: () => ({
       description: "Exercise a configured cache.",

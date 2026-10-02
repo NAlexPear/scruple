@@ -23,15 +23,22 @@ type RuleConfiguration = RuleSeverity | readonly [RuleSeverity, unknown];
 
 Plugin namespaces come from the keys in `plugins`. A rule ID must have exactly one slash, reference a registered plugin, and name a rule exported by that plugin.
 
-Unknown plugins, unknown rules, malformed IDs, invalid severities, and invalid rule options are configuration errors.
+Unknown plugins, unknown rules, malformed IDs, invalid severities, invalid rule options, and enabled
+rules that support none of the configured parser languages are configuration errors.
+
+Every plugin declares a required `languages` scope: either `"*"` for a portable plugin or an array of
+exact language IDs. An instantiated rule may declare its own `languages` scope to override the plugin
+scope. Scruple uses the effective scope to run each rule only on matching parsed documents. This
+metadata belongs to parser and plugin authors; caller configuration remains unchanged.
 
 ## Parser contract
 
-A `SourceParser` supplies an `id`, default `filePatterns`, a `supports(filename)` predicate, and
-`parse(filename, source)`. Parsed documents contain normalized targets and source locations rather
-than serialized syntax trees. Configure an array of parsers to analyze multiple languages. Each file
-must match at most one parser; overlapping parser support is reported as an operational error. Parser
-IDs must be unique.
+A `SourceParser` supplies an `id`, the concrete `languages` it may return, default `filePatterns`, a
+`supports(filename)` predicate, and `parse(filename, source)`. Parsed documents contain normalized
+targets and source locations rather than serialized syntax trees. A parsed document's `language`
+must be one advertised by its parser. Configure an array of parsers to analyze multiple languages.
+Each file must match at most one parser; overlapping parser support is reported as an operational
+error. Parser IDs must be unique.
 
 When neither positional patterns nor `include` are supplied, the CLI combines and deduplicates the
 configured parsers' `filePatterns`. `supports` remains authoritative when the engine receives files

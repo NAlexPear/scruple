@@ -38,6 +38,7 @@ const cancellablePlatformCallees = new Set(["fetch", "globalThis.fetch", "window
 
 export const asyncRules = (): AsyncPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "no-unbounded-concurrency": noUnboundedConcurrency,
       "no-serial-independent-work": noSerialIndependentWork,

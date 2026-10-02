@@ -92,6 +92,7 @@ const evidenceBudgets = {
 
 export const observability = (): ObservabilityPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "no-sensitive-logs": noSensitiveLogs,
       "no-unactionable-errors": noUnactionableErrors,

@@ -73,6 +73,7 @@ interface BenchmarkCycle {
 }
 
 const benchmarkPlugin = definePlugin({
+  languages: "*",
   rules: {
     check: () => ({
       description: "Exercise decision-cache reads and writes.",

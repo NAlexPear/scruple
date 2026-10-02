@@ -243,6 +243,7 @@ await test("evaluation fixtures require candidate, exact-choice, and abstention 
 
 const makeTestPlugin = (): ScruplePlugin => {
   return definePlugin({
+    languages: "*",
     rules: {
       "bad-rule": () => ({
         description: "Fixture rule",
@@ -298,6 +299,7 @@ const makeScoringProvider = (): DecisionProvider => {
 
 const makeChoicePlugin = (): ScruplePlugin => {
   return definePlugin({
+    languages: "*",
     rules: {
       "choice-rule": () => ({
         description: "Choice fixture rule",
@@ -563,6 +565,7 @@ await test("corpus validation rejects duplicate candidates", async () => {
   assert.ok(choiceFactory);
   const baseRule = choiceFactory();
   const duplicatePlugin = definePlugin({
+    languages: "*",
     rules: {
       duplicate: () => ({
         ...baseRule,
@@ -608,6 +611,7 @@ await test("corpus validation rejects uncovered registered rules", async () => {
   const choiceFactory = makeChoicePlugin().rules["choice-rule"];
   assert.ok(choiceFactory);
   const uncoveredPlugin = definePlugin({
+    languages: "*",
     rules: {
       "choice-rule": choiceFactory,
       uncovered: choiceFactory,

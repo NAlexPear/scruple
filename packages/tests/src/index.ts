@@ -46,6 +46,7 @@ const defaultDelayCallPatterns = [/(?:^|\.)(?:delay|pause|setTimeout|sleep|waitF
 
 export const tests = (): TestsPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "no-vacuous-tests": noVacuousTests,
       "require-specific-error-assertions": requireSpecificErrorAssertions,

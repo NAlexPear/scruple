@@ -54,6 +54,7 @@ const maxFunctionCharacters = 12_000;
 
 export const relationalDatabases = (): RelationalDatabasesPlugin => {
   return definePlugin({
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     rules: {
       "prefer-database-join": preferDatabaseJoin,
       "no-query-in-loop": noQueryInLoop,

@@ -82,6 +82,7 @@ export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
 
   return {
     id: "oxc",
+    languages: ["javascript", "jsx", "typescript", "tsx"],
     filePatterns: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
 
     supports(filename) {
