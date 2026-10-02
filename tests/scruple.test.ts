@@ -7,9 +7,7 @@ import type {
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
-  ParsedDocument,
   SemanticRule,
-  SourceParser,
 } from "@scruple/core";
 import { defineConfig, definePlugin, runScruple } from "@scruple/core";
 import { observability } from "@scruple/observability";
@@ -69,24 +67,6 @@ const fixtureProvider = (): DecisionProvider => {
     },
   };
 };
-
-const fixtureParser = (id: string, extension: string): SourceParser => ({
-  id,
-  filePatterns: [`**/*${extension}`],
-  supports: (filename) => filename.endsWith(extension),
-  parse(filename, source): ParsedDocument {
-    return {
-      filename,
-      language: id,
-      source,
-      imports: [],
-      comments: [],
-      functions: [],
-      errorHandlers: [],
-      issues: [],
-    };
-  },
-});
 
 const makeRule = (id: string): SemanticRule => {
   return {
@@ -372,75 +352,6 @@ async function joinedUsers() {
     inputTokens: 30,
     outputTokens: 0,
   });
-});
-
-await test("engine delegates each supported file to exactly one configured parser", async () => {
-  const result = await runScruple(
-    {
-      parser: [fixtureParser("alpha", ".alpha"), fixtureParser("beta", ".beta")],
-      provider: fixtureProvider(),
-      plugins: {},
-      rules: {},
-    },
-    [
-      { filename: "one.alpha", source: "alpha" },
-      { filename: "two.beta", source: "beta" },
-      { filename: "three.other", source: "other" },
-    ],
-  );
-
-  assert.deepEqual(result.errors, []);
-  assert.equal(result.stats.files, 2);
-});
-
-await test("engine reports ambiguous and duplicate parser configurations", async () => {
-  const ambiguous = await runScruple(
-    {
-      parser: [fixtureParser("first", ".shared"), fixtureParser("second", ".shared")],
-      provider: fixtureProvider(),
-      plugins: {},
-      rules: {},
-    },
-    [{ filename: "one.shared", source: "shared" }],
-  );
-  assert.deepEqual(
-    ambiguous.errors.map(({ filename, message }) => ({ filename, message })),
-    [
-      {
-        filename: "one.shared",
-        message: "Multiple parsers support one.shared: first, second",
-      },
-    ],
-  );
-  assert.equal(ambiguous.stats.files, 0);
-
-  const duplicate = await runScruple(
-    {
-      parser: [fixtureParser("same", ".one"), fixtureParser("same", ".two")],
-      provider: fixtureProvider(),
-      plugins: {},
-      rules: {},
-    },
-    [],
-  );
-  assert.deepEqual(
-    duplicate.errors.map(({ message }) => message),
-    ["Duplicate parser ID: same"],
-  );
-
-  const empty = await runScruple(
-    {
-      parser: [],
-      provider: fixtureProvider(),
-      plugins: {},
-      rules: {},
-    },
-    [],
-  );
-  assert.deepEqual(
-    empty.errors.map(({ message }) => message),
-    ["Config must define at least one parser"],
-  );
 });
 
 await test("engine caps rule diagnostic severity without promoting warning-tier findings", async () => {

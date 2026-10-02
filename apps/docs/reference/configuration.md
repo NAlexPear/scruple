@@ -6,7 +6,7 @@
 
 | Field      | Required | Description                                               |
 | ---------- | -------- | --------------------------------------------------------- |
-| `parser`   | Yes      | One `SourceParser`, or an array of parsers                |
+| `parser`   | Yes      | `SourceParser` used for every supported file              |
 | `provider` | Yes      | `DecisionProvider` used by semantic rules                 |
 | `cache`    | No       | A `DecisionCache` strategy, or `false` to disable caching |
 | `plugins`  | Yes      | Namespace to plugin map                                   |
@@ -27,15 +27,7 @@ Unknown plugins, unknown rules, malformed IDs, invalid severities, and invalid r
 
 ## Parser contract
 
-A `SourceParser` supplies an `id`, default `filePatterns`, a `supports(filename)` predicate, and
-`parse(filename, source)`. Parsed documents contain normalized targets and source locations rather
-than serialized syntax trees. Configure an array of parsers to analyze multiple languages. Each file
-must match at most one parser; overlapping parser support is reported as an operational error. Parser
-IDs must be unique.
-
-When neither positional patterns nor `include` are supplied, the CLI combines and deduplicates the
-configured parsers' `filePatterns`. `supports` remains authoritative when the engine receives files
-directly.
+A `SourceParser` supplies an `id`, a `supports(filename)` predicate, and `parse(filename, source)`. Parsed documents contain normalized targets and source locations rather than serialized syntax trees.
 
 ## Provider contract
 

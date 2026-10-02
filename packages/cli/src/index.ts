@@ -11,10 +11,8 @@ import {
   type DecisionCache,
   type DecisionRecord,
   type Diagnostic,
-  type ParserConfiguration,
   type ScrupleConfig,
   type SourceFile,
-  type SourceParser,
 } from "@scruple/core";
 import { createJiti } from "jiti";
 import { glob } from "tinyglobby";
@@ -23,6 +21,7 @@ import { createFileDecisionCache } from "#cache";
 
 export { createFileDecisionCache, type FileDecisionCacheOptions } from "#cache";
 
+const defaultPatterns = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"];
 const maxConcurrentFileReads = 32;
 const defaultCacheDirectory = "node_modules/.cache/scruple";
 const defaultIgnore = [
@@ -72,9 +71,7 @@ export const runCli = async (argv: readonly string[] = process.argv.slice(2)): P
   const cwd = process.cwd();
   const configPath = findConfig(cwd, values.config);
   const config = await loadConfig(configPath);
-  const configuredParsers = isParserArray(config.parser) ? config.parser : [config.parser];
-  const parserPatterns = [...new Set(configuredParsers.flatMap((parser) => parser.filePatterns))];
-  const patterns = positionals.length > 0 ? positionals : (config.include ?? parserPatterns);
+  const patterns = positionals.length > 0 ? positionals : (config.include ?? defaultPatterns);
   const filenames = await glob(patterns, {
     cwd,
     ignore: [...defaultIgnore, ...(config.ignore ?? [])],
@@ -225,10 +222,9 @@ const isScrupleConfig = (value: unknown): value is ScrupleConfig => {
   const cache = value["cache"];
   const plugins = value["plugins"];
   return (
-    ((Array.isArray(parser) &&
-      parser.length > 0 &&
-      parser.every((entry) => isSourceParser(entry))) ||
-      isSourceParser(parser)) &&
+    isRecord(parser) &&
+    typeof parser["parse"] === "function" &&
+    typeof parser["supports"] === "function" &&
     isRecord(provider) &&
     typeof provider["evaluate"] === "function" &&
     (cache === undefined ||
@@ -240,24 +236,6 @@ const isScrupleConfig = (value: unknown): value is ScrupleConfig => {
     isRecord(plugins) &&
     Object.values(plugins).every((plugin) => isRecord(plugin) && isRecord(plugin["rules"])) &&
     isRecord(value["rules"])
-  );
-};
-
-const isParserArray = (configured: ParserConfiguration): configured is readonly SourceParser[] => {
-  return Array.isArray(configured);
-};
-
-const isSourceParser = (value: unknown): value is SourceParser => {
-  return (
-    isRecord(value) &&
-    typeof value["id"] === "string" &&
-    Array.isArray(value["filePatterns"]) &&
-    value["filePatterns"].length > 0 &&
-    value["filePatterns"].every(
-      (pattern: unknown) => typeof pattern === "string" && pattern.length > 0,
-    ) &&
-    typeof value["parse"] === "function" &&
-    typeof value["supports"] === "function"
   );
 };
 

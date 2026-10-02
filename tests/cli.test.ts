@@ -57,65 +57,6 @@ await test("CLI rejects conflicting cache options", async () => {
   );
 });
 
-await test("CLI discovers files from every configured parser pattern", async () => {
-  const cacheRoot = join(process.cwd(), "node_modules/.cache");
-  await mkdir(cacheRoot, { recursive: true });
-  const directory = await mkdtemp(join(cacheRoot, "scruple-parser-patterns-"));
-  try {
-    await writeFile(
-      join(directory, "scruple.config.mjs"),
-      `const parser = (id, extension) => ({
-  id,
-  filePatterns: [\`**/*\${extension}\`],
-  supports: (filename) => filename.endsWith(extension),
-  parse: (filename, source) => ({
-    filename,
-    language: id,
-    source,
-    imports: [],
-    comments: [],
-    functions: [],
-    errorHandlers: [],
-    issues: [],
-  }),
-});
-
-export default {
-  parser: [parser("alpha", ".alpha"), parser("beta", ".beta")],
-  provider: { id: "unused", evaluate: async () => { throw new Error("unused"); } },
-  plugins: {},
-  rules: {},
-};
-`,
-      "utf8",
-    );
-    await Promise.all([
-      writeFile(join(directory, "one.alpha"), "alpha\n", "utf8"),
-      writeFile(join(directory, "two.beta"), "beta\n", "utf8"),
-      writeFile(join(directory, "ignored.ts"), "typescript\n", "utf8"),
-    ]);
-
-    const output = execFileSync(
-      process.execPath,
-      [join(process.cwd(), "packages/cli/dist/bin.js"), "--format", "json", "--no-cache"],
-      { cwd: directory, encoding: "utf8" },
-    );
-    const result: unknown = JSON.parse(output);
-    assert.ok(isRecord(result));
-    assert.deepEqual(result["errors"], []);
-    assert.deepEqual(result["stats"], {
-      files: 2,
-      candidates: 0,
-      requests: 0,
-      cacheHits: 0,
-      inputTokens: 0,
-      outputTokens: 0,
-    });
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
-
 await test("CLI persists its default cache across processes and honors cache switches", async () => {
   const cacheRoot = join(process.cwd(), "node_modules/.cache");
   await mkdir(cacheRoot, { recursive: true });

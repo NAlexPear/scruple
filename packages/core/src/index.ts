@@ -238,12 +238,9 @@ export interface ParsedDocument {
 
 export interface SourceParser {
   readonly id: string;
-  readonly filePatterns: readonly string[];
   supports(filename: string): boolean;
   parse(filename: string, source: string): ParsedDocument;
 }
-
-export type ParserConfiguration = SourceParser | readonly SourceParser[];
 
 export interface NoulQuestion {
   type: "noul";
@@ -439,7 +436,7 @@ export interface ScruplePlugin<Rules extends RuleFactories = RuleFactories> {
 export type PluginMap = Record<string, ScruplePlugin>;
 
 export interface ScrupleConfig {
-  parser: ParserConfiguration;
+  parser: SourceParser;
   provider: DecisionProvider;
   /** Uses the supplied strategy for all provider decisions, or disables caching when false. */
   cache?: DecisionCache | false;
@@ -559,7 +556,6 @@ export const runScruple = async (
   const errors: OperationalError[] = [];
   const allPending: PendingCandidate[] = [];
   const activeRules = resolveRules(config, errors);
-  const parsers = resolveParsers(config.parser, errors);
   let parsedFiles = 0;
   let requests = 0;
   let cacheHits = 0;
@@ -582,24 +578,13 @@ export const runScruple = async (
   );
 
   for (const file of files) {
-    const matchingParsers = parsers.filter((parser) => parser.supports(file.filename));
-    if (matchingParsers.length === 0) {
+    if (!config.parser.supports(file.filename)) {
       continue;
     }
-    if (matchingParsers.length > 1) {
-      errors.push({
-        filename: file.filename,
-        message: `Multiple parsers support ${file.filename}: ${matchingParsers
-          .map((parser) => parser.id)
-          .join(", ")}`,
-      });
-      continue;
-    }
-    const parser = matchingParsers[0]!;
 
     let document: ParsedDocument;
     try {
-      document = parser.parse(file.filename, file.source);
+      document = config.parser.parse(file.filename, file.source);
       parsedFiles += 1;
     } catch (cause) {
       errors.push({ filename: file.filename, message: errorMessage(cause), cause });
@@ -731,33 +716,6 @@ export const runScruple = async (
     result.decisions = decisions.toSorted(compareDecisions);
   }
   return result;
-};
-
-const resolveParsers = (
-  configured: ParserConfiguration,
-  errors: OperationalError[],
-): SourceParser[] => {
-  const parsers = isParserArray(configured) ? configured : [configured];
-  if (parsers.length === 0) {
-    errors.push({ message: "Config must define at least one parser" });
-    return [];
-  }
-
-  const resolved: SourceParser[] = [];
-  const ids = new Set<string>();
-  for (const parser of parsers) {
-    if (ids.has(parser.id)) {
-      errors.push({ message: `Duplicate parser ID: ${parser.id}` });
-      continue;
-    }
-    ids.add(parser.id);
-    resolved.push(parser);
-  }
-  return resolved;
-};
-
-const isParserArray = (configured: ParserConfiguration): configured is readonly SourceParser[] => {
-  return Array.isArray(configured);
 };
 
 const resolveRules = (config: ScrupleConfig, errors: OperationalError[]): ActiveRule[] => {
