@@ -1,5 +1,10 @@
 # Provider evaluation
 
+These recorded results use specialized rule fixtures, not a maintained first-party rule distribution.
+Scruple maintains eval tooling so downstream authors can measure their own language/framework rules.
+The results below do not establish rule or model correctness for other languages; rerun representative
+finding, safe, and abstention cases for each language and framework you support.
+
 We evaluated eight provider and model choices against Scruple's full suite of 187 fixtures. **Jev
 1.13 is the best default and the strongest overall choice:** it combines the highest strict
 agreement, diagnostic agreement, recall, and F1 score with low hosted cost. Kev 27B v1.0 is the

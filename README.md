@@ -16,19 +16,34 @@
 </p>
 
 <p align="center">
-  Scruple catches problems linters miss. Use its built-in rules or write your own to turn your team's engineering judgment into checks that run on every change.
+  A language-agnostic engine for semantic code checks. Combine language-specific parsers, typed decision providers, and rules your team owns to make engineering judgment testable.
 </p>
 
 <p align="center">
   <a href="https://scruple.dev/guide/quickstart">Get started</a> ·
   <a href="https://scruple.dev/">Read the docs</a> ·
-  <a href="https://scruple.dev/plugins/">Browse the rules</a> ·
+  <a href="https://scruple.dev/guide/writing-a-plugin">Write a rule</a> ·
   <a href="https://scruple.dev/guide/agent-skills">Install agent skills</a>
 </p>
 
 The documentation is also available as [an LLM index](https://scruple.dev/llms.txt),
 [one Markdown bundle](https://scruple.dev/llms-full.txt), and raw Markdown from the **Copy page**
 control on every documentation page.
+
+## What Scruple maintains
+
+Scruple maintains the core parser and rule interfaces, the execution engine and CLI, blessed
+language-specific parser packages, decision providers, rule-authoring and testing skills, and eval
+tooling. `@scruple/parser-oxc` is the blessed parser for JavaScript, JSX, TypeScript, and TSX.
+
+Downstream authors own language- and framework-specific rules: their evidence selection, policy,
+diagnostics, tests, and maintenance. Scruple is stopping publication of maintained first-party rule
+packs. Existing specialized rules are moving to unsupported examples and test implementations in a
+separate branch; they are not a supported rule distribution.
+
+**Language-agnostic orchestration does not make a rule language-independent.** Parsers advertise the
+languages and file patterns they support. Plugins and rules declare their language applicability,
+which authors must validate with representative tests and evals.
 
 ## Where Scruple fits
 
@@ -41,12 +56,12 @@ control on every documentation page.
 
 ## Use Scruple
 
-Scruple requires Node.js 22.18 or newer. This example uses the comments plugin with the Jev provider:
+Scruple requires Node.js 22.18 or newer. Install the engine, CLI, a parser for your source language,
+and a provider. This example uses OXC and Jev:
 
 ```sh
 pnpm add --save-dev \
   @scruple/cli \
-  @scruple/comments \
   @scruple/core \
   @scruple/parser-oxc \
   @scruple/provider-jev
@@ -55,7 +70,6 @@ pnpm add --save-dev \
 Create `scruple.config.ts`:
 
 ```ts
-import { comments } from "@scruple/comments";
 import { defineConfig } from "@scruple/core";
 import { oxcParser } from "@scruple/parser-oxc";
 import { jevProvider } from "@scruple/provider-jev";
@@ -68,20 +82,28 @@ if (apiKey === undefined) {
 export default defineConfig({
   parser: oxcParser(),
   provider: jevProvider({ apiKey }),
-  plugins: { comments: comments() },
-  rules: {
-    "comments/no-misleading-comments": "warn",
-  },
+  plugins: {},
+  rules: {},
 });
 ```
 
-The configuration chooses where to obtain the API key; this example reads it from the environment.
-Then check source files:
+This validates parsing and configuration but intentionally enables no semantic checks. Add your own
+plugin using the [rule-authoring tutorial](https://scruple.dev/guide/writing-a-plugin), or a downstream
+plugin you trust, then enable its rules. No rules run merely because a parser or plugin is installed.
+
+The configuration reads the API key from the environment. With no explicit patterns, the CLI uses
+the parser's `filePatterns`; positional patterns override that discovery for a run:
 
 ```sh
+pnpm exec scruple
 pnpm exec scruple "src/**/*.{ts,tsx}"
 pnpm exec scruple --format json
 ```
+
+`parser` accepts one `SourceParser` or a non-empty array of parsers. Each parser owns its language IDs,
+default file patterns, and `supports(filename)` predicate. Each file must match at most one parser.
+The engine runs rules only on documents matching their declared language scope. See
+[configuration](https://scruple.dev/guide/configuration#file-selection) for multi-language projects.
 
 The CLI caches successful decisions in `node_modules/.cache/scruple`, including collection
 classifications. Repeated checks skip matching provider requests. Configure a `DecisionCache` for
@@ -118,14 +140,15 @@ bare skills.
 ### Configure rules
 
 Plugins register rules without enabling them. Configure each rule separately with `"off"`, `"warn"`,
-or `"error"`; use a `[severity, options]` tuple for rule-specific options:
+or `"error"`; use a `[severity, options]` tuple for rule-specific options. For the `todoPolicy` plugin
+built in the tutorial (import it from your own package or module):
 
 ```ts
 plugins: {
-  comments: comments(),
+  todos: todoPolicy(),
 },
 rules: {
-  "comments/no-misleading-comments": [
+  "todos/require-specific-todo": [
     "error",
     { threshold: { warning: 0.9, error: 0.97 } },
   ],
@@ -147,7 +170,8 @@ both tiers.
 Use a full rule ID to suppress an exceptional target without disabling the rule for the project:
 
 ```ts
-// scruple-disable-next-line comments/no-misleading-comments -- Domain convention.
+// scruple-disable-next-line todos/require-specific-todo -- Tracked in the project backlog.
+// TODO: revisit this.
 const status = deriveStatus();
 ```
 
@@ -158,7 +182,10 @@ syntax.
 
 ## Plugins and rules
 
-Scruple has no core policy. Plugins provide independently publishable rule packs, and consumers choose which rules to enable. Browse the [plugin and rule registry](https://scruple.dev/plugins/) for every available plugin, rule, option, and default.
+Scruple has no core policy or maintained first-party rule packs. Downstream plugins provide
+independently publishable rules, and consumers choose which to trust and enable. A plugin declares
+`languages`, and an individual rule may override that scope. Shared source contracts do not establish
+correctness across languages or frameworks; the rule author owns that evidence.
 
 ### Put your team's taste in the repository
 
@@ -177,14 +204,15 @@ candidate then receives the rule's fixed decision question. The rule compares th
 thresholds and reports its own diagnostic or nothing. Provider answers, severity, and which findings appear may
 vary. Rules provide fixed diagnostic text and never ask a model to generate messages or fixes.
 
-OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
-calls, and facts rather than serialized syntax trees. Both parsers and decision providers are
-swappable through the `SourceParser` and `DecisionProvider` interfaces. Scruple includes provider
-adapters for Cloudflare Clef, local Decider, self-hosted Kev, and Jev.
+Language-specific parsers expose normalized source excerpts, locations, imports, calls, and facts
+rather than serialized syntax trees. The `SourceParser`, `SemanticRule`, and `DecisionProvider`
+interfaces separate parsing, rule policy, and model decisions. Scruple includes provider adapters for
+Cloudflare Clef, local Decider, self-hosted Kev, and Jev. Use the maintained authoring skills and eval
+tooling to test your own rules against the languages, frameworks, and providers you support.
 
 ```text
-source → parser → possible targets → rules → selected candidates → decisions → diagnostics
-           OXC                    ↘ provider classification ↗       Jev
+source → language-specific parser → applicable rules → decisions → diagnostics
+                                         ↘ provider classification ↗
 ```
 
 ## License

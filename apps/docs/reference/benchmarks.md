@@ -1,6 +1,12 @@
 # Benchmarks
 
-Scruple's comparison uses ten pinned code examples, one for every built-in plugin. Each tool gets the same ten examples twice, for 20 measured case evaluations. Repeating a case does not make it a new code pattern.
+Scruple's recorded comparison uses ten pinned code examples of specialized rules. These rules are
+becoming unsupported examples/test implementations, not maintained first-party rule packs. Scruple
+maintains eval tooling; downstream authors own the rules and representative fixtures for their
+languages and frameworks.
+
+Each tool gets the same ten examples twice, for 20 measured case evaluations. Repeating a case does
+not make it a new code pattern, and these results do not establish correctness in other languages.
 
 These are small, fixed tests. They do not measure general code quality. A case is **unsupported** when a tool has no rule for that kind of problem. Unsupported cases stay in the scanner input, but they are not counted as misses.
 

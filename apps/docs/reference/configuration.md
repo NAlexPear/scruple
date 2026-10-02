@@ -26,10 +26,15 @@ Plugin namespaces come from the keys in `plugins`. A rule ID must have exactly o
 Unknown plugins, unknown rules, malformed IDs, invalid severities, invalid rule options, and enabled
 rules that support none of the configured parser languages are configuration errors.
 
-Every plugin declares a required `languages` scope: either `"*"` for a portable plugin or an array of
-exact language IDs. An instantiated rule may declare its own `languages` scope to override the plugin
-scope. Scruple uses the effective scope to run each rule only on matching parsed documents. This
-metadata belongs to parser and plugin authors; caller configuration remains unchanged.
+Every plugin declares a required `languages` scope: an array of exact language IDs, or the `"*"`
+wildcard that opts into every document language. The wildcard is routing metadata, not a guarantee
+that a rule works across languages. Prefer explicit, tested scopes. An instantiated rule may declare
+its own `languages` scope to replace the plugin scope. Scruple runs each rule only on matching parsed
+documents. This metadata belongs to parser and plugin authors; callers do not repeat it in config.
+
+For example, `["javascript", "typescript"]` does not include OXC's separate `jsx` and `tsx` IDs.
+Downstream authors own applicability, evidence selection, diagnostics, and tests for their rules.
+Scruple maintains these interfaces, not first-party language or framework rule packs.
 
 ## Parser contract
 
@@ -38,11 +43,16 @@ A `SourceParser` supplies an `id`, the concrete `languages` it may return, defau
 targets and source locations rather than serialized syntax trees. A parsed document's `language`
 must be one advertised by its parser. Configure an array of parsers to analyze multiple languages.
 Each file must match at most one parser; overlapping parser support is reported as an operational
-error. Parser IDs must be unique.
+error. Parser IDs must be unique, and the array must not be empty. Files with no supporting parser
+are skipped.
 
 When neither positional patterns nor `include` are supplied, the CLI combines and deduplicates the
-configured parsers' `filePatterns`. `supports` remains authoritative when the engine receives files
-directly.
+configured parsers' `filePatterns`. Positional patterns override `include`. Discovery patterns do not
+change parser support: `supports` remains authoritative for all files passed to the engine.
+
+Scruple maintains blessed language-specific parsers. `@scruple/parser-oxc` supports JavaScript, JSX,
+TypeScript, and TSX. Other languages need their own parser implementations of this contract, not
+project-owned copies of extension lists or rule applicability tables.
 
 ## Provider contract
 

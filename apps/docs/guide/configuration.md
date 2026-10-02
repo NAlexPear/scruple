@@ -17,19 +17,26 @@ export default defineConfig({
 
 `defineConfig` preserves plugin-specific rule option types, so an editor can validate namespaced rule IDs and option objects.
 
+The parser is language-specific; Scruple maintains blessed parser packages such as
+`@scruple/parser-oxc` for JavaScript/TypeScript. Supply one parser or a non-empty array. Plugins come
+from your own code or downstream authors, not a maintained first-party rule pack. They declare their
+language applicability; callers register and enable rules rather than assigning languages to them.
+
 ## Rules
 
-A rule accepts `"off"`, `"warn"`, or `"error"`. Pass options in a tuple:
+A rule accepts `"off"`, `"warn"`, or `"error"`. For the `todoPolicy` plugin from
+[Write a plugin](./writing-a-plugin.md), register it and pass options in a tuple:
 
 ```ts
+plugins: { todos: todoPolicy() },
 rules: {
-  "comments/no-misleading-comments": "error",
-  "comments/prefer-concise-comments": ["warn", { minCharacters: 160 }],
-  "comments/require-actionable-todos": "off",
+  "todos/require-specific-todo": ["warn", { minConfidence: 0.8 }],
 },
 ```
 
-Warnings are reported but do not produce exit code 1. Error-severity findings do.
+Import `todoPolicy` from the module or package where you authored it. These are configuration
+fragments, not references to a published Scruple rule pack. Warnings are reported but do not produce
+exit code 1. Error-severity findings do. Registration alone enables no rules.
 
 ## Warning and error thresholds
 
@@ -37,7 +44,7 @@ Decision rules use separate probability thresholds for warnings and errors:
 
 ```ts
 rules: {
-  "tests/no-vacuous-tests": [
+  "todos/require-specific-todo": [
     "error",
     {
       threshold: {
@@ -61,38 +68,37 @@ finding at warning. `"error"` allows the thresholds to choose warning or error.
 Use a `scruple-disable` comment when a rule is generally useful but should skip one target. Put `scruple-disable-next-line` immediately above the reported line, or put `scruple-disable-line` on that line. Include the full `plugin/rule` ID.
 
 ```ts
-// scruple-disable-next-line resources/require-cleanup-on-failure -- Framework closes it.
-export async function loadRecord() {
-  const connection = await pool.connect();
-  return connection.findFirst();
-}
+// scruple-disable-next-line todos/require-specific-todo -- Tracked in the project backlog.
+// TODO: revisit this.
 
-smoke(); // scruple-disable-line tests/no-vacuous-tests -- Intentional.
+/* TODO: revisit this. */ // scruple-disable-line todos/require-specific-todo -- Tracked separately.
 ```
 
 Disable one or more rules for a region with `scruple-disable`, then restore them with `scruple-enable`:
 
 ```ts
-/* scruple-disable tests/no-vacuous-tests -- Smoke-test fixtures. */
+/* scruple-disable todos/require-specific-todo -- Documentation fixtures. */
+// TODO: revisit this.
 export const fixture = buildFixture();
-/* scruple-enable tests/no-vacuous-tests */
+/* scruple-enable todos/require-specific-todo */
 ```
 
 Separate multiple rule IDs with commas. Omit rule IDs to affect every active rule. A rule-specific `scruple-enable` can re-enable that rule inside an all-rule disabled region. Text after `--` is a justification, not part of the rule list.
 
 Scruple checks suppression before collection classification and again before final evaluation. A
 suppressed target therefore consumes no provider tokens and produces no `--explain` decision. The
-[`comments/require-justified-suppressions`](../plugins/comments.md#commentsrequire-justified-suppressions)
-rule can review suppression scope and rationale.
+examples above use JavaScript comment syntax. Other languages depend on their parser exposing
+comments with accurate locations. A downstream rule can review suppression scope and rationale.
 
 ## File selection
 
 By default, the CLI discovers files using the `filePatterns` advertised by every configured parser.
-Configure `parser` with an array to analyze multiple languages in one run:
+Configure `parser` with an array to analyze multiple languages in one run. This is a conceptual
+fragment: `anotherLanguageParser` stands for a parser you supply, not an available package name.
 
 ```ts
 export default defineConfig({
-  parser: [javascriptParser(), anotherLanguageParser()],
+  parser: [oxcParser(), anotherLanguageParser()],
   // provider, plugins, rules
 });
 ```
@@ -100,7 +106,13 @@ export default defineConfig({
 Parsers advertise the document language IDs they produce. Plugins declare the languages their rules
 support, and a rule can override its plugin's scope. Scruple skips rules for non-matching documents
 and reports an enabled rule that matches none of the configured parser languages. Projects do not
-repeat language scopes in configuration.
+repeat language scopes in configuration. OXC advertises the separate IDs `javascript`, `jsx`,
+`typescript`, and `tsx`; supporting `typescript` alone does not include `tsx`.
+
+Each parser's `supports(filename)` decides which files it can parse. Parser IDs must be unique, and
+overlapping support for a file is an operational error, not a first-parser-wins fallback. Files that
+no parser supports are skipped. Language scopes route rules; they do not prove that a rule's
+assumptions are correct for a language or framework.
 
 Use `include` to override those parser patterns when the CLI receives no positional patterns. `ignore`
 extends Scruple's built-in exclusions for dependencies, build output, coverage, and Git metadata.
