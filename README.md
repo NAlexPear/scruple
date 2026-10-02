@@ -125,8 +125,9 @@ Use this only when the runtime or bundler supports erasable TypeScript syntax an
 
 ### Use Scruple with coding agents
 
-This repository includes agent skills for configuring Scruple, authoring rules and plugins, and
-building decision-provider adapters. Use the cross-agent installer to choose skills and a supported
+This repository includes agent skills for configuring Scruple, recommending evidence-backed rule
+candidates with `recommending-scruple-rules`, authoring rules and plugins, and building
+decision-provider adapters. Use the cross-agent installer to choose skills and a supported
 coding-agent harness interactively:
 
 ```sh

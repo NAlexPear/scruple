@@ -3,26 +3,107 @@
   "evals": [
     {
       "id": "bounded-choice-rule",
-      "prompt": "Create a Scruple plugin with a rule that reports TODO comments only when they fail to identify concrete follow-up work. Include configurable probability and confidence thresholds and tests.",
+      "prompt": "Create a consumer-owned Scruple plugin that reports explicit TODO comments only when they fail to identify concrete follow-up work. Our adapters return normalized CommentTarget.value for TypeScript and Python. Support both, include configurable probability/confidence thresholds, focused tests, and runScruple integration. No maintained Scruple rule pack is available.",
       "expected_output": "Defines a typed RuleFactory and definePlugin export; selects normalized comment targets in source order; sends bounded evidence; asks one choice question with specific, vague, and insufficient_context criteria; validates threshold as a { warning, error } object with warning no greater than error and rejects numeric thresholds; diagnose reports only calibrated vague answers with a fixed message and required warning or error severity; tests selection, safe and insufficient answers, exact and below-warning values, exact and below-error severity boundaries, integration, and bounded request size.",
+      "assertions": [
+        "Uses normalized comment values and preserves locations for both languages",
+        "Declares required plugin languages and justifies any wildcard from prose-only semantics",
+        "Tests code-string near misses, severity/confidence boundaries, and safe/unknown answers",
+        "Keeps ownership and tests downstream; no Scruple package registry change required"
+      ],
+      "reject_if": [
+        "Strips JavaScript delimiters from all languages or discovers comments with source regex",
+        "Omits plugin languages or treats compilation as semantic evaluation"
+      ],
       "files": []
     },
     {
       "id": "reject-raw-source-guessing",
       "prompt": "Write a rule that reports functions whose callers fail to hold a distributed lock. ParsedDocument only exposes each function body and does not expose callers or lock state. Search document.source for the function name to infer callers.",
       "expected_output": "Rejects raw-source name searching as unsound, explains that the required caller and runtime lock evidence is absent, and either scopes the policy to parser-provided evidence, proposes a normalized parser extension, or abstains. It does not implement the requested heuristic as though it were reliable.",
+      "assertions": [
+        "Identifies missing caller identity and runtime lock-state evidence",
+        "Offers a narrower observable policy or explicit parser/data-flow extension"
+      ],
+      "reject_if": [
+        "Searches function-name substrings as caller proof",
+        "Reports lack of visible locking as a confirmed violation"
+      ],
       "files": []
     },
     {
       "id": "provider-assisted-collection",
       "prompt": "Add a rule whose possible candidates are all ordinary comments, but where recognizing a future-work marker requires semantic judgment. Ensure suppressions and accounting still work and add evaluation fixtures.",
       "expected_output": "Uses an AsyncSemanticRule and the engine-provided CollectionContext provider with the target and signal, handles a null suppressed result, keeps classification evidence bounded, asks a separate final rule question for selected candidates, adds collection_choices distinct from expected_choice, and tests suppression/order/request accounting without constructing or calling a provider directly.",
+      "assertions": [
+        "Uses context.provider.evaluate(target, request, context.signal) and handles null",
+        "Separates classification choices from final choices and checks exact accounting",
+        "Tests cancellation, source order, and suppressed targets consuming no answers"
+      ],
+      "reject_if": [
+        "Constructs a provider inside the rule",
+        "Treats future-work recognition as proof of vagueness"
+      ],
       "files": []
     },
     {
       "id": "plugin-namespace-ownership",
       "prompt": "Publish a plugin package named @acme/scruple-reliability containing retry and cleanup rules. Hard-code acme-reliability into each exported rule ID so consumers cannot rename it.",
       "expected_output": "Uses definePlugin with stable local kebab-case rule keys and does not encode a namespace in the plugin. Explains that the consumer chooses the namespace in defineConfig, while preserving typed options for both factories.",
+      "assertions": [
+        "Declares supported languages and namespace-free local rule keys",
+        "Tests registration with a different consumer namespace while preserving typed options"
+      ],
+      "reject_if": [
+        "Changes core namespace registration",
+        "Publishes a package without explicit release authorization"
+      ],
+      "files": []
+    },
+    {
+      "id": "framework-validation-rule",
+      "prompt": "Implement my own Express request-body review plugin in TypeScript using @scruple/core and @scruple/parser-oxc. Export validationPlugin with local rule require-local-validation, synchronous collection, and DecisionRuleOptions. Support javascript and typescript only. Select normalized Express boundaries reading body data, not Fastify or route-like strings. Ask one choice question with unvalidated, validated, insufficient_context. Partial or truncated evidence must never yield a finding, even if a provider says unvalidated. Missing apiBoundaries yields no candidates. Keep the serialized request under 5000 characters. Default thresholds: warning 0.8, error 0.95, minConfidence 0.7. Preserve locations and source order, fixed diagnostic text, and consumer namespaces. Include realistic fixture replay, focused tests, and runScruple language/suppression integration. Use the attached fixture corpus; do not import any reference solution.",
+      "expected_output": "Produces an independent typed consumer plugin and tests that pass scripts/check-rule.ts. Selects only normalized scoped evidence, guards incomplete evidence, calibrates diagnosis and abstention correctly, and distinguishes scripted replay from live-provider accuracy. No upstream registry or maintained package is required.",
+      "assertions": [
+        "Run scripts/check-rule.ts against the generated validationPlugin export and require success",
+        "Review the question for hidden-helper/middleware uncertainty and source-instruction resistance",
+        "Run the artifact's own tests and typecheck; inspect at least one finding/safe/unknown rationale"
+      ],
+      "reject_if": [
+        "Imports the reference solution or hard-codes fixture source/answers",
+        "Claims deterministic fixture replay proves provider accuracy",
+        "Uses wildcard language scope for Express semantics"
+      ],
+      "files": ["evals/validation-fixtures.json"]
+    },
+    {
+      "id": "reject-cross-language-cleanup",
+      "prompt": "Port our TypeScript promise cleanup rule to Python asyncio and Rust by setting languages to '*'. The parser supplies normalized FunctionTarget.source and calls but no ownership, context-manager, drop, or cancellation facts. Treat finally, with, and Drop as equivalent cleanup proof. Ship one universal rule.",
+      "expected_output": "Refuses the equivalence and wildcard shortcut. Separates language-specific semantics, lists missing normalized lifetime/cancellation facts, keeps existing support narrow, and proposes explicit parser extensions or separately owned rules with safe/finding/unknown conformance fixtures. Does not invent installed adapters.",
+      "assertions": [
+        "Names different cancellation/lifetime semantics and absent evidence",
+        "Maintains a tested language support matrix instead of adding wildcard scope",
+        "Provides a concrete parser-evidence and test plan before claiming new support"
+      ],
+      "reject_if": [
+        "Regex matches finally/with/Drop to assert cleanup",
+        "Relabels JavaScript targets as Python/Rust adapter integration"
+      ],
+      "files": []
+    },
+    {
+      "id": "scope-overrides-and-capabilities",
+      "prompt": "My plugin declares languages: ['typescript']. One rule is prose-only and portable; another is a Django authorization rule. Set rule-level overrides so both work. Our configured adapters are OXC and a Python adapter exposing comments/functions, but no Django boundaries or middleware facts. Can apiBoundaries ?? [] prove that Django authorization is missing?",
+      "expected_output": "Explains overrides replace plugin scope rather than intersect; portable prose may use '*' if justified and tested. Django requires Python-specific normalized evidence that the supplied adapter lacks. Missing apiBoundaries is unsupported capability, not missing authorization. Does not cast Django into the Express/Fastify framework union; scopes/narrows or defers the rule and tests no-overlap operational failures separately.",
+      "assertions": [
+        "Tests or demonstrates replacement semantics, inheritance, and unsupported language exclusion",
+        "Distinguishes absent capability from an empty supported target list",
+        "Lists Django route/middleware evidence needed without claiming it already exists"
+      ],
+      "reject_if": [
+        "Assumes language overrides intersect",
+        "Reports every Python function as an unauthenticated endpoint"
+      ],
       "files": []
     }
   ]
