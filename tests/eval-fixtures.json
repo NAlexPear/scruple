@@ -1926,6 +1926,167 @@
       "expected_abstention": true,
       "rationale": "The fixture does not show whether project setup globally seeds or mocks Math.random.",
       "tags": ["negative", "abstention", "test-setup"]
+    },
+    {
+      "id": "test-clock-month-window-from-wall-clock",
+      "filename": "spend.test.ts",
+      "source": "test(\"sums spend in the current month\", async () => {\n  const transactedAt = new Date();\n  transactedAt.setMinutes(transactedAt.getMinutes() - 5);\n  await ledger.record({ amount: 1_000, transactedAt });\n\n  const service = createSpendService({ ledger });\n  expect(await service.monthToDateTotal()).toBe(1_000);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "A transaction stamped five minutes before the real clock falls into the previous month when the suite runs just after midnight on the first, so the month-to-date total becomes zero.",
+      "tags": ["positive", "test", "clock", "month-boundary", "date-constructor"]
+    },
+    {
+      "id": "test-clock-period-key-from-luxon-now",
+      "filename": "statement.test.ts",
+      "source": "test(\"labels the open statement period\", () => {\n  const statement = openStatement({ opensOn: 1 });\n  expect(statement.periodKey).toBe(DateTime.now().toFormat(\"yyyy-MM\"));\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "The expected key and the code under test each read the wall clock separately, so a run that straddles a month rollover compares two different periods.",
+      "tags": ["positive", "test", "clock", "month-boundary", "luxon"]
+    },
+    {
+      "id": "test-clock-created-at-against-fixed-cutoff",
+      "filename": "releases.test.ts",
+      "source": "test(\"keeps a released entry evaluated after it was created\", async () => {\n  const entry = await entries.insert({ status: \"deposited\", createdAt: new Date() });\n  await releases.insert({ entryId: entry.id, evaluatedAt: new Date(\"2026-09-01T00:00:00Z\") });\n\n  expect(await entries.listReleased()).toEqual([expect.objectContaining({ id: entry.id })]);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "The entry's creation time comes from the real clock while the release time is a fixed literal, so once the wall clock passes that literal the comparison flips and the test fails on every run.",
+      "tags": ["positive", "test", "clock", "fixed-and-real-mix", "date-constructor"]
+    },
+    {
+      "id": "test-clock-days-until-tomorrow",
+      "filename": "due-date.test.ts",
+      "source": "test(\"counts one day until tomorrow\", () => {\n  const tomorrow = new Date();\n  tomorrow.setDate(tomorrow.getDate() + 1);\n  expect(daysUntil(tomorrow)).toBe(1);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "The test computes tomorrow from one wall-clock read while daysUntil reads the clock again, so a run across midnight or a daylight-saving change counts a different number of days.",
+      "tags": ["positive", "test", "clock", "day-boundary", "date-constructor"]
+    },
+    {
+      "id": "test-clock-age-threshold-from-now",
+      "filename": "eligibility.test.ts",
+      "source": "test(\"accepts an applicant who turned eighteen today\", () => {\n  const birthDate = new Date();\n  birthDate.setFullYear(birthDate.getFullYear() - 18);\n  expect(isAdult(birthDate)).toBe(true);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "The boundary case is built from the real date, so leap days and runs across midnight move the birthday off the exact threshold the test claims to check.",
+      "tags": ["positive", "test", "clock", "exact-boundary", "date-constructor"]
+    },
+    {
+      "id": "test-clock-snapshot-with-current-timestamp",
+      "filename": "receipt.test.ts",
+      "source": "test(\"renders the receipt\", () => {\n  const receipt = buildReceipt({ total: 4_200, issuedAt: new Date() });\n  expect(renderReceipt(receipt)).toMatchSnapshot();\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "The rendered receipt embeds the current time, so the snapshot cannot match on any later run.",
+      "tags": ["positive", "test", "clock", "snapshot", "date-constructor"]
+    },
+    {
+      "id": "test-clock-elapsed-budget-from-performance-now",
+      "filename": "cache.test.ts",
+      "source": "test(\"serves cached reads quickly\", async () => {\n  await cache.warm(keys);\n  const started = performance.now();\n  await cache.get(keys[0]);\n  expect(performance.now() - started).toBeLessThan(5);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "A real elapsed-time budget depends on machine load, so the same code passes or fails with CI contention.",
+      "tags": ["positive", "test", "clock", "elapsed-time", "performance-now"]
+    },
+    {
+      "id": "test-clock-start-of-month-against-default-clock",
+      "filename": "billing.test.ts",
+      "source": "test(\"starts the billing cycle at the beginning of the month\", () => {\n  const cycle = createBillingService().currentCycle();\n  expect(cycle.start.toISO()).toBe(DateTime.utc().startOf(\"month\").toISO());\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": true,
+      "rationale": "The service uses its default real clock and the expectation reads the clock again, so the two values disagree when the run crosses a month boundary.",
+      "tags": ["positive", "test", "clock", "month-boundary", "luxon", "missing-injection"]
+    },
+    {
+      "id": "test-clock-fake-timers-set-system-time",
+      "filename": "spend.test.ts",
+      "source": "test(\"sums spend in the current month\", async () => {\n  vi.useFakeTimers();\n  vi.setSystemTime(new Date(\"2026-01-15T12:00:00Z\"));\n  const transactedAt = new Date();\n  transactedAt.setMinutes(transactedAt.getMinutes() - 5);\n  await ledger.record({ amount: 1_000, transactedAt });\n\n  expect(await createSpendService({ ledger }).monthToDateTotal()).toBe(1_000);\n  vi.useRealTimers();\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "expected_choice": "controlled_nondeterminism",
+      "rationale": "Fake timers pin the system time mid-month before any clock read, so every new Date() in the test is deterministic.",
+      "tags": ["negative", "test", "clock", "fake-timers"]
+    },
+    {
+      "id": "test-clock-spied-date-now",
+      "filename": "session.test.ts",
+      "source": "test(\"expires a session after one hour\", () => {\n  vi.spyOn(Date, \"now\").mockReturnValue(Date.parse(\"2026-01-15T12:00:00Z\"));\n  const session = openSession({ issuedAt: Date.now(), ttlMs: 3_600_000 });\n  expect(session.isExpiredAt(Date.now() + 3_600_001)).toBe(true);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "expected_choice": "controlled_nondeterminism",
+      "rationale": "Date.now is mocked to a fixed instant before either read, so the expiry check does not depend on the wall clock.",
+      "tags": ["negative", "test", "clock", "mocked-clock"]
+    },
+    {
+      "id": "test-clock-luxon-settings-now",
+      "filename": "statement.test.ts",
+      "source": "test(\"labels the open statement period\", () => {\n  Settings.now = () => Date.parse(\"2026-01-15T12:00:00Z\");\n  const statement = openStatement({ opensOn: 1 });\n  expect(statement.periodKey).toBe(DateTime.now().toFormat(\"yyyy-MM\"));\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "expected_choice": "controlled_nondeterminism",
+      "rationale": "Luxon's clock source is pinned to a fixed instant before the code under test and the expectation read DateTime.now.",
+      "tags": ["negative", "test", "clock", "mocked-clock", "luxon"]
+    },
+    {
+      "id": "test-clock-injected-test-clock",
+      "filename": "spend.test.ts",
+      "source": "test(\"sums spend in the current month\", async () => {\n  const clock = new TestClock(new Date(\"2026-01-15T12:00:00Z\"));\n  const transactedAt = clock.now().minus({ minutes: 5 }).toJSDate();\n  await ledger.record({ amount: 1_000, transactedAt });\n\n  const service = createSpendService({ ledger, clock });\n  expect(await service.monthToDateTotal()).toBe(1_000);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "expected_candidates": 0,
+      "rationale": "The service and the transaction both take time from an injected fixed clock, so the test never reads the wall clock.",
+      "tags": ["negative", "test", "clock", "injected-clock"]
+    },
+    {
+      "id": "test-clock-fixed-literal-dates",
+      "filename": "statement.test.ts",
+      "source": "test(\"formats the statement period\", () => {\n  const period = statementPeriod(new Date(\"2026-08-01T00:00:00Z\"), new Date(\"2026-08-31T23:59:59Z\"));\n  expect(period.label).toBe(\"August 2026\");\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "expected_candidates": 0,
+      "rationale": "Every date is a fixed literal, so no clock is read.",
+      "tags": ["negative", "test", "clock", "fixed-literal"]
+    },
+    {
+      "id": "test-clock-injected-now-function",
+      "filename": "token.test.ts",
+      "source": "test(\"stamps the token with the issue time\", () => {\n  const token = issueToken({ subject: \"user-1\", now: () => new Date(\"2026-01-15T12:00:00Z\") });\n  expect(token.issuedAt).toEqual(new Date(\"2026-01-15T12:00:00Z\"));\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "expected_candidates": 0,
+      "rationale": "Time reaches the code through an injected function that returns a fixed date.",
+      "tags": ["negative", "test", "clock", "injected-clock"]
+    },
+    {
+      "id": "test-clock-bracketed-timestamp-oracle",
+      "filename": "event.test.ts",
+      "source": "test(\"stamps events with the time they were created\", () => {\n  const before = Date.now();\n  const event = createEvent({ type: \"created\" });\n  const after = Date.now();\n  expect(event.createdAt.getTime()).toBeGreaterThanOrEqual(before);\n  expect(event.createdAt.getTime()).toBeLessThanOrEqual(after);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "rationale": "The test brackets the real timestamp between two reads, so its oracle holds for any wall-clock value.",
+      "tags": ["negative", "test", "clock", "robust-oracle"]
+    },
+    {
+      "id": "test-clock-real-time-unused-by-oracle",
+      "filename": "audit.test.ts",
+      "source": "test(\"records who approved the request\", async () => {\n  const clock = new TestClock(new Date(\"2026-01-15T12:00:00Z\"));\n  const request = await createRequest({ submittedBy: \"user-1\", correlationId: `req-${Date.now()}` });\n  await approve(request.id, { approver: \"user-2\", clock });\n  expect(await auditTrail(request.id)).toEqual([\n    expect.objectContaining({ actor: \"user-2\", action: \"approved\", at: clock.now().toJSDate() }),\n  ]);\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "rationale": "The only wall-clock read makes a unique correlation id that no assertion checks; the asserted time comes from an injected fixed clock.",
+      "tags": ["negative", "test", "clock", "injected-clock", "incidental-read"]
+    },
+    {
+      "id": "test-clock-control-hidden-in-setup",
+      "filename": "billing.test.ts",
+      "source": "import { frozenBillingService } from \"./support/frozen-clock\";\n\ntest(\"starts the billing cycle at the beginning of the month\", () => {\n  const cycle = frozenBillingService().currentCycle();\n  expect(cycle.start.toISO()).toBe(DateTime.utc().startOf(\"month\").toISO());\n});\n",
+      "rule_id": "tests/no-nondeterministic-tests",
+      "expected_finding": false,
+      "expected_choice": "insufficient_context",
+      "expected_abstention": true,
+      "rationale": "The imported helper may build the service on a frozen clock, but its implementation is not visible, so whether both reads agree is unknown.",
+      "tags": ["negative", "test", "clock", "abstention", "test-setup"]
     }
   ]
 }

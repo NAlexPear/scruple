@@ -58,21 +58,25 @@ export const tests = (): TestsPlugin => {
 const nondeterministicCallees = new Set([
   "crypto.getRandomValues",
   "Date.now",
+  "DateTime.now",
   "Math.random",
   "performance.now",
   "process.hrtime",
   "process.hrtime.bigint",
 ]);
+// These read the current time only when called without arguments.
+const argumentFreeClockCallees = new Set(["DateTime.local", "DateTime.utc", "dayjs", "moment"]);
 
 const noNondeterministicTests = (options: NoVacuousTestsOptions = {}): SemanticRule => {
   const resolved = resolveOptions(options);
   return testChoiceRule({
     description: "Tests should control nondeterministic inputs.",
     select: (document) =>
-      testFunctions(document, resolved).filter((fn) =>
-        callsInTestAndHelpers(fn, document, resolved).some((call) =>
-          nondeterministicCallees.has(call.callee),
-        ),
+      testFunctions(document, resolved).filter(
+        (fn) =>
+          callsInTestAndHelpers(fn, document, resolved).some((call) =>
+            nondeterministicCallees.has(call.callee),
+          ) || readsArgumentFreeClock(fn, document, resolved),
       ),
     instructions:
       "Does this test depend on uncontrolled randomness or wall-clock time in a way that can change its outcome? Fake clocks, seeded or mocked randomness, and visible deterministic injection are controlled. Tests intentionally checking statistical or nondeterministic properties may be valid when their oracle is robust. Choose insufficient_context when control is hidden in helpers or framework setup.",
@@ -299,6 +303,35 @@ const callsInTestAndHelpers = (
   const resolved = resolveSupportingFunctions(fn, document);
   const helpers = boundedHelpers(resolved.helpers, options);
   return [...fn.calls, ...helpers.values.flatMap((helper) => helper.calls)];
+};
+
+const readsArgumentFreeClock = (
+  fn: FunctionTarget,
+  document: ParsedDocument,
+  options: ResolvedOptions,
+): boolean => {
+  const facts = document.facts;
+  if (facts === undefined) {
+    return false;
+  }
+  const scopes = [
+    fn,
+    ...boundedHelpers(resolveSupportingFunctions(fn, document).helpers, options).values,
+  ];
+  const inScope = (range: { start: number; end: number }): boolean =>
+    scopes.some((scope) => range.start >= scope.range.start && range.end <= scope.range.end);
+  return (
+    facts.constructors.some(
+      (fact) => fact.callee === "Date" && fact.arguments.length === 0 && inScope(fact.range),
+    ) ||
+    facts.calls.some(
+      (fact) =>
+        fact.callee !== undefined &&
+        argumentFreeClockCallees.has(fact.callee) &&
+        fact.arguments.length === 0 &&
+        inScope(fact.range),
+    )
+  );
 };
 
 const resolveSupportingFunctions = (
