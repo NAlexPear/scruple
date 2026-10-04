@@ -17,10 +17,9 @@ model usage is billed separately.
 | [Kev](./kev.md)               | Open-weight, fine-tunable System One decisions | Self-hosted HTTP server |
 
 See the [full provider evaluation](./evaluation.md) for quality, latency, throughput, and cost results
-across all 187 fixtures. Jev 1.13 is the strongest overall default; the other choices trade quality for
-Cloudflare-native hosting, private self-hosting, or lower hosted model cost.
-
-Kev was released after that evaluation and is not included in its comparisons.
+from the original 187-fixture comparison and the current 195-fixture Jev/Clef extension. Jev 1.13 is
+the strongest overall default; the other choices trade quality for Cloudflare-native hosting, private
+self-hosting, or lower hosted model cost.
 
 Model choice affects calibration. Use representative fixtures to choose thresholds rather than copying thresholds blindly between models.
 

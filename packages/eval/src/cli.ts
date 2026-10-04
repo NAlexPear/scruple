@@ -11,12 +11,13 @@ import {
   type EvalRunReport,
 } from "@scruple/eval";
 import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
-import { evaluationParsers, evaluationPlugins } from "@scruple/eval/plugins";
+import { evaluationPlugins } from "@scruple/eval/plugins";
 
 import { createCloudflareProvider } from "./cloudflare-provider.js";
 import { createDeciderProvider } from "./decider-provider.js";
 import { createJevProvider } from "./jev-provider.js";
 import { createKevProvider } from "./kev-provider.js";
+import { evaluationParsers } from "./parsers.js";
 
 const plugins = evaluationPlugins();
 

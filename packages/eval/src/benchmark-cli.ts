@@ -14,8 +14,9 @@ import {
   parseBenchmarkOptions,
   type BenchmarkProvider,
 } from "@scruple/eval/benchmark-options";
-import { evaluationParsers, evaluationPlugins } from "@scruple/eval/plugins";
+import { evaluationPlugins } from "@scruple/eval/plugins";
 
+import { evaluationParsers } from "./parsers.js";
 import {
   createCloudflareProvider,
   createDeciderProvider,

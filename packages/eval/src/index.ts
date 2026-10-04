@@ -13,6 +13,7 @@ import type {
 import { runScruple } from "@scruple/core";
 
 export { evaluationPlugins } from "@scruple/eval/plugins";
+export { evaluationParsers } from "./parsers.js";
 
 export interface EvalFixture {
   id: string;
@@ -370,7 +371,7 @@ const selectFixtureParser = (
   fixture: EvalFixture,
   configuration: ParserConfiguration,
 ): SourceParser => {
-  const parsers = Array.isArray(configuration) ? configuration : [configuration];
+  const parsers = isParserArray(configuration) ? configuration : [configuration];
   const matches = parsers.filter((parser) => parser.supports(fixture.filename));
   if (matches.length === 0) {
     throw new Error(`No parser supports evaluation fixture: ${fixture.filename}`);
@@ -382,6 +383,10 @@ const selectFixtureParser = (
   }
   return matches[0]!;
 };
+
+const isParserArray = (
+  configuration: ParserConfiguration,
+): configuration is readonly SourceParser[] => Array.isArray(configuration);
 
 const ratio = (numerator: number, denominator: number): number | null =>
   denominator === 0 ? null : numerator / denominator;

@@ -11,7 +11,9 @@ import {
   verifyTaskManifest,
 } from "@scruple/eval/llm-benchmark";
 import { createOpenAiEvaluator } from "@scruple/eval/openai-evaluator";
-import { evaluationParsers, evaluationPlugins } from "@scruple/eval/plugins";
+import { evaluationPlugins } from "@scruple/eval/plugins";
+
+import { evaluationParsers } from "./parsers.js";
 
 const HELP = `Benchmark pinned Scruple tasks with a direct hosted LLM
 

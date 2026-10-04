@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-04",
+  "commit": "c4c6960b107ffb207087dc4579dbea0b0c1fa195",
+  "corpus": {
+    "fixtures": 195,
+    "expectedFindings": 85,
+    "expectedSafe": 110,
+    "modelCalls": 204,
+    "fixtureCorpusSha256": "f79dda263c5ee7ba7af3bfa0d06d60bf4b162e770b424f2a622e150008b0ccd5"
+  },
+  "multilingual": {
+    "languages": ["python", "go", "rust", "sql"],
+    "fixturesPerLanguage": 2,
+    "rule": "comments/require-actionable-todos"
+  },
+  "runs": [
+    {
+      "provider": "jev",
+      "requestedModel": "jev-1.13.0",
+      "concurrency": 64,
+      "passed": 156,
+      "failed": 39,
+      "labelMatches": 168,
+      "diagnosticMatches": 179,
+      "candidateMatches": 195,
+      "multilingualStrictMatches": 8,
+      "multilingualLabelMatches": 8,
+      "detection": {
+        "truePositives": 72,
+        "falsePositives": 3,
+        "trueNegatives": 107,
+        "falseNegatives": 13,
+        "precision": 0.96,
+        "recall": 0.8470588235294118,
+        "f1": 0.8999999999999999
+      },
+      "abstention": { "expected": 15, "actual": 17, "correct": 9, "unexpected": 8 },
+      "caseLatencyMs": {
+        "mean": 239.5885997897438,
+        "p50": 147.9764929999999,
+        "p95": 528.3431439999999
+      },
+      "usage": { "inputTokens": 141890, "outputTokens": 13723 },
+      "estimatedHostedCostUsd": 0.00595938,
+      "operationalErrors": 0,
+      "rawReport": "raw/jev-1.13.0.json.gz"
+    },
+    {
+      "provider": "cloudflare",
+      "requestedModel": "clef",
+      "concurrency": 4,
+      "passed": 124,
+      "failed": 71,
+      "labelMatches": 173,
+      "diagnosticMatches": 143,
+      "candidateMatches": 195,
+      "multilingualStrictMatches": 5,
+      "multilingualLabelMatches": 8,
+      "detection": {
+        "truePositives": 34,
+        "falsePositives": 1,
+        "trueNegatives": 109,
+        "falseNegatives": 51,
+        "precision": 0.9714285714285714,
+        "recall": 0.4,
+        "f1": 0.5666666666666667
+      },
+      "abstention": { "expected": 15, "actual": 7, "correct": 7, "unexpected": 0 },
+      "caseLatencyMs": {
+        "mean": 497.3647875435899,
+        "p50": 395.30291299999953,
+        "p95": 1052.1445550000008
+      },
+      "usage": { "inputTokens": 93565, "outputTokens": 0 },
+      "estimatedHostedCostUsd": 0.0224556,
+      "operationalErrors": 0,
+      "rawReport": "raw/clef.json.gz"
+    }
+  ]
+}

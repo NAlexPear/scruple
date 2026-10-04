@@ -4,14 +4,28 @@ These results use the unsupported rules and fixtures under `examples/rules`. The
 correctness for other languages or frameworks. Evaluate representative finding, safe, and abstention
 cases for every scope your rules support.
 
-We evaluated eight provider and model choices against Scruple's full suite of 187 fixtures. **Jev
-1.13 is the best default and the strongest overall choice:** it combines the highest strict
+The eight-model comparison below used the original 187-fixture corpus. **Jev 1.13 is the best default
+and the strongest overall choice:** it combines the highest strict
 agreement, diagnostic agreement, recall, and F1 score with low hosted cost. Kev 27B v1.0 is the
 strongest measured self-hosted quality option, while Decider remains the faster private option. The
 other models remain useful when deployment location, privacy, speed, or marginal hosted cost matters
 more than overall quality.
 
-## Results at a glance
+## Multilanguage extension
+
+The current 195-fixture corpus adds one finding and one safe case parsed from real Python, Go, Rust,
+and SQL files. A 2026-10-04 run measured Jev and Clef against the expanded corpus:
+
+- **Jev 1.13:** 156/195 full-corpus strict matches; 8/8 new-case strict and label matches.
+- **Clef:** 124/195 full-corpus strict matches; 5/8 new-case strict matches and 8/8 label matches.
+
+Clef labeled all eight new cases correctly. Its vague Python, Go, and Rust cases stayed below the
+rule's confidence threshold, so Scruple correctly suppressed their diagnostics. See the
+[preserved results](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/multilanguage/2026-10-04)
+for complete reports and metrics. The remaining models have not been rerun on the expanded corpus,
+so the table below remains a directly comparable 187-fixture snapshot.
+
+## Original results at a glance
 
 | Provider and model        |                Label |           Diagnostic |               Strict |   Precision |     Recall |         F1 |
 | ------------------------- | -------------------: | -------------------: | -------------------: | ----------: | ---------: | ---------: |
