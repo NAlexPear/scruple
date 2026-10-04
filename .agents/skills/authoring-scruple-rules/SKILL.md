@@ -64,6 +64,9 @@ Use [the behavioral tasks](evals/evals.json) as agent prompts in a clean downstr
 the agent the task's `files`, not its expected output or the reference implementation. Review its
 artifact against every assertion and rejection criterion, then execute its tests. For the
 `framework-validation-rule` task, run `scripts/check-rule.ts` against the generated plugin as
-described in [testing](reference/testing.md). The bundled reference rule is a worked example, not a
-published pack or an answer to inject into an evaluation run. Metadata checks and a passing reference
-implementation are not evidence that an agent followed this skill or that a provider is accurate.
+described in [testing](reference/testing.md). For `real-four-language-comments`, run
+`scripts/check-portable-rule.ts`; it uses the installed Python, SQL, Rust, and Go parsers and rejects
+synthetic routing, wildcard scope, raw-source selection, unbounded evidence, and conviction from
+truncated input. The bundled reference rules are worked examples, not published packs or answers to
+inject into an evaluation run. Metadata checks and passing reference implementations are not evidence
+that an agent followed this skill or that a provider is accurate.

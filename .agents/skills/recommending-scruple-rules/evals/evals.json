@@ -63,6 +63,23 @@
         "Spends semantic provider calls on the exact return-type policy"
       ],
       "files": ["evals/evidence-packet.md"]
+    },
+    {
+      "id": "inspect-real-parser-matrix",
+      "prompt": "Run the attached parser evidence probe and assess a proposed universal rule requiring Python, Go, Rust, and SQL error handlers to log and rethrow failures. Recommend only scopes supported by the actual normalized evidence. State what is ready, what needs parser work, and where a rule must abstain. Do not inspect parser README claims in place of running the probe, scan raw source, or implement a rule.",
+      "expected_output": "Reports that all four real packages route and expose normalized functions/calls, but only Python emits an errorHandler for this matrix; Go, Rust, and SQL return no normalized error handlers, facts, or API boundaries. Rejects a universal error-handler rule and source-syntax inference. At most recommends a Python-scoped review using bounded handler evidence with safe/finding/unknown cases, while deferring Go and Rust pending explicit error-propagation facts and excluding SQL absent a separately justified SQL policy.",
+      "assertions": [
+        "Runs evals/inspect-parser-evidence.ts and identifies the exact parser IDs and routed languages for python, go, rust, and sql",
+        "Reports Python's normalized log.error call and throw exit while distinguishing empty errorHandlers from proof that Go, Rust, or SQL perform no error handling",
+        "Defers unsupported Go and Rust propagation semantics and SQL scope rather than using source spellings or wildcard languages",
+        "Provides finding, safe, and insufficient-context cases for any Python-only authoring handoff without implementing it"
+      ],
+      "reject_if": [
+        "Claims shared FunctionTarget calls make exception, Result, returned-error, and SQL semantics equivalent",
+        "Treats an empty normalized collection as evidence that source code lacks error handling",
+        "Recommends wildcard support, raw-source matching, or a generated implementation"
+      ],
+      "files": ["evals/inspect-parser-evidence.ts"]
     }
   ]
 }
