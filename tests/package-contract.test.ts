@@ -120,7 +120,11 @@ await test("public packages satisfy their distribution contract", () => {
   assert.deepEqual(packages.map(({ name }) => name).toSorted(), [
     "@scruple/cli",
     "@scruple/core",
+    "@scruple/parser-go",
     "@scruple/parser-oxc",
+    "@scruple/parser-python",
+    "@scruple/parser-rust",
+    "@scruple/parser-sql",
     "@scruple/provider-cloudflare",
     "@scruple/provider-decider",
     "@scruple/provider-jev",
@@ -199,7 +203,7 @@ await test("release versioning changes public tooling but leaves private example
         encoding: "utf8",
       },
     );
-    assert.equal(output, "Set 7 public packages to v9.8.7.\n");
+    assert.equal(output, "Set 11 public packages to v9.8.7.\n");
     for (const path of ["package.json", ...publicPaths]) {
       const manifest: unknown = JSON.parse(readFileSync(join(directory, path), "utf8"));
       assert.ok(isRecord(manifest));

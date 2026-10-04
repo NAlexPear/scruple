@@ -7,7 +7,8 @@ Language-specific parsers read the source; downstream rules own the standards be
 
 Scruple maintains core parser and rule interfaces, the execution engine and CLI, blessed
 language-specific parser packages, providers, rule-authoring/testing skills, and eval tooling. OXC is
-the blessed parser for JavaScript, JSX, TypeScript, and TSX; another language needs its own parser.
+the blessed parser for JavaScript, JSX, TypeScript, and TSX. Scruple also provides blessed Python, Go,
+Rust, and SQL parser packages backed by Tree-sitter.
 
 Language and framework policy belongs to downstream rule authors. Scruple is stopping publication of
 maintained first-party rule packs. Existing specialized rules are moving to unsupported examples and

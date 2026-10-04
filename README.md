@@ -34,7 +34,8 @@ control on every documentation page.
 
 Scruple maintains the core parser and rule interfaces, the execution engine and CLI, blessed
 language-specific parser packages, decision providers, rule-authoring and testing skills, and eval
-tooling. `@scruple/parser-oxc` is the blessed parser for JavaScript, JSX, TypeScript, and TSX.
+tooling. The blessed parsers are `@scruple/parser-oxc` for JavaScript and TypeScript plus
+`@scruple/parser-python`, `@scruple/parser-go`, `@scruple/parser-rust`, and `@scruple/parser-sql`.
 
 Downstream authors own language- and framework-specific rules: their evidence selection, policy,
 diagnostics, tests, and maintenance. Scruple is stopping publication of maintained first-party rule
@@ -102,7 +103,8 @@ pnpm exec scruple --format json
 
 `parser` accepts one `SourceParser` or a non-empty array of parsers. Each parser owns its language IDs,
 default file patterns, and `supports(filename)` predicate. Each file must match at most one parser.
-The engine runs rules only on documents matching their declared language scope. See
+Parsers may initialize asynchronously; the engine awaits them before running applicable rules. The
+engine runs rules only on documents matching their declared language scope. See
 [configuration](https://scruple.dev/guide/configuration#file-selection) for multi-language projects.
 
 The CLI caches successful decisions in `node_modules/.cache/scruple`, including collection

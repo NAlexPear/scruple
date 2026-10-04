@@ -233,7 +233,7 @@ export const collectEvalCandidates = async (
   rule: AnySemanticRule,
   parser: SourceParser,
 ): Promise<RuleCandidate[]> => {
-  const document = parser.parse(fixture.filename, fixture.source);
+  const document = await parser.parse(fixture.filename, fixture.source);
   if (fixture.collectionChoices === undefined) {
     return rule.collect(document);
   }

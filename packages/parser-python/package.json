@@ -1,0 +1,48 @@
+{
+  "name": "@scruple/parser-python",
+  "version": "0.3.4",
+  "description": "Python parser adapter for Scruple.",
+  "keywords": [
+    "parser",
+    "python",
+    "semantic-analysis",
+    "tree-sitter"
+  ],
+  "homepage": "https://github.com/NAlexPear/scruple#readme",
+  "bugs": {
+    "url": "https://github.com/NAlexPear/scruple/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAlexPear/scruple.git",
+    "directory": "packages/parser-python"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/copy-parser-assets.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scruple/core": "workspace:*",
+    "@types/emscripten": "^1.41.6",
+    "web-tree-sitter": "^0.27.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

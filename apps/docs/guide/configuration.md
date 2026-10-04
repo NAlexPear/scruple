@@ -18,9 +18,10 @@ export default defineConfig({
 `defineConfig` preserves plugin-specific rule option types, so an editor can validate namespaced rule IDs and option objects.
 
 The parser is language-specific; Scruple maintains blessed parser packages such as
-`@scruple/parser-oxc` for JavaScript/TypeScript. Supply one parser or a non-empty array. Plugins come
-from your own code or downstream authors, not a maintained first-party rule pack. They declare their
-language applicability; callers register and enable rules rather than assigning languages to them.
+`@scruple/parser-oxc` for JavaScript/TypeScript and Tree-sitter-backed packages for Python, Go, Rust,
+and SQL. Supply one parser or a non-empty array. Plugins come from your own code or downstream
+authors, not a maintained first-party rule pack. They declare their language applicability; callers
+register and enable rules rather than assigning languages to them.
 
 ## Rules
 
@@ -93,12 +94,14 @@ comments with accurate locations. A downstream rule can review suppression scope
 ## File selection
 
 By default, the CLI discovers files using the `filePatterns` advertised by every configured parser.
-Configure `parser` with an array to analyze multiple languages in one run. This is a conceptual
-fragment: `anotherLanguageParser` stands for a parser you supply, not an available package name.
+Configure `parser` with an array to analyze multiple languages in one run:
 
 ```ts
+import { oxcParser } from "@scruple/parser-oxc";
+import { pythonParser } from "@scruple/parser-python";
+
 export default defineConfig({
-  parser: [oxcParser(), anotherLanguageParser()],
+  parser: [oxcParser(), pythonParser()],
   // provider, plugins, rules
 });
 ```

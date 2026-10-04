@@ -241,6 +241,10 @@ export interface SourceParser {
   readonly languages: readonly string[];
   readonly filePatterns: readonly string[];
   supports(filename: string): boolean;
+  parse(filename: string, source: string): ParsedDocument | Promise<ParsedDocument>;
+}
+
+export interface SynchronousSourceParser extends SourceParser {
   parse(filename: string, source: string): ParsedDocument;
 }
 
@@ -605,7 +609,9 @@ export const runScruple = async (
 
     let document: ParsedDocument;
     try {
-      document = parser.parse(file.filename, file.source);
+      // Parsers may initialize asynchronous runtimes such as WebAssembly.
+      // eslint-disable-next-line no-await-in-loop -- Files stay sequential to bound parsed documents in memory.
+      document = await parser.parse(file.filename, file.source);
     } catch (cause) {
       errors.push({ filename: file.filename, message: errorMessage(cause), cause });
       continue;

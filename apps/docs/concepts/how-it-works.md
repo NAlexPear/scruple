@@ -80,7 +80,9 @@ patterns.
 A parser produces normalized documents with source locations and the targets and facts its language
 supports. Plugins consume these contracts rather than a serialized parser-specific syntax tree.
 Scruple maintains blessed language-specific parsers. OXC supports `javascript`, `jsx`, `typescript`,
-and `tsx` and can recognize custom test callees; another language needs its own parser.
+and `tsx` and can recognize custom test callees. Tree-sitter-backed packages support Python, Go,
+Rust, and SQL. Another language needs its own parser implementation and normalized evidence contract.
+Parsers may load asynchronously; the engine awaits each document before selecting applicable rules.
 
 ## Run only applicable rules
 

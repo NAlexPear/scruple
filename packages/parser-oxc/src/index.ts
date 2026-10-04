@@ -20,8 +20,8 @@ import type {
   StructuredFacts,
   StructuredValueKind,
   SourceLocation,
-  SourceParser,
   SourceRange,
+  SynchronousSourceParser,
 } from "@scruple/core";
 import { parseSync, visitorKeys, type Comment, type OxcError } from "oxc-parser";
 
@@ -77,7 +77,7 @@ export interface OxcParserOptions {
   testCallees?: string[];
 }
 
-export const oxcParser = (options: OxcParserOptions = {}): SourceParser => {
+export const oxcParser = (options: OxcParserOptions = {}): SynchronousSourceParser => {
   const configuredTestCallees = new Set(options.testCallees ?? testCallees);
 
   return {

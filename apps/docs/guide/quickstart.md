@@ -43,8 +43,9 @@ This starter configuration parses files but enables no semantic checks. Installi
 install rules, and registering a plugin does not enable its rules.
 
 `parser` accepts one parser or a non-empty array. OXC advertises `javascript`, `jsx`, `typescript`, and
-`tsx`, plus the file patterns it handles. Other languages require their own parser packages; the
-language-agnostic engine does not parse arbitrary languages itself. See
+`tsx`, plus the file patterns it handles. The other blessed packages are `@scruple/parser-python`,
+`@scruple/parser-go`, `@scruple/parser-rust`, and `@scruple/parser-sql`. The language-agnostic engine
+does not parse arbitrary languages itself. See
 [file selection](./configuration.md#file-selection) before combining parsers.
 
 ## 3. Run Scruple
