@@ -5,7 +5,10 @@ import test from "node:test";
 import type { SemanticRule } from "@scruple/core";
 
 import type * as ValidationModule from "../.agents/skills/authoring-scruple-rules/reference/local-validation.ts";
+import type * as PortableTodoModule from "../.agents/skills/authoring-scruple-rules/reference/portable-todo.ts";
+import type * as PortableCheckerModule from "../.agents/skills/authoring-scruple-rules/scripts/check-portable-rule.ts";
 import type * as CheckerModule from "../.agents/skills/authoring-scruple-rules/scripts/check-rule.ts";
+import type * as ParserEvidenceModule from "../.agents/skills/recommending-scruple-rules/evals/inspect-parser-evidence.ts";
 
 // URL imports execute the installable TypeScript assets without requiring emitted .js copies.
 /* eslint-disable typescript/no-unsafe-type-assertion -- Fixed local modules checked by tsc via the type imports. */
@@ -18,6 +21,22 @@ const { validationPlugin } = (await import(
 const { checkValidationPlugin } = (await import(
   new URL("../.agents/skills/authoring-scruple-rules/scripts/check-rule.ts", import.meta.url).href
 )) as typeof CheckerModule;
+const { portableTodoPlugin } = (await import(
+  new URL("../.agents/skills/authoring-scruple-rules/reference/portable-todo.ts", import.meta.url)
+    .href
+)) as typeof PortableTodoModule;
+const { checkPortableTodoPlugin } = (await import(
+  new URL(
+    "../.agents/skills/authoring-scruple-rules/scripts/check-portable-rule.ts",
+    import.meta.url,
+  ).href
+)) as typeof PortableCheckerModule;
+const { inspectParserEvidence } = (await import(
+  new URL(
+    "../.agents/skills/recommending-scruple-rules/evals/inspect-parser-evidence.ts",
+    import.meta.url,
+  ).href
+)) as typeof ParserEvidenceModule;
 /* eslint-enable typescript/no-unsafe-type-assertion */
 
 const skills = [
@@ -222,6 +241,106 @@ await Promise.all(
     }),
   ),
 );
+
+await test("portable authoring checker accepts the real four-parser rule", async () => {
+  await checkPortableTodoPlugin(portableTodoPlugin);
+});
+
+const portableMutations: [string, typeof portableTodoPlugin, RegExp][] = [
+  ["wildcard scope", { ...portableTodoPlugin, languages: "*" }, /four tested parser languages/u],
+  [
+    "missing language",
+    { ...portableTodoPlugin, languages: ["python", "rust", "sql"] },
+    /declared language matrix/u,
+  ],
+  [
+    "raw-source selection",
+    {
+      ...portableTodoPlugin,
+      rules: {
+        "require-actionable-todo": (options) => {
+          const rule = portableTodoPlugin.rules["require-actionable-todo"](options);
+          return {
+            ...rule,
+            collect: (document) => (document.source.includes("TODO") ? rule.collect(document) : []),
+          };
+        },
+      },
+    },
+    /raw source independence/u,
+  ],
+  [
+    "unbounded normalized comment",
+    {
+      ...portableTodoPlugin,
+      rules: {
+        "require-actionable-todo": (options) => {
+          const rule = portableTodoPlugin.rules["require-actionable-todo"](options);
+          return {
+            ...rule,
+            collect: (document) =>
+              rule
+                .collect(document)
+                .map((candidate) =>
+                  Object.assign({}, candidate, { state: { comment: candidate.target.source } }),
+                ),
+          };
+        },
+      },
+    },
+    /bounded oversized request/u,
+  ],
+  [
+    "truncated evidence conviction",
+    {
+      ...portableTodoPlugin,
+      rules: {
+        "require-actionable-todo": (options) => {
+          const rule = portableTodoPlugin.rules["require-actionable-todo"](options);
+          return {
+            ...rule,
+            diagnose: (answer, candidate) =>
+              rule.diagnose(answer, { ...candidate, data: { truncated: false } }),
+          };
+        },
+      },
+    },
+    /truncated evidence cannot convict/u,
+  ],
+];
+
+await Promise.all(
+  portableMutations.map(([name, plugin, reason]) =>
+    test(`portable authoring checker rejects ${name}`, async () => {
+      await assert.rejects(checkPortableTodoPlugin(plugin), reason);
+    }),
+  ),
+);
+
+await test("recommendation evidence probe uses the real parser capability matrix", async () => {
+  const evidence = await inspectParserEvidence();
+  assert.deepEqual(
+    evidence.map(({ parser, language, filename }) => ({ parser, language, filename })),
+    [
+      { parser: "python", language: "python", filename: "service.py" },
+      { parser: "go", language: "go", filename: "service.go" },
+      { parser: "rust", language: "rust", filename: "service.rs" },
+      { parser: "sql", language: "sql", filename: "service.sql" },
+    ],
+  );
+  assert.deepEqual(evidence[0]?.errorHandlers, [
+    { binding: "error", calls: ["log.error"], exits: ["throw"] },
+  ]);
+  for (const row of evidence.slice(1)) {
+    assert.deepEqual(row.errorHandlers, [], `${row.parser}: unsupported normalized error handlers`);
+  }
+  for (const row of evidence) {
+    assert.equal(row.functions.length, 1, `${row.parser}: normalized function`);
+    assert.equal(row.hasFacts, false, `${row.parser}: no structured facts`);
+    assert.equal(row.hasApiBoundaries, false, `${row.parser}: no API boundaries`);
+    assert.deepEqual(row.issues, [], `${row.parser}: valid fixture`);
+  }
+});
 
 await test("rule skills package actionable grading rubrics, not keyword scores", async () => {
   await Promise.all(

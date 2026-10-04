@@ -59,3 +59,23 @@ the arms failed different implementation tasks. Add an executable checker for th
 task before relying on it, repeat both implementation tasks across additional models or seeds, and
 add a harder judgment task whose correct answer is not already strongly cued by the user request.
 Report scripted artifact acceptance separately from live provider accuracy.
+
+## Real-parser matrix: 2026-10-04
+
+A deterministic follow-up on commit `7655cdf` replaced the synthetic Python dispatch fixture for a
+new portable-comment task with the actual `@scruple/parser-python`, `@scruple/parser-sql`,
+`@scruple/parser-rust`, and `@scruple/parser-go` packages. The positive artifact parsed one file per
+language, rejected comment-looking strings, selected two normalized TODO comments per file, and
+replayed one vague and one actionable answer per language through `runScruple`.
+
+The checker observed **4 routed files, 8 candidates, 8 provider requests, and 4 diagnostics**. A
+100,000-character Python comment stayed below the 5,000-character request limit and could not produce
+a finding after truncation. Five deliberately wrong controls were all rejected: wildcard scope,
+missing Go scope, raw-source-dependent selection, an unbounded normalized comment, and conviction
+from truncated evidence. The focused skill suite passed 23/23 tests, including the existing Express
+controls.
+
+This is executable artifact evidence, not a new agent-uplift result. No independent treatment/control
+agents were run, grading was not blinded, and the scripted provider does not measure semantic model
+accuracy. The added `real-four-language-comments` task and checker make a future paired run capable of
+testing those claims without accepting self-authored tests or synthetic parser documents.

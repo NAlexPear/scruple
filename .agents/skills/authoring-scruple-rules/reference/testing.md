@@ -63,6 +63,18 @@ between working and broken rules; they do not measure an agent's ability to gene
 other tasks in `evals/evals.json` with an agent separately, record per-assertion pass/fail and concrete
 artifact/test evidence, and fail a task on any rejection criterion. Do not score word overlap.
 
+The portable TODO task has a separate real-adapter checker:
+
+```sh
+node .agents/skills/authoring-scruple-rules/scripts/check-portable-rule.ts ./my-plugin.ts
+```
+
+It parses representative Python, SQL, Rust, and Go files with the installed packages, verifies file
+routing and normalized comments, and replays vague/actionable decisions through `runScruple`. Its
+negative controls reject unsupported scopes, raw-source selection, unbounded requests, and findings
+from truncated evidence. This establishes the artifact contract, not agent uplift or live-provider
+accuracy.
+
 For downstream delivery, run the consumer's focused tests, typecheck, and configured checks; do not
 require Scruple's legacy package eval registry. When changing this repository, follow its AGENTS.md
 checks before pushing. Report deterministic tests, agent task results, and live-provider results

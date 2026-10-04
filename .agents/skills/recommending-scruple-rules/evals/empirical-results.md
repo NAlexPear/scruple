@@ -24,3 +24,22 @@ effectiveness, evaluate additional repositories where standards conflict, exampl
 counterexamples require discovery rather than being colocated in a frozen packet. Preserve zero-rule
 and parser-prerequisite outcomes as valid answers so broader evaluations do not reward recommendation
 volume.
+
+## Real-parser capability probe: 2026-10-04
+
+The new `inspect-real-parser-matrix` task runs an executable probe against the installed Python, Go,
+Rust, and SQL adapters instead of relying on the frozen packet's parser claims. All four adapters
+routed their owned file and emitted one normalized function. Calls were `client.fetch` and
+`log.error` for Python, `fetch` for Go, `fetch` and `Ok` for Rust, and `coalesce` for SQL.
+
+Only Python emitted a normalized error handler: binding `error`, call `log.error`, and a `throw` exit.
+Go, Rust, and SQL emitted empty `errorHandlers`; all four omitted `facts` and `apiBoundaries`. The
+evaluation rubric therefore requires recommendation agents to distinguish unsupported capability
+from proof that error handling is absent, reject universal/wildcard error-handler rules, and defer Go,
+Rust, and SQL rather than infer semantics from source spellings or shared function targets.
+
+The probe and exact capability assertions passed, but no new skill-versus-no-skill agent pair was run.
+Consequently this follow-up validates the evaluation inputs and makes unsupported cross-language
+claims executable rejection criteria; it does **not** show that the recommendation skill improves
+agent behavior. A future causal comparison should run the same prompt and probe in clean treatment
+and control workspaces, then grade the outputs without revealing the rubric.

@@ -107,6 +107,23 @@
         "Reports every Python function as an unauthenticated endpoint"
       ],
       "files": []
+    },
+    {
+      "id": "real-four-language-comments",
+      "prompt": "Implement a consumer-owned portableTodoPlugin with local rule require-actionable-todo for Python, SQL, Rust, and Go. Use the installed @scruple/parser-python, @scruple/parser-sql, @scruple/parser-rust, and @scruple/parser-go packages, not synthetic documents. Select normalized TODO comments but not comment-looking strings, ask whether each TODO identifies concrete follow-up work, bound oversized comments, and abstain when evidence is truncated or insufficient. Export the plugin and make it pass scripts/check-portable-rule.ts. Do not claim support for any untested language or code-semantics policy.",
+      "expected_output": "Exports a typed plugin scoped exactly to python, sql, rust, and go; uses normalized CommentTarget.value from every real parser; preserves target language, location, and source order; excludes comment-looking strings; bounds provider state and treats truncation as insufficient context; reports only calibrated vague answers with a fixed diagnostic; and passes the executable real-parser checker without wildcard or synthetic-adapter shortcuts.",
+      "assertions": [
+        "Run scripts/check-portable-rule.ts against the generated portableTodoPlugin and require success across all four real parsers",
+        "Use normalized comments independently of raw document.source while preserving parser language and locations",
+        "Exercise vague, actionable, insufficient-context, and oversized-comment cases with bounded requests",
+        "Declare only the four tested parser languages and avoid extrapolating shared comments into portable code semantics"
+      ],
+      "reject_if": [
+        "Uses filename routing, source regexes, synthetic ParsedDocument objects, or mocks instead of all four installed parsers",
+        "Uses wildcard scope or claims cleanup, ownership, exception, or framework semantics from common target shapes",
+        "Reports truncated or insufficient evidence as a confirmed violation"
+      ],
+      "files": []
     }
   ]
 }
