@@ -1,15 +1,13 @@
 # How Scruple works
 
-Scruple's language-agnostic engine uses language-specific parsers to find bounded code targets,
-applicable downstream rules to select candidates and define reporting policy, and a provider to answer
-narrow questions. A rule may use the provider once to decide whether an ambiguous target is relevant
-and again to decide whether a selected candidate violates the rule.
+Language-specific parsers find bounded code targets. Rules select candidates and define reporting
+policy. A provider answers the rules' narrow questions. A rule may ask first whether an ambiguous
+target is relevant, then whether a selected candidate violates the rule.
 
 ## One resource bug, end to end
 
-This TypeScript example illustrates a specialized rule, not a maintained first-party rule pack. Its
-policy depends on JavaScript resource ownership and failure behavior; it is not a universal rule for
-other languages.
+This TypeScript example uses an unsupported rule from `examples/rules`. Its resource-ownership policy
+does not apply automatically to other languages.
 
 Consider a file handle that closes only when every preceding operation succeeds:
 
@@ -77,12 +75,9 @@ default `filePatterns`; `supports(filename)` routes files to it. Overlapping sup
 a fallback order. The CLI uses parser patterns unless the caller supplies `include` or positional
 patterns.
 
-A parser produces normalized documents with source locations and the targets and facts its language
-supports. Plugins consume these contracts rather than a serialized parser-specific syntax tree.
-Scruple maintains blessed language-specific parsers. OXC supports `javascript`, `jsx`, `typescript`,
-and `tsx` and can recognize custom test callees. Tree-sitter-backed packages support Python, Go,
-Rust, and SQL. Another language needs its own parser implementation and normalized evidence contract.
-Parsers may load asynchronously; the engine awaits each document before selecting applicable rules.
+A parser returns normalized source locations, targets, and facts. OXC parses JavaScript and
+TypeScript; Tree-sitter packages parse Python, Go, Rust, and SQL. Parsers may be synchronous or
+asynchronous.
 
 ## Run only applicable rules
 

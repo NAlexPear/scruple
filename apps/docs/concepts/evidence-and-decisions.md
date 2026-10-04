@@ -3,9 +3,8 @@
 Scruple does not ask a model to review an entire repository or produce free-form findings. Plugins
 choose bounded targets and define the evidence and answer shape before every request is made.
 
-The engine is language-agnostic; evidence is not. A language-specific parser exposes facts, and
-downstream rule authors decide which facts justify a decision for each declared language and
-framework. Shared target shapes do not establish that a rule works across languages.
+The engine can route many languages, but evidence remains language-specific. Rule authors decide
+which parser facts justify a decision and test every declared language and framework.
 
 ## Collection and decision questions
 
@@ -20,8 +19,7 @@ and reporting thresholds.
 ## A complete decision request
 
 For the function in the [end-to-end example](./how-it-works.md#one-resource-bug-end-to-end), the
-illustrative `resources/require-cleanup-on-failure` rule creates this provider request. This is a
-specialized TypeScript example, not a maintained first-party package to install:
+example `resources/require-cleanup-on-failure` rule creates this provider request:
 
 ```json
 {

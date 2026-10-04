@@ -1,22 +1,17 @@
 # Introduction
 
-Scruple is a language-agnostic engine for turning engineering judgment into named, tested code checks.
-Language-specific parsers read the source; downstream rules own the standards being checked.
+Scruple turns engineering standards into named, tested code checks. Language-specific parsers read
+the source; project-owned rules define what to check.
 
 ## What Scruple maintains
 
-Scruple maintains core parser and rule interfaces, the execution engine and CLI, blessed
-language-specific parser packages, providers, rule-authoring/testing skills, and eval tooling. OXC is
-the blessed parser for JavaScript, JSX, TypeScript, and TSX. Scruple also provides blessed Python, Go,
-Rust, and SQL parser packages backed by Tree-sitter.
+Scruple publishes the engine, CLI, parser packages, providers, eval tooling, and agent skills. OXC
+parses JavaScript and TypeScript. Tree-sitter packages parse Python, Go, Rust, and SQL.
 
-Language and framework policy belongs to downstream rule authors. Scruple is stopping publication of
-maintained first-party rule packs. Existing specialized rules are moving to unsupported examples and
-test implementations in a separate branch. They illustrate extension contracts, not a supported
-rule catalog.
+Scruple does not publish rule packs. The rules under `examples/rules` are unsupported examples and
+test fixtures. Projects own their rule policy, evidence, diagnostics, tests, and maintenance.
 
-Normalized source contracts let parsers and rules cooperate. They do not establish that any rule is
-correct for every language. Rule authors declare applicability and test it for each supported
+Shared parser contracts do not make rules portable. Rule authors declare and test each supported
 language and framework.
 
 ## What Scruple checks
@@ -42,7 +37,7 @@ Every part is explicit in `scruple.config.ts`:
 
 - **Parsers:** one parser or an array, each owning language IDs, default file patterns, and file support.
 - **Provider:** which adapter answers typed questions, using a hosted or local model.
-- **Plugins:** which downstream rule implementations are available.
+- **Plugins:** which rule implementations are available.
 - **Rules:** which checks are enabled and how serious their findings are.
 - **Scope:** which files are included or ignored.
 

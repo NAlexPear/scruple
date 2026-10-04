@@ -85,9 +85,9 @@ export default defineConfig({
         customTemplateVariables: {
           title: "Scruple",
           description:
-            "Scruple turns engineering judgment into testable code checks with a language-agnostic engine, blessed language-specific parsers, and downstream rules.",
+            "Scruple turns engineering judgment into testable code checks with language-specific parsers and project-owned rules.",
           details:
-            "Scruple maintains core interfaces, parsers, providers, authoring/testing skills, and eval tooling, not first-party rule packs. Use these docs to configure parsers and providers or author and test language-scoped rules.",
+            "Configure parsers and providers, then author and test rules for the languages and frameworks your project supports.",
         },
       }),
     ],

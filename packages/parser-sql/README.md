@@ -1,6 +1,6 @@
 # @scruple/parser-sql
 
-Tree-sitter-backed SQL parser adapter for [Scruple](https://github.com/NAlexPear/scruple).
+SQL parser for [Scruple](https://github.com/NAlexPear/scruple), backed by Tree-sitter.
 
 ```sh
 pnpm add --save-dev @scruple/parser-sql
@@ -12,10 +12,9 @@ import { sqlParser } from "@scruple/parser-sql";
 const parser = sqlParser();
 ```
 
-The parser advertises the `sql` language ID and supports `.sql` files. Parsing is asynchronous
-because its Tree-sitter grammar is loaded as WebAssembly. It normalizes comments, `CREATE FUNCTION`
-declarations, and calls within those functions. SQL dialect extensions outside the bundled generic
-grammar are reported as parse issues rather than silently treated as normalized evidence.
+Parses `.sql` files as `sql` with a generic SQL grammar. It extracts comments, `CREATE FUNCTION`
+declarations, and calls inside those functions. Unsupported dialect syntax appears in `issues`.
+`parse` returns a promise while the bundled WebAssembly grammar loads.
 
 The bundled grammar is from
 [`@l1xnan/tree-sitter-sql` 0.4.7](https://github.com/l1xnan/tree-sitter-sql/releases/tag/v0.4.7),

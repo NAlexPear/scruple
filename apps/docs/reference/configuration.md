@@ -39,23 +39,24 @@ Scruple maintains these interfaces, not first-party language or framework rule p
 ## Parser contract
 
 A `SourceParser` supplies an `id`, the concrete `languages` it may return, default `filePatterns`, a
-`supports(filename)` predicate, and `parse(filename, source)`. Parsing may return a document directly
-or a promise, allowing parsers to initialize runtimes such as WebAssembly. Parsed documents contain
-normalized targets and source locations rather than serialized syntax trees. A parsed document's
-`language` must be one advertised by its parser. Configure an array of parsers to analyze multiple
-languages. Each file must match at most one parser; overlapping parser support is reported as an
-operational error. Parser IDs must be unique, and the array must not be empty. Files with no
-supporting parser are skipped.
+`supports(filename)` predicate, and `parse(filename, source)`. `parse` may return a document or a
+promise. Parsed documents contain normalized targets and source locations, not parser-specific syntax
+trees. The returned `language` must appear in the parser's `languages`.
+
+Configure an array to parse multiple languages. Parser IDs must be unique, and each file may match
+only one parser. Files with no matching parser are skipped.
 
 When neither positional patterns nor `include` are supplied, the CLI combines and deduplicates the
 configured parsers' `filePatterns`. Positional patterns override `include`. Discovery patterns do not
 change parser support: `supports` remains authoritative for all files passed to the engine.
 
-Scruple maintains blessed language-specific parsers. `@scruple/parser-oxc` supports JavaScript, JSX,
-TypeScript, and TSX. Tree-sitter-backed `@scruple/parser-python`, `@scruple/parser-go`,
-`@scruple/parser-rust`, and `@scruple/parser-sql` support their named languages. Additional languages
-need their own parser implementations of this contract, not project-owned copies of extension lists
-or rule applicability tables.
+Official parsers:
+
+- `@scruple/parser-oxc`: JavaScript, JSX, TypeScript, and TSX
+- `@scruple/parser-python`: Python
+- `@scruple/parser-go`: Go
+- `@scruple/parser-rust`: Rust
+- `@scruple/parser-sql`: SQL
 
 ## Provider contract
 

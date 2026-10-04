@@ -1,9 +1,7 @@
 # Benchmarks
 
-Scruple's recorded comparison uses ten pinned code examples of specialized rules. These rules are
-becoming unsupported examples/test implementations, not maintained first-party rule packs. Scruple
-maintains eval tooling; downstream authors own the rules and representative fixtures for their
-languages and frameworks.
+This comparison uses ten pinned examples from the unsupported rules under `examples/rules`. Projects
+must maintain representative fixtures for their own languages and frameworks.
 
 Each tool gets the same ten examples twice, for 20 measured case evaluations. Repeating a case does
 not make it a new code pattern, and these results do not establish correctness in other languages.

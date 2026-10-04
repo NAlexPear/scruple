@@ -1,6 +1,6 @@
 # @scruple/parser-go
 
-Tree-sitter-backed Go parser adapter for [Scruple](https://github.com/NAlexPear/scruple).
+Go parser for [Scruple](https://github.com/NAlexPear/scruple), backed by Tree-sitter.
 
 ```sh
 pnpm add --save-dev @scruple/parser-go
@@ -12,9 +12,9 @@ import { goParser } from "@scruple/parser-go";
 const parser = goParser();
 ```
 
-The parser advertises the `go` language ID and supports `.go` files. Parsing is asynchronous because
-its Tree-sitter grammar is loaded as WebAssembly. It normalizes imports, comments, functions,
-methods, and calls. Go has no exception handlers, so `errorHandlers` is empty.
+Parses `.go` files as `go`. It extracts imports, comments, functions, methods, and calls. Go has no
+exception handlers, so `errorHandlers` is empty. `parse` returns a promise while the bundled
+WebAssembly grammar loads.
 
 The bundled grammar is from
 [`tree-sitter-go` 0.25.0](https://github.com/tree-sitter/tree-sitter-go/releases/tag/v0.25.0)

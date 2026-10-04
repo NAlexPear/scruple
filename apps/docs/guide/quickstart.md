@@ -2,10 +2,8 @@
 
 Scruple requires Node.js 22.18 or newer. Run it after compilers and linters.
 
-This guide connects the blessed JavaScript/TypeScript parser, OXC, to the
-[Jev provider](../providers/jev.md), then shows where your own rules belong. Scruple maintains the
-engine, language-specific parsers, providers, authoring/testing skills, and eval tooling—not
-first-party rule packs.
+This guide configures the OXC JavaScript/TypeScript parser and the
+[Jev provider](../providers/jev.md), then adds a project-owned rule.
 
 ## 1. Install the packages
 
@@ -43,9 +41,8 @@ This starter configuration parses files but enables no semantic checks. Installi
 install rules, and registering a plugin does not enable its rules.
 
 `parser` accepts one parser or a non-empty array. OXC advertises `javascript`, `jsx`, `typescript`, and
-`tsx`, plus the file patterns it handles. The other blessed packages are `@scruple/parser-python`,
-`@scruple/parser-go`, `@scruple/parser-rust`, and `@scruple/parser-sql`. The language-agnostic engine
-does not parse arbitrary languages itself. See
+`tsx`, plus the file patterns it handles. Use `@scruple/parser-python`, `@scruple/parser-go`,
+`@scruple/parser-rust`, or `@scruple/parser-sql` for those languages. See
 [file selection](./configuration.md#file-selection) before combining parsers.
 
 ## 3. Run Scruple
@@ -91,8 +88,7 @@ The `todos` key supplies the namespace. The plugin declares supported language I
 override that scope. Scruple runs the rule only on matching documents and reports an enabled rule
 whose scope matches none of the configured parsers.
 
-You can also use a downstream plugin whose authors maintain the languages and frameworks you need.
+You can also use a third-party plugin whose authors maintain the languages and frameworks you need.
 Review its evidence, tests, and evals before enabling it. Existing specialized Scruple rules are
-becoming unsupported examples/test implementations in a separate branch, not maintained installable
-rule packs. The [authoring skills](./agent-skills.md) and eval tooling help you develop and validate
-your own policy.
+kept under `examples/rules` as unsupported examples and test fixtures. The
+[authoring skills](./agent-skills.md) and eval tooling help you develop and validate your own policy.

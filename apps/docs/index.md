@@ -1,7 +1,7 @@
 ---
 layout: home
 title: Code checks for problems linters miss
-description: A language-agnostic engine for semantic code checks, with blessed language-specific parsers, typed decision providers, and rules your team owns.
+description: Semantic code checks with language-specific parsers, typed decision providers, and rules your team owns.
 ---
 
 <section class="landing-splash" aria-labelledby="landing-title">
@@ -10,8 +10,8 @@ description: A language-agnostic engine for semantic code checks, with blessed l
       <p class="landing-kicker"><span></span>Language-agnostic code checks</p>
       <h1 id="landing-title">Make good taste<br><em>enforceable.</em></h1>
       <p>
-        Scruple turns engineering judgment into testable code checks. Combine blessed
-        language-specific parsers, typed decision providers, and rules your team owns.
+        Scruple turns engineering judgment into testable code checks. Combine language-specific
+        parsers, typed decision providers, and rules your team owns.
       </p>
       <div class="landing-actions">
         <a class="landing-primary" href="/guide/quickstart">
@@ -34,7 +34,7 @@ description: A language-agnostic engine for semantic code checks, with blessed l
   </article>
   <article>
     <span>02</span>
-    <div><h2>Own your standards</h2><p>Downstream rules declare language applicability, select evidence, and ask narrow questions with defined answers.</p></div>
+    <div><h2>Own your standards</h2><p>Rules declare language applicability, select evidence, and ask narrow questions with defined answers.</p></div>
   </article>
   <article>
     <span>03</span>
@@ -106,12 +106,12 @@ description: A language-agnostic engine for semantic code checks, with blessed l
     <p class="landing-kicker"><span></span>Your languages. Your rules.</p>
     <h2 id="landing-taste-title">Put your team's taste<br>in the repository.</h2>
     <p>
-      Scruple maintains the core interfaces, blessed parsers, providers, authoring/testing skills,
-      and eval tooling. Downstream authors maintain language and framework rules—not Scruple.
+      Scruple maintains the engine, parsers, providers, agent skills, and eval tooling. You maintain
+      the rules for your languages and frameworks.
     </p>
     <p>
-      First-party rule packs are being retired into unsupported examples and test implementations.
-      A shared engine does not make a rule correct for every language: declare its scope and test it.
+      The rules in this repository are unsupported examples and test fixtures. A shared engine does
+      not make a rule portable: declare its scope and test it.
     </p>
     <a href="/guide/writing-a-plugin">
       Write a rule

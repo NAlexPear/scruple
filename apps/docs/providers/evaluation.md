@@ -1,9 +1,8 @@
 # Provider evaluation
 
-These recorded results use specialized rule fixtures, not a maintained first-party rule distribution.
-Scruple maintains eval tooling so downstream authors can measure their own language/framework rules.
-The results below do not establish rule or model correctness for other languages; rerun representative
-finding, safe, and abstention cases for each language and framework you support.
+These results use the unsupported rules and fixtures under `examples/rules`. They do not establish
+correctness for other languages or frameworks. Evaluate representative finding, safe, and abstention
+cases for every scope your rules support.
 
 We evaluated eight provider and model choices against Scruple's full suite of 187 fixtures. **Jev
 1.13 is the best default and the strongest overall choice:** it combines the highest strict

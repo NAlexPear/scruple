@@ -32,19 +32,16 @@ control on every documentation page.
 
 ## What Scruple maintains
 
-Scruple maintains the core parser and rule interfaces, the execution engine and CLI, blessed
-language-specific parser packages, decision providers, rule-authoring and testing skills, and eval
-tooling. The blessed parsers are `@scruple/parser-oxc` for JavaScript and TypeScript plus
-`@scruple/parser-python`, `@scruple/parser-go`, `@scruple/parser-rust`, and `@scruple/parser-sql`.
+Scruple publishes the engine, CLI, parser packages, decision providers, eval tooling, and agent
+skills. Use `@scruple/parser-oxc` for JavaScript and TypeScript. Python, Go, Rust, and SQL each have
+their own `@scruple/parser-*` package.
 
-Downstream authors own language- and framework-specific rules: their evidence selection, policy,
-diagnostics, tests, and maintenance. Scruple is stopping publication of maintained first-party rule
-packs. Existing specialized rules are moving to unsupported examples and test implementations in a
-separate branch; they are not a supported rule distribution.
+Scruple does not publish rule packs. Projects own their rules, including evidence selection,
+diagnostics, tests, and supported languages and frameworks. The rules under `examples/rules` are
+unsupported examples and test fixtures.
 
-**Language-agnostic orchestration does not make a rule language-independent.** Parsers advertise the
-languages and file patterns they support. Plugins and rules declare their language applicability,
-which authors must validate with representative tests and evals.
+A rule's language scope controls routing; it does not prove the rule is portable. Test every language
+and framework the rule claims to support.
 
 ## Where Scruple fits
 
@@ -103,8 +100,8 @@ pnpm exec scruple --format json
 
 `parser` accepts one `SourceParser` or a non-empty array of parsers. Each parser owns its language IDs,
 default file patterns, and `supports(filename)` predicate. Each file must match at most one parser.
-Parsers may initialize asynchronously; the engine awaits them before running applicable rules. The
-engine runs rules only on documents matching their declared language scope. See
+`parse` may be synchronous or asynchronous. The engine runs rules only on documents matching their
+declared language scope. See
 [configuration](https://scruple.dev/guide/configuration#file-selection) for multi-language projects.
 
 The CLI caches successful decisions in `node_modules/.cache/scruple`, including collection
@@ -185,10 +182,9 @@ syntax.
 
 ## Plugins and rules
 
-Scruple has no core policy or maintained first-party rule packs. Downstream plugins provide
-independently publishable rules, and consumers choose which to trust and enable. A plugin declares
-`languages`, and an individual rule may override that scope. Shared source contracts do not establish
-correctness across languages or frameworks; the rule author owns that evidence.
+Scruple does not bundle policy. Plugins provide rules, and projects choose which to enable. A plugin
+declares `languages`; an individual rule may override that scope. Rule authors must test every
+language and framework they claim to support.
 
 ### Put your team's taste in the repository
 

@@ -1,9 +1,8 @@
 # Write a plugin
 
-We will build a downstream rule that checks TODO comments in JavaScript and TypeScript. You own its
+We will build a project rule that checks TODO comments in JavaScript and TypeScript. You own its
 language scope, evidence, diagnostic policy, tests, and maintenance. Scruple supplies the interfaces,
-blessed language-specific parsers, providers, authoring/testing skills, and eval tooling; it does not
-publish maintained first-party rule packs.
+parsers, providers, agent skills, and eval tooling; it does not publish rule packs.
 
 - `// TODO: fix later` is an obvious TODO and should warn.
 - `// Revisit this later` is less obvious, but should also warn.

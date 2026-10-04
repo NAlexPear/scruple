@@ -3,10 +3,8 @@
 Scruple ships four [Agent Skills](https://agentskills.io/) that give coding agents its current
 extension contracts, design constraints, tests, and repository workflows.
 
-Rule-authoring and testing skills are part of Scruple's maintained surface alongside core interfaces,
-blessed language-specific parsers, providers, and eval tooling. They help downstream authors build
-and maintain their own language/framework rules; they do not supply a maintained first-party rule
-pack. Existing specialized rules are becoming unsupported examples and test implementations.
+The skills cover Scruple's current interfaces and workflows. They help authors build and maintain
+project-owned language and framework rules; they do not install or supply rule packs.
 
 Skills provide instructions to your coding agent; they do not install Scruple packages or replace the
 `scruple` CLI. Review agent changes and run the verification commands the skill recommends.

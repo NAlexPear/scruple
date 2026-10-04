@@ -17,11 +17,9 @@ export default defineConfig({
 
 `defineConfig` preserves plugin-specific rule option types, so an editor can validate namespaced rule IDs and option objects.
 
-The parser is language-specific; Scruple maintains blessed parser packages such as
-`@scruple/parser-oxc` for JavaScript/TypeScript and Tree-sitter-backed packages for Python, Go, Rust,
-and SQL. Supply one parser or a non-empty array. Plugins come from your own code or downstream
-authors, not a maintained first-party rule pack. They declare their language applicability; callers
-register and enable rules rather than assigning languages to them.
+Use one language-specific parser or an array. Scruple publishes `@scruple/parser-oxc` for JavaScript
+and TypeScript and Tree-sitter parsers for Python, Go, Rust, and SQL. Plugins come from your project or
+another package. Plugins and rules declare their own language scopes.
 
 ## Rules
 
@@ -89,7 +87,7 @@ Separate multiple rule IDs with commas. Omit rule IDs to affect every active rul
 Scruple checks suppression before collection classification and again before final evaluation. A
 suppressed target therefore consumes no provider tokens and produces no `--explain` decision. The
 examples above use JavaScript comment syntax. Other languages depend on their parser exposing
-comments with accurate locations. A downstream rule can review suppression scope and rationale.
+comments with accurate locations. A rule can review suppression scope and rationale.
 
 ## File selection
 
