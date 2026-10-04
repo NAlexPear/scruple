@@ -22,6 +22,23 @@ the executable implementation task, especially the packaged contract checker and
 abstention behavior. It did not demonstrate incremental value on the two architecture-judgment tasks;
 the unassisted agent already satisfied those rubrics.
 
+## Multi-language expansion
+
+A later paired run exercised `bounded-choice-rule` over normalized TypeScript and Python comments.
+Both artifacts passed their four self-authored tests, used the real OXC adapter for TypeScript,
+clearly labeled Python as a synthetic parser contract fixture, preserved language/location metadata,
+tested source-string near misses, and covered diagnosis boundaries and safe/unknown answers.
+
+The treatment nevertheless **failed** the bounded-evidence requirement: a 100,000-character
+normalized comment produced a 100,873-character serialized state/question request. The control
+bounded comment and enclosing context and produced a 2,653-character request for the same target.
+Task-level result for this pair: treatment **0/1**, control **1/1**. Passing self-authored tests did
+not detect the defect. The skill and task rubric were strengthened to state explicitly that
+normalized facts can still be unbounded and to require an oversized-comment request-size test.
+
+- Multi-language treatment: [thread](https://ampcode.com/threads/T-01a10438-53db-728e-8089-90faaea0d256)
+- Multi-language control: [thread](https://ampcode.com/threads/T-01a10438-5a32-74be-a36d-a49a3cc2ee08)
+
 ## Run records
 
 - Implementation treatment: [thread](https://ampcode.com/threads/T-01a10422-ec9e-710e-9298-9ff1f968da1d)
@@ -36,7 +53,9 @@ The control failed for the two reasons above; no agent self-report was used as a
 
 ## Interpretation and next evaluation
 
-Keep the implementation workflow and checker. Do not claim that this run proves broad agent-quality
-improvement. Repeat the implementation task across additional models or seeds, and add a harder
-judgment task whose correct answer is not already strongly cued by the user request. Report scripted
-artifact acceptance separately from live provider accuracy.
+Keep the Express implementation workflow and checker, but do not claim that these runs prove broad
+agent-quality improvement. Across four authoring tasks, treatment passed 3/4 and control passed 3/4;
+the arms failed different implementation tasks. Add an executable checker for the portable-comment
+task before relying on it, repeat both implementation tasks across additional models or seeds, and
+add a harder judgment task whose correct answer is not already strongly cued by the user request.
+Report scripted artifact acceptance separately from live provider accuracy.

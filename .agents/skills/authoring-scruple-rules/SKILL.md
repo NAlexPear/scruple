@@ -27,7 +27,7 @@ Rust, or framework adapter exists because the engine accepts arbitrary language 
 
 1. Define an options type. Reuse `DecisionRuleOptions` and `resolveDecisionOptions` for probability thresholds when appropriate. `threshold` is always `{ warning: number; error: number }`, with `warning <= error`; never accept the old numeric form.
 2. Implement a `RuleFactory<Options>` that validates options when instantiated.
-3. In `collect`, select possible targets deterministically, preserve source order, and send only bounded evidence needed by the question.
+3. In `collect`, select possible targets deterministically, preserve source order, and send only bounded evidence needed by the question. Normalized facts are not necessarily small: independently bound comment values, function bodies, imports, calls, and surrounding context before adding them to `state`.
 4. When candidate recognition itself requires judgment, return an asynchronous rule and call `context.provider.evaluate(target, request, context.signal)`. Do not call a provider directly or bypass engine suppression and accounting.
 5. Give each candidate exactly one fixed `noul`, `choice`, or `score` question. Use named, mutually distinguishable criteria.
 6. Include `insufficient_context` whenever hidden callers, helpers, configuration, middleware, types, or runtime behavior could change the answer.

@@ -9,10 +9,12 @@
         "Uses normalized comment values and preserves locations for both languages",
         "Declares required plugin languages and justifies any wildcard from prose-only semantics",
         "Tests code-string near misses, severity/confidence boundaries, and safe/unknown answers",
+        "Bounds normalized comment and surrounding-context evidence and tests serialized request size with an oversized comment",
         "Keeps ownership and tests downstream; no Scruple package registry change required"
       ],
       "reject_if": [
         "Strips JavaScript delimiters from all languages or discovers comments with source regex",
+        "Copies an unbounded normalized comment value or enclosing source into provider state",
         "Omits plugin languages or treats compilation as semantic evaluation"
       ],
       "files": []
