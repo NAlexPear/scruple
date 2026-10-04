@@ -4,6 +4,7 @@ import type {
   DecisionAnswer,
   DecisionProvider,
   DecisionResponse,
+  ParserConfiguration,
   PluginMap,
   RuleCandidate,
   RuleConfiguration,
@@ -108,7 +109,7 @@ export interface EvalRunReport {
 export interface RunEvaluationOptions {
   concurrency?: number;
   fixtures: readonly EvalFixture[];
-  parser: SourceParser;
+  parser: ParserConfiguration;
   plugins: PluginMap;
   rules?: Record<string, RuleConfiguration>;
   provider: DecisionProvider;
@@ -163,7 +164,7 @@ export const parseEvalFixtures = (value: unknown): EvalFixture[] => {
 
 export const validateEvalCorpus = async (
   fixtures: readonly EvalFixture[],
-  parser: SourceParser,
+  parser: ParserConfiguration,
   plugins: PluginMap,
 ): Promise<void> => {
   const fixturesByRule = new Map<string, EvalFixture[]>();
@@ -231,9 +232,10 @@ export const validateEvalCorpus = async (
 export const collectEvalCandidates = async (
   fixture: EvalFixture,
   rule: AnySemanticRule,
-  parser: SourceParser,
+  parser: ParserConfiguration,
 ): Promise<RuleCandidate[]> => {
-  const document = await parser.parse(fixture.filename, fixture.source);
+  const selectedParser = selectFixtureParser(fixture, parser);
+  const document = await selectedParser.parse(fixture.filename, fixture.source);
   if (fixture.collectionChoices === undefined) {
     return rule.collect(document);
   }
@@ -275,7 +277,7 @@ export const collectEvalCandidates = async (
 
 export const runEvalCase = async (
   fixture: EvalFixture,
-  parser: SourceParser,
+  parser: ParserConfiguration,
   plugins: PluginMap,
   ruleConfiguration: RuleConfiguration,
   provider: DecisionProvider,
@@ -362,6 +364,23 @@ export const runEvalCase = async (
       outputTokens: result.stats.outputTokens,
     },
   };
+};
+
+const selectFixtureParser = (
+  fixture: EvalFixture,
+  configuration: ParserConfiguration,
+): SourceParser => {
+  const parsers = Array.isArray(configuration) ? configuration : [configuration];
+  const matches = parsers.filter((parser) => parser.supports(fixture.filename));
+  if (matches.length === 0) {
+    throw new Error(`No parser supports evaluation fixture: ${fixture.filename}`);
+  }
+  if (matches.length > 1) {
+    throw new Error(
+      `Multiple parsers support evaluation fixture ${fixture.filename}: ${matches.map((parser) => parser.id).join(", ")}`,
+    );
+  }
+  return matches[0]!;
 };
 
 const ratio = (numerator: number, denominator: number): number | null =>

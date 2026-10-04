@@ -11,8 +11,7 @@ import {
   type EvalRunReport,
 } from "@scruple/eval";
 import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
-import { evaluationPlugins } from "@scruple/eval/plugins";
-import { oxcParser } from "@scruple/parser-oxc";
+import { evaluationParsers, evaluationPlugins } from "@scruple/eval/plugins";
 
 import { createCloudflareProvider } from "./cloudflare-provider.js";
 import { createDeciderProvider } from "./decider-provider.js";
@@ -52,7 +51,7 @@ const runRepetitions = async (
   const report = await runEvaluation({
     concurrency,
     fixtures,
-    parser: oxcParser(),
+    parser: evaluationParsers(),
     plugins,
     provider,
     providerName,
@@ -103,7 +102,7 @@ try {
       await readFile(new URL("../../../tests/eval-fixtures.json", import.meta.url), "utf8"),
     );
     const fixtures = parseEvalFixtures(rawFixtures);
-    await validateEvalCorpus(fixtures, oxcParser(), plugins);
+    await validateEvalCorpus(fixtures, evaluationParsers(), plugins);
     const runs = (
       await Promise.all(
         options.models.map((model) =>

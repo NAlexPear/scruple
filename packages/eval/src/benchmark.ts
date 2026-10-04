@@ -1,4 +1,9 @@
-import type { DecisionProvider, PluginMap, RuleConfiguration, SourceParser } from "@scruple/core";
+import type {
+  DecisionProvider,
+  ParserConfiguration,
+  PluginMap,
+  RuleConfiguration,
+} from "@scruple/core";
 import { runEvalCase, type EvalCaseResult, type EvalFixture } from "@scruple/eval";
 
 export interface BenchmarkSample {
@@ -73,7 +78,7 @@ export interface BenchmarkReport {
 
 export interface RunBenchmarkOptions {
   fixtures: readonly EvalFixture[];
-  parser: SourceParser;
+  parser: ParserConfiguration;
   plugins: PluginMap;
   rules?: Record<string, RuleConfiguration>;
   provider: DecisionProvider;

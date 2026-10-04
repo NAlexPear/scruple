@@ -22,7 +22,7 @@ import {
   type EvalFixture,
 } from "@scruple/eval";
 import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
-import { evaluationPlugins } from "@scruple/eval/plugins";
+import { evaluationParsers, evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
 await test("evaluation options support providers, repeated models, and bounded concurrency", () => {
@@ -132,7 +132,7 @@ await test("evaluation corpus covers every registered rule with exact candidates
   );
   const fixtures = parseEvalFixtures(raw);
   const plugins = evaluationPlugins();
-  const parser = oxcParser();
+  const parser = evaluationParsers();
 
   await assert.doesNotReject(validateEvalCorpus(fixtures, parser, plugins));
   for (const ruleId of [
@@ -146,6 +146,31 @@ await test("evaluation corpus covers every registered rule with exact candidates
       fixtures.some((fixture) => fixture.ruleId === ruleId),
       `${ruleId} must be covered`,
     );
+  }
+});
+
+await test("evaluation corpus exercises every real language parser", async () => {
+  const raw: unknown = JSON.parse(
+    await readFile(new URL("./eval-fixtures.json", import.meta.url), "utf8"),
+  );
+  const fixtures = parseEvalFixtures(raw);
+  const parsers = evaluationParsers();
+  const factory = evaluationPlugins()["comments"]?.rules["require-actionable-todos"];
+  assert.ok(factory);
+
+  for (const language of ["python", "go", "rust", "sql"] as const) {
+    const languageFixtures = fixtures.filter((fixture) => fixture.tags.includes(language));
+    assert.equal(languageFixtures.length, 2, `${language} requires finding and safe fixtures`);
+    assert.deepEqual(
+      new Set(languageFixtures.map((fixture) => fixture.expectedFinding)),
+      new Set([true, false]),
+    );
+    for (const fixture of languageFixtures) {
+      const parser = parsers.find((candidate) => candidate.supports(fixture.filename));
+      assert.ok(parser);
+      assert.equal((await parser.parse(fixture.filename, fixture.source)).language, language);
+      assert.equal((await collectEvalCandidates(fixture, factory(), parsers)).length, 1);
+    }
   }
 });
 

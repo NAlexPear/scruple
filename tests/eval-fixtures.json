@@ -1926,6 +1926,86 @@
       "expected_abstention": true,
       "rationale": "The fixture does not show whether project setup globally seeds or mocks Math.random.",
       "tags": ["negative", "abstention", "test-setup"]
+    },
+    {
+      "id": "python-todo-vague",
+      "filename": "worker.py",
+      "source": "def process(item):\n    # TODO: fix this later\n    return legacy_process(item)\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": true,
+      "collection_choices": ["todo"],
+      "rationale": "The Python TODO requests future work without identifying what must change.",
+      "tags": ["positive", "python", "todo"]
+    },
+    {
+      "id": "python-todo-actionable",
+      "filename": "worker.py",
+      "source": "def process(item):\n    # TODO: remove the legacy decoder after v1 payloads are retired\n    return legacy_process(item)\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": false,
+      "collection_choices": ["todo"],
+      "rationale": "The Python TODO identifies both the concrete change and its removal condition.",
+      "tags": ["negative", "python", "todo"]
+    },
+    {
+      "id": "go-todo-vague",
+      "filename": "worker.go",
+      "source": "package worker\n\nfunc process(item string) string {\n\t// TODO: handle this better\n\treturn legacyProcess(item)\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": true,
+      "collection_choices": ["todo"],
+      "rationale": "The Go TODO gives no concrete meaning to better handling.",
+      "tags": ["positive", "go", "todo"]
+    },
+    {
+      "id": "go-todo-actionable",
+      "filename": "worker.go",
+      "source": "package worker\n\nfunc process(item string) string {\n\t// TODO: delete the compatibility branch when API v1 reaches end of life\n\treturn legacyProcess(item)\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": false,
+      "collection_choices": ["todo"],
+      "rationale": "The Go TODO identifies a concrete deletion and the condition that permits it.",
+      "tags": ["negative", "go", "todo"]
+    },
+    {
+      "id": "rust-todo-vague",
+      "filename": "worker.rs",
+      "source": "fn process(item: &str) -> String {\n    // TODO: clean this up\n    legacy_process(item)\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": true,
+      "collection_choices": ["todo"],
+      "rationale": "The Rust TODO does not identify the cleanup it requests.",
+      "tags": ["positive", "rust", "todo"]
+    },
+    {
+      "id": "rust-todo-actionable",
+      "filename": "worker.rs",
+      "source": "fn process(item: &str) -> String {\n    // TODO: replace the compatibility parser after schema v3 is mandatory\n    legacy_process(item)\n}\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": false,
+      "collection_choices": ["todo"],
+      "rationale": "The Rust TODO names the replacement and the condition for performing it.",
+      "tags": ["negative", "rust", "todo"]
+    },
+    {
+      "id": "sql-todo-vague",
+      "filename": "migration.sql",
+      "source": "-- TODO: revisit this\nSELECT account_id FROM accounts;\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": true,
+      "collection_choices": ["todo"],
+      "rationale": "The SQL TODO requests reconsideration without naming a problem or next step.",
+      "tags": ["positive", "sql", "todo"]
+    },
+    {
+      "id": "sql-todo-actionable",
+      "filename": "migration.sql",
+      "source": "-- TODO: drop legacy_status after the v2 backfill completes\nSELECT account_id FROM accounts;\n",
+      "rule_id": "comments/require-actionable-todos",
+      "expected_finding": false,
+      "collection_choices": ["todo"],
+      "rationale": "The SQL TODO names the field to remove and the prerequisite migration step.",
+      "tags": ["negative", "sql", "todo"]
     }
   ]
 }

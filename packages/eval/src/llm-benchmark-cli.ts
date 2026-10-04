@@ -11,8 +11,7 @@ import {
   verifyTaskManifest,
 } from "@scruple/eval/llm-benchmark";
 import { createOpenAiEvaluator } from "@scruple/eval/openai-evaluator";
-import { evaluationPlugins } from "@scruple/eval/plugins";
-import { oxcParser } from "@scruple/parser-oxc";
+import { evaluationParsers, evaluationPlugins } from "@scruple/eval/plugins";
 
 const HELP = `Benchmark pinned Scruple tasks with a direct hosted LLM
 
@@ -65,7 +64,7 @@ const main = async (): Promise<void> => {
   );
   const tasks = await buildLlmBenchmarkTasks(
     selectBenchmarkFixtures(fixtures, ids),
-    oxcParser(),
+    evaluationParsers(),
     evaluationPlugins(),
   );
   verifyTaskManifest(

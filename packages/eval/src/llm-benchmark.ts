@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { JsonValue, PluginMap, SourceParser } from "@scruple/core";
+import type { JsonValue, ParserConfiguration, PluginMap } from "@scruple/core";
 import { collectEvalCandidates, type EvalFixture } from "@scruple/eval";
 
 export const OPENAI_MODEL = "gpt-4.1-2025-04-14";
@@ -80,7 +80,7 @@ export interface LlmBenchmarkReport {
 
 export const buildLlmBenchmarkTasks = async (
   fixtures: readonly EvalFixture[],
-  parser: SourceParser,
+  parser: ParserConfiguration,
   plugins: PluginMap,
 ): Promise<LlmBenchmarkTask[]> => {
   const tasks = await mapConcurrent(fixtures, taskBuildConcurrency, async (fixture) => {

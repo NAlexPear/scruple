@@ -14,8 +14,7 @@ import {
   parseBenchmarkOptions,
   type BenchmarkProvider,
 } from "@scruple/eval/benchmark-options";
-import { evaluationPlugins } from "@scruple/eval/plugins";
-import { oxcParser } from "@scruple/parser-oxc";
+import { evaluationParsers, evaluationPlugins } from "@scruple/eval/plugins";
 
 import {
   createCloudflareProvider,
@@ -69,7 +68,7 @@ const runModel = async (
   try {
     return await runBenchmark({
       fixtures,
-      parser: oxcParser(),
+      parser: evaluationParsers(),
       plugins,
       provider,
       providerName,
@@ -129,7 +128,7 @@ const main = async (): Promise<void> => {
     return;
   }
   const fixtures = await loadFixtures();
-  await validateEvalCorpus(fixtures, oxcParser(), plugins);
+  await validateEvalCorpus(fixtures, evaluationParsers(), plugins);
   const selectedIds =
     options.fixtureIds.length === 0 ? await loadBenchmarkFixtureIds() : options.fixtureIds;
   const selectedFixtures = selectBenchmarkFixtures(fixtures, selectedIds);

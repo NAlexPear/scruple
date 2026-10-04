@@ -225,9 +225,21 @@ importers:
       '@scruple/example-rules':
         specifier: workspace:*
         version: link:../../examples/rules
+      '@scruple/parser-go':
+        specifier: workspace:*
+        version: link:../parser-go
       '@scruple/parser-oxc':
         specifier: workspace:*
         version: link:../parser-oxc
+      '@scruple/parser-python':
+        specifier: workspace:*
+        version: link:../parser-python
+      '@scruple/parser-rust':
+        specifier: workspace:*
+        version: link:../parser-rust
+      '@scruple/parser-sql':
+        specifier: workspace:*
+        version: link:../parser-sql
       '@scruple/provider-cloudflare':
         specifier: workspace:*
         version: link:../provider-cloudflare
