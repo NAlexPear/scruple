@@ -1,8 +1,10 @@
 import { parseArgs } from "node:util";
 
-export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
-
-export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev";
+import {
+  PROVIDER_FACTORIES,
+  parseProvider,
+  type EvaluationProvider,
+} from "./provider-factories.js";
 
 export interface EvalOptions {
   baseURL?: string;
@@ -10,7 +12,7 @@ export interface EvalOptions {
   format: "json" | "stylish";
   help: boolean;
   models: string[];
-  provider: EvalProvider;
+  provider: EvaluationProvider;
   repetitions: number;
 }
 
@@ -51,23 +53,13 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
       help: { type: "boolean", short: "h", default: false },
     },
   });
-  if (
-    values.provider !== undefined &&
-    values.provider !== "jev" &&
-    values.provider !== "decider" &&
-    values.provider !== "cloudflare" &&
-    values.provider !== "kev"
-  ) {
-    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
-  }
-  const provider = values.provider ?? "jev";
+  const provider = parseProvider(values.provider);
+  const { defaultConcurrency, defaultModel } = PROVIDER_FACTORIES[provider];
   const repetitions = Number(values.repetitions);
   if (!Number.isSafeInteger(repetitions) || repetitions < 1) {
     throw new Error("--repetitions must be a positive integer");
   }
-  const concurrency = Number(
-    values.concurrency ?? (provider === "jev" ? "64" : provider === "cloudflare" ? "4" : "1"),
-  );
+  const concurrency = Number(values.concurrency ?? defaultConcurrency);
   if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
     throw new Error("--concurrency must be a positive integer");
   }
@@ -79,18 +71,8 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     concurrency,
     format: values.format,
     help: values.help,
-    models: values.model ?? [defaultModel(provider)],
+    models: values.model ?? [defaultModel],
     provider,
     repetitions,
   };
-};
-
-const defaultModel = (provider: EvalProvider): string => {
-  if (provider === "decider") {
-    return "decider-4b-v2.1";
-  }
-  if (provider === "cloudflare") {
-    return "clef";
-  }
-  return provider === "kev" ? "jaredpalmer/kev-4b@v1.0" : DEFAULT_EVAL_MODEL;
 };

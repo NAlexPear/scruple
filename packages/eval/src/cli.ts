@@ -14,22 +14,22 @@ import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { createCloudflareProvider } from "./cloudflare-provider.js";
-import { createDeciderProvider } from "./decider-provider.js";
-import { createJevProvider } from "./jev-provider.js";
-import { createKevProvider } from "./kev-provider.js";
+import { PROVIDER_FACTORIES, type EvaluationProvider } from "./provider-factories.js";
 
 const plugins = evaluationPlugins();
 
 const runModel = async (
-  providerName: "jev" | "decider" | "cloudflare" | "kev",
+  providerName: EvaluationProvider,
   model: string,
   repetitions: number,
   concurrency: number,
   fixtures: readonly EvalFixture[],
   baseURL?: string,
 ): Promise<EvalRunReport[]> => {
-  const provider = createProvider(providerName, model, concurrency, baseURL);
+  const provider = PROVIDER_FACTORIES[providerName].create(model, {
+    concurrency,
+    ...(baseURL === undefined ? {} : { baseURL }),
+  });
   try {
     return await runRepetitions(providerName, model, repetitions, concurrency, fixtures, provider);
   } finally {
@@ -38,7 +38,7 @@ const runModel = async (
 };
 
 const runRepetitions = async (
-  providerName: "jev" | "decider" | "cloudflare" | "kev",
+  providerName: EvaluationProvider,
   model: string,
   repetitions: number,
   concurrency: number,
@@ -71,27 +71,6 @@ const runRepetitions = async (
       index + 1,
     )),
   ];
-};
-
-const createProvider = (
-  providerName: "jev" | "decider" | "cloudflare" | "kev",
-  model: string,
-  concurrency: number,
-  baseURL?: string,
-): DecisionProvider => {
-  if (providerName === "jev") {
-    return createJevProvider(model, { concurrency });
-  }
-  const options = {
-    concurrency,
-    ...(baseURL === undefined ? {} : { baseURL }),
-  };
-  if (providerName === "decider") {
-    return createDeciderProvider(model, options);
-  }
-  return providerName === "cloudflare"
-    ? createCloudflareProvider(model, options)
-    : createKevProvider(model, options);
 };
 
 try {

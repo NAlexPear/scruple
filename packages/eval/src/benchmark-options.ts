@@ -1,8 +1,10 @@
 import { parseArgs } from "node:util";
 
-import { DEFAULT_EVAL_MODEL } from "@scruple/eval/options";
-
-export type BenchmarkProvider = "jev" | "decider" | "cloudflare" | "kev";
+import {
+  PROVIDER_FACTORIES,
+  parseProvider,
+  type EvaluationProvider,
+} from "./provider-factories.js";
 
 export interface BenchmarkOptions {
   baseURL?: string;
@@ -10,7 +12,7 @@ export interface BenchmarkOptions {
   fixtureIds: string[];
   help: boolean;
   models: string[];
-  provider: BenchmarkProvider;
+  provider: EvaluationProvider;
   repetitions: number;
   warmups: number;
   workloadSize?: number;
@@ -65,16 +67,7 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
       help: { type: "boolean", short: "h", default: false },
     },
   });
-  if (
-    values.provider !== undefined &&
-    values.provider !== "jev" &&
-    values.provider !== "decider" &&
-    values.provider !== "cloudflare" &&
-    values.provider !== "kev"
-  ) {
-    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
-  }
-  const provider = values.provider ?? "jev";
+  const provider = parseProvider(values.provider);
   const warmups = parseCount(values.warmups, "--warmups", true);
   const repetitions = parseCount(values.repetitions, "--repetitions", false);
   const concurrency = parseCount(values.concurrency, "--concurrency", false);
@@ -87,22 +80,12 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
     concurrency,
     fixtureIds: values.fixture ?? [],
     help: values.help,
-    models: values.model ?? [defaultModel(provider)],
+    models: values.model ?? [PROVIDER_FACTORIES[provider].defaultModel],
     provider,
     repetitions,
     warmups,
     ...(workloadSize === undefined ? {} : { workloadSize }),
   };
-};
-
-const defaultModel = (provider: BenchmarkProvider): string => {
-  if (provider === "decider") {
-    return "decider-4b-v2.1";
-  }
-  if (provider === "kev") {
-    return "jaredpalmer/kev-4b@v1.0";
-  }
-  return provider === "cloudflare" ? "clef" : DEFAULT_EVAL_MODEL;
 };
 
 const parseCount = (value: string, option: string, allowZero: boolean): number => {

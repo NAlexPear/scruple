@@ -9,20 +9,11 @@ import {
   sizeBenchmarkWorkload,
   type BenchmarkReport,
 } from "@scruple/eval/benchmark";
-import {
-  BENCHMARK_HELP,
-  parseBenchmarkOptions,
-  type BenchmarkProvider,
-} from "@scruple/eval/benchmark-options";
+import { BENCHMARK_HELP, parseBenchmarkOptions } from "@scruple/eval/benchmark-options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import {
-  createCloudflareProvider,
-  createDeciderProvider,
-  createJevProvider,
-  createKevProvider,
-} from "./provider-factories.js";
+import { PROVIDER_FACTORIES, type EvaluationProvider } from "./provider-factories.js";
 
 const plugins = evaluationPlugins();
 
@@ -41,7 +32,7 @@ const loadBenchmarkFixtureIds = async (): Promise<string[]> => {
 };
 
 const runModel = async (
-  providerName: BenchmarkProvider,
+  providerName: EvaluationProvider,
   model: string,
   fixtures: readonly EvalFixture[],
   warmups: number,
@@ -49,23 +40,10 @@ const runModel = async (
   concurrency: number,
   baseURL?: string,
 ): Promise<BenchmarkReport> => {
-  const provider =
-    providerName === "decider"
-      ? createDeciderProvider(model, {
-          concurrency,
-          ...(baseURL === undefined ? {} : { baseURL }),
-        })
-      : providerName === "cloudflare"
-        ? createCloudflareProvider(model, {
-            concurrency,
-            ...(baseURL === undefined ? {} : { baseURL }),
-          })
-        : providerName === "kev"
-          ? createKevProvider(model, {
-              concurrency,
-              ...(baseURL === undefined ? {} : { baseURL }),
-            })
-          : createJevProvider(model, { concurrency });
+  const provider = PROVIDER_FACTORIES[providerName].create(model, {
+    concurrency,
+    ...(baseURL === undefined ? {} : { baseURL }),
+  });
   try {
     return await runBenchmark({
       fixtures,
@@ -84,7 +62,7 @@ const runModel = async (
 };
 
 const runModels = async (
-  providerName: BenchmarkProvider,
+  providerName: EvaluationProvider,
   models: readonly string[],
   fixtures: readonly EvalFixture[],
   warmups: number,
