@@ -10,52 +10,88 @@ import {
   type EvalFixture,
   type EvalRunReport,
 } from "@scruple/eval";
-import { EVAL_HELP, parseEvalOptions, type EvalOptions } from "@scruple/eval/options";
+import { EVAL_HELP, parseEvalOptions } from "@scruple/eval/options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { evalProvider } from "./provider.js";
+import { createCloudflareProvider } from "./cloudflare-provider.js";
+import { createDeciderProvider } from "./decider-provider.js";
+import { createJevProvider } from "./jev-provider.js";
+import { createKevProvider } from "./kev-provider.js";
 
 const plugins = evaluationPlugins();
 
 const runModel = async (
+  providerName: "jev" | "decider" | "cloudflare" | "kev",
   model: string,
-  options: EvalOptions,
+  repetitions: number,
+  concurrency: number,
   fixtures: readonly EvalFixture[],
+  baseURL?: string,
 ): Promise<EvalRunReport[]> => {
-  const provider = evalProvider(options.provider).create({
-    model,
-    ...(options.baseURL === undefined ? {} : { baseURL: options.baseURL }),
-    concurrency: options.concurrency,
-  });
+  const provider = createProvider(providerName, model, concurrency, baseURL);
   try {
-    return await runRepetitions(model, options, fixtures, provider);
+    return await runRepetitions(providerName, model, repetitions, concurrency, fixtures, provider);
   } finally {
     await provider.close?.();
   }
 };
 
 const runRepetitions = async (
+  providerName: "jev" | "decider" | "cloudflare" | "kev",
   model: string,
-  options: EvalOptions,
+  repetitions: number,
+  concurrency: number,
   fixtures: readonly EvalFixture[],
   provider: DecisionProvider,
   index = 0,
 ): Promise<EvalRunReport[]> => {
-  if (index >= options.repetitions) {
+  if (index >= repetitions) {
     return [];
   }
   const report = await runEvaluation({
-    concurrency: options.concurrency,
+    concurrency,
     fixtures,
     parser: oxcParser(),
     plugins,
     provider,
-    providerName: options.provider,
+    providerName,
     requestedModel: model,
     repetition: index + 1,
   });
-  return [report, ...(await runRepetitions(model, options, fixtures, provider, index + 1))];
+  return [
+    report,
+    ...(await runRepetitions(
+      providerName,
+      model,
+      repetitions,
+      concurrency,
+      fixtures,
+      provider,
+      index + 1,
+    )),
+  ];
+};
+
+const createProvider = (
+  providerName: "jev" | "decider" | "cloudflare" | "kev",
+  model: string,
+  concurrency: number,
+  baseURL?: string,
+): DecisionProvider => {
+  if (providerName === "jev") {
+    return createJevProvider(model, { concurrency });
+  }
+  const options = {
+    concurrency,
+    ...(baseURL === undefined ? {} : { baseURL }),
+  };
+  if (providerName === "decider") {
+    return createDeciderProvider(model, options);
+  }
+  return providerName === "cloudflare"
+    ? createCloudflareProvider(model, options)
+    : createKevProvider(model, options);
 };
 
 try {
@@ -69,7 +105,18 @@ try {
     const fixtures = parseEvalFixtures(rawFixtures);
     await validateEvalCorpus(fixtures, oxcParser(), plugins);
     const runs = (
-      await Promise.all(options.models.map((model) => runModel(model, options, fixtures)))
+      await Promise.all(
+        options.models.map((model) =>
+          runModel(
+            options.provider,
+            model,
+            options.repetitions,
+            options.concurrency,
+            fixtures,
+            options.baseURL,
+          ),
+        ),
+      )
     ).flat();
     process.stdout.write(
       options.format === "stylish"

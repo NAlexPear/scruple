@@ -1,0 +1,201 @@
+diff --git a/packages/eval/package.json b/packages/eval/package.json
+index a18f4f7..b5338fa 100644
+--- a/packages/eval/package.json
++++ b/packages/eval/package.json
+@@ -76,6 +76,7 @@
+     "@scruple/provider-cloudflare": "workspace:*",
+     "@scruple/provider-decider": "workspace:*",
+     "@scruple/provider-jev": "workspace:*",
++    "@scruple/provider-kev": "workspace:*",
+     "@scruple/relational-databases": "workspace:*",
+     "@scruple/resources": "workspace:*",
+     "@scruple/security": "workspace:*",
+diff --git a/packages/eval/src/cli.ts b/packages/eval/src/cli.ts
+index 19eb1c2..2ac78ec 100644
+--- a/packages/eval/src/cli.ts
++++ b/packages/eval/src/cli.ts
+@@ -17,11 +17,12 @@ import { oxcParser } from "@scruple/parser-oxc";
+ import { createCloudflareProvider } from "./cloudflare-provider.js";
+ import { createDeciderProvider } from "./decider-provider.js";
+ import { createJevProvider } from "./jev-provider.js";
++import { createKevProvider } from "./kev-provider.js";
+ 
+ const plugins = evaluationPlugins();
+ 
+ const runModel = async (
+-  providerName: "jev" | "decider" | "cloudflare",
++  providerName: "jev" | "decider" | "cloudflare" | "kev",
+   model: string,
+   repetitions: number,
+   concurrency: number,
+@@ -37,7 +38,7 @@ const runModel = async (
+ };
+ 
+ const runRepetitions = async (
+-  providerName: "jev" | "decider" | "cloudflare",
++  providerName: "jev" | "decider" | "cloudflare" | "kev",
+   model: string,
+   repetitions: number,
+   concurrency: number,
+@@ -73,7 +74,7 @@ const runRepetitions = async (
+ };
+ 
+ const createProvider = (
+-  providerName: "jev" | "decider" | "cloudflare",
++  providerName: "jev" | "decider" | "cloudflare" | "kev",
+   model: string,
+   concurrency: number,
+   baseURL?: string,
+@@ -85,9 +86,12 @@ const createProvider = (
+     concurrency,
+     ...(baseURL === undefined ? {} : { baseURL }),
+   };
+-  return providerName === "decider"
+-    ? createDeciderProvider(model, options)
+-    : createCloudflareProvider(model, options);
++  if (providerName === "decider") {
++    return createDeciderProvider(model, options);
++  }
++  return providerName === "cloudflare"
++    ? createCloudflareProvider(model, options)
++    : createKevProvider(model, options);
+ };
+ 
+ try {
+diff --git a/packages/eval/src/kev-provider.ts b/packages/eval/src/kev-provider.ts
+new file mode 100644
+index 0000000..b6de4d6
+--- /dev/null
++++ b/packages/eval/src/kev-provider.ts
+@@ -0,0 +1,21 @@
++import type { DecisionProvider } from "@scruple/core";
++import { kevProvider } from "@scruple/provider-kev";
++
++export interface KevEvaluationProviderOptions {
++  baseURL?: string;
++  concurrency?: number;
++}
++
++export const createKevProvider = (
++  checkpoint: string,
++  options: KevEvaluationProviderOptions = {},
++): DecisionProvider => {
++  const baseURL = options.baseURL ?? process.env["KEV_BASE_URL"];
++  const apiKey = process.env["KEV_API_KEY"];
++  return kevProvider({
++    checkpoint,
++    ...(apiKey === undefined ? {} : { apiKey }),
++    ...(baseURL === undefined ? {} : { baseURL }),
++    ...(options.concurrency === undefined ? {} : { concurrency: options.concurrency }),
++  });
++};
+diff --git a/packages/eval/src/options.ts b/packages/eval/src/options.ts
+index fec361e..0ff7f28 100644
+--- a/packages/eval/src/options.ts
++++ b/packages/eval/src/options.ts
+@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
+ 
+ export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
+ 
+-export type EvalProvider = "jev" | "decider" | "cloudflare";
++export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev";
+ 
+ export interface EvalOptions {
+   baseURL?: string;
+@@ -20,11 +20,11 @@ Usage:
+   pnpm eval [options]
+ 
+ Options:
+-  --provider <name>      Provider to evaluate: jev, decider, or cloudflare (default: jev)
+-  --base-url <url>       Alternate Decider or Cloudflare API base URL
++  --provider <name>      Provider to evaluate: jev, decider, cloudflare, or kev (default: jev)
++  --base-url <url>       Alternate Decider, Cloudflare, or Kev API base URL
+   --model <model>        Model to evaluate; repeat to compare models
+   --repetitions <count>  Runs per model (default: 1)
+-  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider)
++  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider/Kev)
+   -f, --format <format>  json or stylish (default: json)
+   -h, --help             Show this help
+ 
+@@ -35,6 +35,7 @@ Examples:
+   pnpm eval --model jev-1.13.0 --model jev-latest
+   pnpm eval --provider decider --base-url http://127.0.0.1:8000
+   pnpm eval --provider cloudflare --model clef --model clef-flash
++  pnpm eval --provider kev --base-url http://127.0.0.1:8009 --model jaredpalmer/kev-4b@v1.0
+ `;
+ 
+ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
+@@ -54,9 +55,10 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
+     values.provider !== undefined &&
+     values.provider !== "jev" &&
+     values.provider !== "decider" &&
+-    values.provider !== "cloudflare"
++    values.provider !== "cloudflare" &&
++    values.provider !== "kev"
+   ) {
+-    throw new Error(`--provider must be "jev", "decider", or "cloudflare"`);
++    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
+   }
+   const provider = values.provider ?? "jev";
+   const repetitions = Number(values.repetitions);
+@@ -87,5 +89,8 @@ const defaultModel = (provider: EvalProvider): string => {
+   if (provider === "decider") {
+     return "decider-4b-v2.1";
+   }
+-  return provider === "cloudflare" ? "clef" : DEFAULT_EVAL_MODEL;
++  if (provider === "cloudflare") {
++    return "clef";
++  }
++  return provider === "kev" ? "jaredpalmer/kev-4b@v1.0" : DEFAULT_EVAL_MODEL;
+ };
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 1c8e231..42f5e68 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -276,6 +276,9 @@ importers:
+       '@scruple/provider-jev':
+         specifier: workspace:*
+         version: link:../provider-jev
++      '@scruple/provider-kev':
++        specifier: workspace:*
++        version: link:../provider-kev
+       '@scruple/relational-databases':
+         specifier: workspace:*
+         version: link:../relational-databases
+diff --git a/tests/eval.test.ts b/tests/eval.test.ts
+index a0cdc7a..a16d448 100644
+--- a/tests/eval.test.ts
++++ b/tests/eval.test.ts
+@@ -65,10 +65,31 @@ await test("evaluation options support providers, repeated models, and bounded c
+     provider: "cloudflare",
+     repetitions: 1,
+   });
++  assert.deepEqual(parseEvalOptions(["--provider", "kev"]), {
++    concurrency: 1,
++    format: "json",
++    help: false,
++    models: ["jaredpalmer/kev-4b@v1.0"],
++    provider: "kev",
++    repetitions: 1,
++  });
++  assert.deepEqual(
++    parseEvalOptions([
++      "--provider",
++      "kev",
++      "--base-url",
++      "http://127.0.0.1:8009",
++      "--model",
++      "jaredpalmer/kev-0.8b@v1.0",
++      "--model",
++      "jaredpalmer/kev-27b@v1.0",
++    ]).models,
++    ["jaredpalmer/kev-0.8b@v1.0", "jaredpalmer/kev-27b@v1.0"],
++  );
+   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
+   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
+   assert.throws(() => parseEvalOptions(["--concurrency", "0"]), /positive integer/u);
+-  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider.*cloudflare/u);
++  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider.*cloudflare.*kev/u);
+   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
+   assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
+ });

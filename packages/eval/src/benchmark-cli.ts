@@ -12,12 +12,17 @@ import {
 import {
   BENCHMARK_HELP,
   parseBenchmarkOptions,
-  type BenchmarkOptions,
+  type BenchmarkProvider,
 } from "@scruple/eval/benchmark-options";
 import { evaluationPlugins } from "@scruple/eval/plugins";
 import { oxcParser } from "@scruple/parser-oxc";
 
-import { evalProvider } from "./provider.js";
+import {
+  createCloudflareProvider,
+  createDeciderProvider,
+  createJevProvider,
+  createKevProvider,
+} from "./provider-factories.js";
 
 const plugins = evaluationPlugins();
 
@@ -36,26 +41,42 @@ const loadBenchmarkFixtureIds = async (): Promise<string[]> => {
 };
 
 const runModel = async (
+  providerName: BenchmarkProvider,
   model: string,
   fixtures: readonly EvalFixture[],
-  options: BenchmarkOptions,
+  warmups: number,
+  repetitions: number,
+  concurrency: number,
+  baseURL?: string,
 ): Promise<BenchmarkReport> => {
-  const provider = evalProvider(options.provider).create({
-    model,
-    ...(options.baseURL === undefined ? {} : { baseURL: options.baseURL }),
-    concurrency: options.concurrency,
-  });
+  const provider =
+    providerName === "decider"
+      ? createDeciderProvider(model, {
+          concurrency,
+          ...(baseURL === undefined ? {} : { baseURL }),
+        })
+      : providerName === "cloudflare"
+        ? createCloudflareProvider(model, {
+            concurrency,
+            ...(baseURL === undefined ? {} : { baseURL }),
+          })
+        : providerName === "kev"
+          ? createKevProvider(model, {
+              concurrency,
+              ...(baseURL === undefined ? {} : { baseURL }),
+            })
+          : createJevProvider(model, { concurrency });
   try {
     return await runBenchmark({
       fixtures,
       parser: oxcParser(),
       plugins,
       provider,
-      providerName: options.provider,
+      providerName,
       requestedModel: model,
-      warmups: options.warmups,
-      repetitions: options.repetitions,
-      concurrency: options.concurrency,
+      warmups,
+      repetitions,
+      concurrency,
     });
   } finally {
     await provider.close?.();
@@ -63,17 +84,42 @@ const runModel = async (
 };
 
 const runModels = async (
+  providerName: BenchmarkProvider,
+  models: readonly string[],
   fixtures: readonly EvalFixture[],
-  options: BenchmarkOptions,
+  warmups: number,
+  repetitions: number,
+  concurrency: number,
+  baseURL?: string,
   index = 0,
 ): Promise<BenchmarkReport[]> => {
-  const model = options.models[index];
+  const model = models[index];
   if (model === undefined) {
     return [];
   }
-  process.stderr.write(`Benchmarking ${options.provider}/${model}...\n`);
-  const report = await runModel(model, fixtures, options);
-  return [report, ...(await runModels(fixtures, options, index + 1))];
+  process.stderr.write(`Benchmarking ${providerName}/${model}...\n`);
+  const report = await runModel(
+    providerName,
+    model,
+    fixtures,
+    warmups,
+    repetitions,
+    concurrency,
+    baseURL,
+  );
+  return [
+    report,
+    ...(await runModels(
+      providerName,
+      models,
+      fixtures,
+      warmups,
+      repetitions,
+      concurrency,
+      baseURL,
+      index + 1,
+    )),
+  ];
 };
 
 const main = async (): Promise<void> => {
@@ -91,7 +137,15 @@ const main = async (): Promise<void> => {
     options.workloadSize === undefined
       ? selectedFixtures
       : sizeBenchmarkWorkload(selectedFixtures, options.workloadSize);
-  const runs = await runModels(workload, options);
+  const runs = await runModels(
+    options.provider,
+    options.models,
+    workload,
+    options.warmups,
+    options.repetitions,
+    options.concurrency,
+    options.baseURL,
+  );
   const processors = cpus();
   process.stdout.write(
     `${JSON.stringify(

@@ -1,0 +1,8 @@
+Pod ID: v2o3g926avmxob
+Cloud: Runpod Secure Cloud
+Data center: US-MD-1
+Image: runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404
+GPU: NVIDIA A100-SXM4-80GB
+Rate USD/hour: 1.59
+Created at: 2026-10-02T01:38:37.436Z
+Packaging completed at: 2026-10-02T01:55:15Z

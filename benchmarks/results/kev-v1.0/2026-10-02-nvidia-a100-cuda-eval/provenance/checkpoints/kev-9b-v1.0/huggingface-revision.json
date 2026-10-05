@@ -1,0 +1,67 @@
+{
+  "repo": "jaredpalmer/kev-9b",
+  "requested_revision": "v1.0",
+  "resolved_sha": "db029f08b290afd9fee4aa4bbcd9ae48602d1eb0",
+  "siblings": [
+    {
+      "name": ".gitattributes",
+      "size": 1570,
+      "lfs_sha256": null
+    },
+    {
+      "name": "README.md",
+      "size": 23163,
+      "lfs_sha256": null
+    },
+    {
+      "name": "adapter_config.json",
+      "size": 1271,
+      "lfs_sha256": null
+    },
+    {
+      "name": "adapter_model.safetensors",
+      "size": 173178096,
+      "lfs_sha256": "2b2a70cf4ef4440b6c22899e1f72c2f8ea5c6f65b19aa344539b4b8971d1f13d"
+    },
+    {
+      "name": "chat_template.jinja",
+      "size": 7756,
+      "lfs_sha256": null
+    },
+    {
+      "name": "head.pt",
+      "size": 8395071,
+      "lfs_sha256": "8e1dab2c8e3664f6fee843e0257d57946c25e0210c61901ea77e71761f4244e1"
+    },
+    {
+      "name": "provenance.json",
+      "size": 4216,
+      "lfs_sha256": null
+    },
+    {
+      "name": "result.json",
+      "size": 81080,
+      "lfs_sha256": null
+    },
+    {
+      "name": "tokenizer.json",
+      "size": 19989325,
+      "lfs_sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "size": 1128,
+      "lfs_sha256": null
+    },
+    {
+      "name": "training_config.json",
+      "size": 1759,
+      "lfs_sha256": null
+    },
+    {
+      "name": "training_metrics.json",
+      "size": 325,
+      "lfs_sha256": null
+    }
+  ]
+}

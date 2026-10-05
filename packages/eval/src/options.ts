@@ -1,6 +1,8 @@
 import { parseArgs } from "node:util";
 
-import { evalProvider } from "./provider.js";
+export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
+
+export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev";
 
 export interface EvalOptions {
   baseURL?: string;
@@ -8,7 +10,7 @@ export interface EvalOptions {
   format: "json" | "stylish";
   help: boolean;
   models: string[];
-  provider: string;
+  provider: EvalProvider;
   repetitions: number;
 }
 
@@ -18,20 +20,13 @@ Usage:
   pnpm eval [options]
 
 Options:
-  --provider <name>      jev, decider, or kev (default: jev)
-  --base-url <url>       Provider API root; required for kev (decider default: http://127.0.0.1:8000)
-  --model <model>        Model to evaluate; repeat to compare models (default: jev-1.13.0 for jev,
-                         decider-4b-v2.1 for decider)
+  --provider <name>      Provider to evaluate: jev, decider, cloudflare, or kev (default: jev)
+  --base-url <url>       Alternate Decider, Cloudflare, or Kev API base URL
+  --model <model>        Model to evaluate; repeat to compare models
   --repetitions <count>  Runs per model (default: 1)
-  --concurrency <count>  Maximum cases in flight (default: 64 for jev, 1 for decider and kev)
+  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider/Kev)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
-
-Environment:
-  TYPESAFE_API_KEY  Required by jev
-  DECIDER_BASE_URL  Optional Decider API base URL
-  DECIDER_API_KEY   Optional bearer token for a Decider proxy
-  KEV_API_KEY       Sent to kev when the server sets one
 
 Examples:
   pnpm eval
@@ -39,14 +34,15 @@ Examples:
   pnpm eval --model jev-1.13.0 --repetitions 3
   pnpm eval --model jev-1.13.0 --model jev-latest
   pnpm eval --provider decider --base-url http://127.0.0.1:8000
-  pnpm eval --provider kev --base-url http://127.0.0.1:8008 --model kev-4b
+  pnpm eval --provider cloudflare --model clef --model clef-flash
+  pnpm eval --provider kev --base-url http://127.0.0.1:8009 --model jaredpalmer/kev-4b@v1.0
 `;
 
 export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
   const { values } = parseArgs({
     args: [...argv],
     options: {
-      provider: { type: "string", default: "jev" },
+      provider: { type: "string" },
       "base-url": { type: "string" },
       model: { type: "string", multiple: true },
       repetitions: { type: "string", default: "1" },
@@ -55,12 +51,22 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
       help: { type: "boolean", short: "h", default: false },
     },
   });
+  if (
+    values.provider !== undefined &&
+    values.provider !== "jev" &&
+    values.provider !== "decider" &&
+    values.provider !== "cloudflare" &&
+    values.provider !== "kev"
+  ) {
+    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
+  }
+  const provider = values.provider ?? "jev";
   const repetitions = Number(values.repetitions);
   if (!Number.isSafeInteger(repetitions) || repetitions < 1) {
     throw new Error("--repetitions must be a positive integer");
   }
   const concurrency = Number(
-    values.concurrency ?? evalProvider(values.provider).defaultConcurrency,
+    values.concurrency ?? (provider === "jev" ? "64" : provider === "cloudflare" ? "4" : "1"),
   );
   if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
     throw new Error("--concurrency must be a positive integer");
@@ -73,23 +79,18 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     concurrency,
     format: values.format,
     help: values.help,
-    models: parseModels(values.provider, values.model),
-    provider: values.provider,
+    models: values.model ?? [defaultModel(provider)],
+    provider,
     repetitions,
   };
 };
 
-/** The requested models, or the provider's default when `--model` is omitted. */
-export const parseModels = (provider: string, models: string[] | undefined): string[] => {
-  const { defaultModel, oneModelPerRun } = evalProvider(provider);
-  if (models !== undefined) {
-    if (oneModelPerRun === true && models.length > 1) {
-      throw new Error(`${provider} serves one model per --base-url, so pass one --model per run`);
-    }
-    return models;
+const defaultModel = (provider: EvalProvider): string => {
+  if (provider === "decider") {
+    return "decider-4b-v2.1";
   }
-  if (defaultModel === undefined) {
-    throw new Error(`--model is required for ${provider}`);
+  if (provider === "cloudflare") {
+    return "clef";
   }
-  return [defaultModel];
+  return provider === "kev" ? "jaredpalmer/kev-4b@v1.0" : DEFAULT_EVAL_MODEL;
 };

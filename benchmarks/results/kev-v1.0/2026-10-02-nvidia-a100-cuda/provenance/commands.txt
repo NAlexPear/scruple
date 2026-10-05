@@ -1,0 +1,42 @@
+# Source revisions
+git checkout --detach eafda5d90b2af2ba485724248afef766b74b4772
+git clone --filter=blob:none --no-checkout https://github.com/jaredpalmer/kev.git /workspace/kev
+git -C /workspace/kev checkout --detach 84847f0a883d900f7de5b7a57eaa341ca7f9a6b4
+
+# Official serving dependency set
+cd /workspace/kev
+UV_CACHE_DIR=/workspace/uv-cache uv sync --extra serve
+
+# Server command; CHECKPOINT is replaced by each immutable revision below
+env HF_HOME=/workspace/huggingface \
+  UV_CACHE_DIR=/workspace/uv-cache \
+  KEV_BACKEND=torch \
+  KEV_PREFIX_CACHE=4 \
+  .venv/bin/python -m kev.serve \
+  --run "$CHECKPOINT" \
+  --host 0.0.0.0 \
+  --port 8009
+
+# Checkpoints, loaded sequentially with a fresh server process
+jaredpalmer/kev-0.8b@bf75a6a8848ea6960ff2ed108d9ed44c2941174f
+jaredpalmer/kev-4b@6cfce5c2fa4b4bd64026336ab649c5ca78857d52
+jaredpalmer/kev-9b@db029f08b290afd9fee4aa4bbcd9ae48602d1eb0
+jaredpalmer/kev-27b@af0e6d551bdc2cc724f3e9d7a8bee1cd4fb8f7bf
+
+# Readiness and resolved checkpoint identity
+curl -fsS "$KEV_BASE_URL/v1/models"
+
+# Run once for each checkpoint and C in 1, 2, 4, 8
+node packages/eval/dist/benchmark-cli.js \
+  --provider kev \
+  --base-url "$KEV_BASE_URL" \
+  --model "$CHECKPOINT" \
+  --warmups 1 \
+  --repetitions 3 \
+  --concurrency "$C" \
+  > "$MODEL-concurrency-$C.json" \
+  2> "$MODEL-concurrency-$C.stderr"
+
+# Hardware and resident memory
+nvidia-smi --query-gpu=name,uuid,memory.total,driver_version --format=csv,noheader
+nvidia-smi --query-compute-apps=used_memory --format=csv,noheader

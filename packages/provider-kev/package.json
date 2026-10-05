@@ -1,12 +1,12 @@
 {
   "name": "@scruple/provider-kev",
-  "version": "0.3.2",
-  "description": "Local Kev decision provider for Scruple.",
+  "version": "0.3.4",
+  "description": "Self-hosted Kev decision provider for Scruple.",
   "keywords": [
     "ai",
     "kev",
-    "open-weights",
-    "semantic-analysis"
+    "semantic-analysis",
+    "system-one"
   ],
   "homepage": "https://github.com/NAlexPear/scruple#readme",
   "bugs": {
@@ -38,8 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@scruple/core": "workspace:*",
-    "@typesafe-ai/sdk": "^0.6.0"
+    "@scruple/core": "workspace:*"
   },
   "engines": {
     "node": ">=22.18.0"

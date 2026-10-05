@@ -179,7 +179,8 @@ vary. Rules provide fixed diagnostic text and never ask a model to generate mess
 
 OXC is the initial parser, but plugins depend on normalized source excerpts, locations, imports,
 calls, and facts rather than serialized syntax trees. Both parsers and decision providers are
-swappable through the `SourceParser` and `DecisionProvider` interfaces.
+swappable through the `SourceParser` and `DecisionProvider` interfaces. Scruple includes provider
+adapters for Cloudflare Clef, local Decider, self-hosted Kev, and Jev.
 
 ```text
 source → parser → possible targets → rules → selected candidates → decisions → diagnostics

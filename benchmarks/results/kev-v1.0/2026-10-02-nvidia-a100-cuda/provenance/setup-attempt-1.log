@@ -1,0 +1,5 @@
+[Captured terminal output; the failed command wrote to stderr, so this file records the observed output rather than the empty tee artifact.]
++ cd /workspace
++ git clone https://github.com/jaredpalmer/kev.git kev
+Cloning into 'kev'...
+bash: line 1: 108 Killed git clone https://github.com/jaredpalmer/kev.git kev

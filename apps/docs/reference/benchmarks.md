@@ -105,6 +105,34 @@ We repeated concurrency 1 on MPS and an NVIDIA A100 with shared-prefix execution
 
 All 30 selected labels and thresholded outcomes matched between devices. Probability values were not bit-identical: the maximum absolute probability difference was 0.0114 and the maximum confidence difference was 0.0152. None crossed a fixed rule threshold. CUDA delivered 4.458 times the MPS throughput in this run. That result describes these machines and serving paths; it is not a general hardware ranking.
 
+## Kev v1.0 on NVIDIA A100
+
+We ran all four released Kev v1.0 checkpoints on one NVIDIA A100 80GB PCIe. Each checkpoint used the
+same 10 pinned fixtures, one unmeasured warmup, and three measured repetitions at concurrency 1, 2,
+4, and 8. The 30 measured cases at each level are repeated observations of 10 fixtures, not 30 unique
+examples and not the separate [187-fixture evaluation](../providers/evaluation.md).
+
+Concurrency 1 is the fair quality and latency comparison because concurrency changed some
+threshold-adjacent diagnostic outcomes. The concurrency sweep measures serving capacity; it does not
+redefine checkpoint quality.
+
+| Checkpoint | Label agreement | Diagnostic agreement | Strict agreement |      Mean |       p50 |         p95 | Resident GPU memory |
+| ---------- | --------------: | -------------------: | ---------------: | --------: | --------: | ----------: | ------------------: |
+| Kev 0.8B   |             40% |                  10% |              10% | 164.88 ms | 116.51 ms |   378.86 ms |           5,286 MiB |
+| Kev 4B     |             80% |                  20% |              20% | 222.54 ms | 163.95 ms |   467.95 ms |          16,268 MiB |
+| Kev 9B     |            100% |                  20% |              20% | 248.06 ms | 205.93 ms |   469.71 ms |          23,454 MiB |
+| Kev 27B    |            100% |                  80% |              80% | 511.90 ms | 398.38 ms | 1,018.53 ms |          66,756 MiB |
+
+The clean operating points were c4 at 13.239 cases/s for 0.8B, c4 at 8.711 cases/s for 4B, c4 at
+7.226 cases/s for 9B, and c2 at 3.150 cases/s for 27B. Kev 9B reached 7.517 cases/s at c8, but mean
+latency was 44% higher than c4 for only 4% more throughput. Kev 27B saturated at c2: c4 and c8 did not
+improve throughput and increased mean latency from 602 ms to 1,172 ms and 2,000 ms.
+
+All 640 warmup and measured requests succeeded. Kev has no hosted endpoint or hosted pricing: it runs
+on infrastructure you operate. The recorded Runpod cost was therefore an infrastructure-only estimate
+of **$0.499** for the complete benchmark, not an API or token charge. See the
+[pinned reports and provenance](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/kev-v1.0/2026-10-02-nvidia-a100-cuda).
+
 ## How the comparisons work
 
 The workload IDs are pinned in [`benchmarks/fixtures.json`](https://github.com/NAlexPear/scruple/blob/main/benchmarks/fixtures.json).
@@ -193,6 +221,8 @@ The Jev benchmark cannot separate internet travel time from work inside Jev. Scr
 - [Equal-size comparison](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/comparison/2026-09-20)
 - [Decider 4B v2.1 on Apple MPS](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/decider-4b-v2.1/2026-09-26-apple-mps)
 - [Decider 4B v2.1 on NVIDIA A100 CUDA](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/decider-4b-v2.1/2026-09-26-nvidia-a100-cuda)
+- [Kev v1.0 checkpoints on NVIDIA A100 CUDA](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/kev-v1.0/2026-10-02-nvidia-a100-cuda)
+- [Kev v1.0 full 187-fixture evaluation](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/kev-v1.0/2026-10-02-nvidia-a100-cuda-eval)
 - [Jev 1.13.0](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20)
 - [Jev 1.13.0 after rule calibration](https://github.com/NAlexPear/scruple/tree/main/benchmarks/results/jev-1.13.0/2026-09-20-post-calibration)
 

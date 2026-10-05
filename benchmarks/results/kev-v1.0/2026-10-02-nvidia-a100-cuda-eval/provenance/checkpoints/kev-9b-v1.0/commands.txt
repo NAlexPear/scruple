@@ -1,0 +1,2 @@
+HF_HOME=/workspace/hf-cache KEV_DTYPE=bf16 KEV_BACKEND=torch uv run --extra serve python -m kev.serve --run jaredpalmer/kev-9b@v1.0 --host 127.0.0.1 --port 8009
+node packages/eval/dist/cli.js --provider kev --base-url http://127.0.0.1:8009 --model jaredpalmer/kev-9b@v1.0 --repetitions 1 --concurrency 1 --format json

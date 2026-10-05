@@ -1,0 +1,87 @@
+{
+  "repo": "jaredpalmer/kev-4b",
+  "requested_revision": "v1.0",
+  "resolved_sha": "6cfce5c2fa4b4bd64026336ab649c5ca78857d52",
+  "siblings": [
+    {
+      "name": ".gitattributes",
+      "size": 1570,
+      "lfs_sha256": null
+    },
+    {
+      "name": "README.md",
+      "size": 24981,
+      "lfs_sha256": null
+    },
+    {
+      "name": "adapter_config.json",
+      "size": 1271,
+      "lfs_sha256": null
+    },
+    {
+      "name": "adapter_model.safetensors",
+      "size": 129924032,
+      "lfs_sha256": "90e817356246e7f18bfa7ca3d31794cd4fbeb3332a66a84cb51d9ceae925f2b2"
+    },
+    {
+      "name": "added_tokens.json",
+      "size": 707,
+      "lfs_sha256": null
+    },
+    {
+      "name": "head.pt",
+      "size": 5249791,
+      "lfs_sha256": "dd633435998ecc751ac538717a3742e32149500fabf7d7276287dbf0693f347c"
+    },
+    {
+      "name": "merges.txt",
+      "size": 1671853,
+      "lfs_sha256": null
+    },
+    {
+      "name": "provenance.json",
+      "size": 4265,
+      "lfs_sha256": null
+    },
+    {
+      "name": "result.json",
+      "size": 80553,
+      "lfs_sha256": null
+    },
+    {
+      "name": "special_tokens_map.json",
+      "size": 616,
+      "lfs_sha256": null
+    },
+    {
+      "name": "tokenizer.json",
+      "size": 19989325,
+      "lfs_sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "size": 1128,
+      "lfs_sha256": null
+    },
+    {
+      "name": "train.log",
+      "size": 12759,
+      "lfs_sha256": null
+    },
+    {
+      "name": "training_config.json",
+      "size": 1845,
+      "lfs_sha256": null
+    },
+    {
+      "name": "training_metrics.json",
+      "size": 324,
+      "lfs_sha256": null
+    },
+    {
+      "name": "vocab.json",
+      "size": 2776833,
+      "lfs_sha256": null
+    }
+  ]
+}

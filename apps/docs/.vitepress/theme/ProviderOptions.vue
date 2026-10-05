@@ -1,12 +1,80 @@
+<script setup lang="ts">
+import { nextTick, ref } from "vue";
+
+const providerIds = ["jev", "cloudflare", "custom"] as const;
+type ProviderId = (typeof providerIds)[number];
+
+const activeProvider = ref<ProviderId>("jev");
+
+const selectProvider = (provider: ProviderId, focus = false): void => {
+  activeProvider.value = provider;
+  if (focus) {
+    void nextTick(() => document.querySelector<HTMLElement>(`#provider-tab-${provider}`)?.focus());
+  }
+};
+
+const selectAdjacentProvider = (event: KeyboardEvent, index: number): void => {
+  const offsets: Partial<Record<KeyboardEvent["key"], number>> = {
+    ArrowLeft: -1,
+    ArrowRight: 1,
+  };
+  let nextIndex = index + (offsets[event.key] ?? 0);
+  if (event.key === "Home") {
+    nextIndex = 0;
+  } else if (event.key === "End") {
+    nextIndex = providerIds.length - 1;
+  } else if (offsets[event.key] === undefined) {
+    return;
+  }
+  event.preventDefault();
+  selectProvider(providerIds[(nextIndex + providerIds.length) % providerIds.length]!, true);
+};
+</script>
+
 <template>
   <div class="provider-options">
-    <article class="provider-card">
+    <div class="provider-tabs" role="tablist" aria-label="Decision provider options">
+      <button
+        v-for="(provider, index) in providerIds"
+        :id="`provider-tab-${provider}`"
+        :key="provider"
+        class="provider-tab"
+        :class="{ 'provider-tab-active': activeProvider === provider }"
+        type="button"
+        role="tab"
+        :aria-controls="`provider-panel-${provider}`"
+        :aria-selected="activeProvider === provider"
+        :tabindex="activeProvider === provider ? 0 : -1"
+        @click="selectProvider(provider)"
+        @keydown="selectAdjacentProvider($event, index)"
+      >
+        {{
+          provider === "cloudflare"
+            ? "Cloudflare Clef"
+            : provider === "jev"
+              ? "Jev"
+              : "Bring your own"
+        }}
+      </button>
+    </div>
+
+    <article
+      v-show="activeProvider === 'jev'"
+      id="provider-panel-jev"
+      class="provider-card"
+      role="tabpanel"
+      aria-labelledby="provider-tab-jev"
+      tabindex="0"
+    >
       <header>
         <div>
-          <span>Hosted</span>
+          <span>Recommended</span>
           <h3>Jev</h3>
         </div>
-        <p>Send rule questions and selected code to Jev over HTTPS.</p>
+        <p>
+          Best overall across strict accuracy, diagnostics, recall, F1, throughput, and API cost in
+          Scruple's 187-fixture evaluation.
+        </p>
       </header>
 
       <div class="provider-card-code">
@@ -24,7 +92,48 @@
       <a href="/providers/jev">Read the Jev guide</a>
     </article>
 
-    <article class="provider-card">
+    <article
+      v-show="activeProvider === 'cloudflare'"
+      id="provider-panel-cloudflare"
+      class="provider-card"
+      role="tabpanel"
+      aria-labelledby="provider-tab-cloudflare"
+      tabindex="0"
+    >
+      <header>
+        <div>
+          <span>Cloudflare-native</span>
+          <h3>Cloudflare Clef</h3>
+        </div>
+        <p>
+          A hosted alternative with the best raw label accuracy and precision, but much lower recall
+          in the 187-fixture evaluation.
+        </p>
+      </header>
+
+      <div class="provider-card-code">
+        <h4>Configuration</h4>
+        <pre><code><span class="code-keyword">import</span> {
+  <span class="code-function">cloudflareProvider</span>,
+} <span class="code-keyword">from</span> <span class="code-string">"@scruple/provider-cloudflare"</span>;
+
+<span class="code-keyword">const</span> provider = <span class="code-function">cloudflareProvider</span>({
+  <span class="code-property">accountId</span>,
+  <span class="code-property">apiToken</span>,
+});</code></pre>
+      </div>
+
+      <a href="/providers/cloudflare">Read the Cloudflare guide</a>
+    </article>
+
+    <article
+      v-show="activeProvider === 'custom'"
+      id="provider-panel-custom"
+      class="provider-card"
+      role="tabpanel"
+      aria-labelledby="provider-tab-custom"
+      tabindex="0"
+    >
       <header>
         <div>
           <span>Custom</span>
@@ -55,10 +164,59 @@
 
 <style scoped>
 .provider-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
   min-width: 0;
+}
+
+.provider-tabs {
+  display: flex;
+  overflow-x: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: var(--vp-c-bg);
+}
+
+.provider-tab {
+  position: relative;
+  flex: 1 0 auto;
+  padding: 15px 20px;
+  border: 0;
+  border-right: 1px solid var(--vp-c-divider);
+  background: transparent;
+  color: var(--vp-c-text-2);
+  font: 600 11px/1 var(--vp-font-family-mono);
+  cursor: pointer;
+}
+
+.provider-tab:last-child {
+  border-right: 0;
+}
+
+.provider-tab::after {
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  left: 12px;
+  height: 2px;
+  background: transparent;
+  content: "";
+}
+
+.provider-tab:hover {
+  color: var(--vp-c-text-1);
+}
+
+.provider-tab:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: -3px;
+}
+
+.provider-tab-active {
+  color: var(--vp-c-text-1);
+}
+
+.provider-tab-active::after {
+  background: var(--vp-c-brand-1);
 }
 
 .provider-card {
@@ -67,7 +225,7 @@
   min-width: 0;
   padding: 24px;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 5px;
+  border-radius: 0 0 5px 5px;
   background: var(--vp-c-bg);
   overflow: hidden;
 }
@@ -153,17 +311,11 @@
   text-underline-offset: 4px;
 }
 
-@media (max-width: 1280px) {
-  .provider-options {
-    grid-template-columns: 1fr;
-  }
-
-  .provider-card header p {
-    min-height: auto;
-  }
-}
-
 @media (max-width: 640px) {
+  .provider-tab {
+    padding: 14px 16px;
+  }
+
   .provider-card {
     padding: 20px;
   }

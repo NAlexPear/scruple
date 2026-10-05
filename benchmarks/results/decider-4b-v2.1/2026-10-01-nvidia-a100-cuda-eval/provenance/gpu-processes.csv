@@ -1,0 +1,2 @@
+gpu_uuid, pid, process_name, used_gpu_memory [MiB]
+GPU-54415f7f-e285-2961-f6f7-a3c22497d868, 3452, /workspace/scruple-decider-187/.amp/in/decider-venv/bin/python, 12066 MiB
