@@ -1,0 +1,5 @@
+started_at_utc=2026-10-07T14:49:17Z
+Command exited with non-zero status 1
+command_wall_seconds=2.80
+maximum_resident_kib=115060
+finished_at_utc=2026-10-07T14:49:20Z

@@ -73,6 +73,14 @@ await test("evaluation options support providers, repeated models, and bounded c
     provider: "kev",
     repetitions: 1,
   });
+  assert.deepEqual(parseEvalOptions(["--provider", "openai"]), {
+    concurrency: 16,
+    format: "json",
+    help: false,
+    models: ["gpt-6-luna"],
+    provider: "openai",
+    repetitions: 1,
+  });
   assert.deepEqual(
     parseEvalOptions([
       "--provider",
@@ -89,7 +97,10 @@ await test("evaluation options support providers, repeated models, and bounded c
   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
   assert.throws(() => parseEvalOptions(["--concurrency", "0"]), /positive integer/u);
-  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider.*cloudflare.*kev/u);
+  assert.throws(
+    () => parseEvalOptions(["--provider", "other"]),
+    /jev.*decider.*cloudflare.*kev.*openai/u,
+  );
   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
   assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
 });
@@ -124,6 +135,23 @@ await test("evaluation CLI reports the Cloudflare credentials it needs", () => {
 
   assert.equal(result.status, 2);
   assert.match(result.stderr, /CLOUDFLARE_ACCOUNT_ID is required for Cloudflare runs/u);
+});
+
+await test("evaluation CLI reports the OpenAI credential it needs", () => {
+  const environment = { ...process.env };
+  delete environment["OPENAI_API_KEY"];
+  const result = spawnSync(
+    process.execPath,
+    ["packages/eval/dist/cli.js", "--provider", "openai"],
+    {
+      cwd: new URL("..", import.meta.url),
+      encoding: "utf8",
+      env: environment,
+    },
+  );
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /OPENAI_API_KEY is required for OpenAI runs/u);
 });
 
 await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {

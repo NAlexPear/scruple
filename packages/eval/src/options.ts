@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 
 export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
 
-export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev";
+export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev" | "openai";
 
 export interface EvalOptions {
   baseURL?: string;
@@ -20,11 +20,11 @@ Usage:
   pnpm eval [options]
 
 Options:
-  --provider <name>      Provider to evaluate: jev, decider, cloudflare, or kev (default: jev)
-  --base-url <url>       Alternate Decider, Cloudflare, or Kev API base URL
+  --provider <name>      Provider to evaluate: jev, decider, cloudflare, kev, or openai (default: jev)
+  --base-url <url>       Alternate Decider, Cloudflare, Kev, or OpenAI API base URL
   --model <model>        Model to evaluate; repeat to compare models
   --repetitions <count>  Runs per model (default: 1)
-  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider/Kev)
+  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 16 OpenAI, 4 Cloudflare, 1 Decider/Kev)
   -f, --format <format>  json or stylish (default: json)
   -h, --help             Show this help
 
@@ -36,6 +36,7 @@ Examples:
   pnpm eval --provider decider --base-url http://127.0.0.1:8000
   pnpm eval --provider cloudflare --model clef --model clef-flash
   pnpm eval --provider kev --base-url http://127.0.0.1:8009 --model jaredpalmer/kev-4b@v1.0
+  pnpm eval --provider openai --model gpt-6-luna
 `;
 
 export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
@@ -56,9 +57,10 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     values.provider !== "jev" &&
     values.provider !== "decider" &&
     values.provider !== "cloudflare" &&
-    values.provider !== "kev"
+    values.provider !== "kev" &&
+    values.provider !== "openai"
   ) {
-    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
+    throw new Error(`--provider must be "jev", "decider", "cloudflare", "kev", or "openai"`);
   }
   const provider = values.provider ?? "jev";
   const repetitions = Number(values.repetitions);
@@ -66,7 +68,14 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
     throw new Error("--repetitions must be a positive integer");
   }
   const concurrency = Number(
-    values.concurrency ?? (provider === "jev" ? "64" : provider === "cloudflare" ? "4" : "1"),
+    values.concurrency ??
+      (provider === "jev"
+        ? "64"
+        : provider === "openai"
+          ? "16"
+          : provider === "cloudflare"
+            ? "4"
+            : "1"),
   );
   if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
     throw new Error("--concurrency must be a positive integer");
@@ -92,5 +101,8 @@ const defaultModel = (provider: EvalProvider): string => {
   if (provider === "cloudflare") {
     return "clef";
   }
-  return provider === "kev" ? "jaredpalmer/kev-4b@v1.0" : DEFAULT_EVAL_MODEL;
+  if (provider === "kev") {
+    return "jaredpalmer/kev-4b@v1.0";
+  }
+  return provider === "openai" ? "gpt-6-luna" : DEFAULT_EVAL_MODEL;
 };

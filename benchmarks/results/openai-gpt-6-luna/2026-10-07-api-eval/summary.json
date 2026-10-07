@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-07",
+  "scrupleBaseCommit": "2fc48be1f99fb17680cf0bd87f643d83539b50db",
+  "evalHarnessPatchSha256": "867035d54431213d5fd51f9c171738d46df4b0b8c3567ea73cbef4b30a72d993",
+  "provider": "openai",
+  "requestedModel": "gpt-6-luna",
+  "resolvedModel": "gpt-6-luna",
+  "environment": {
+    "execution": "OpenAI hosted Decisions API from an Amp E2B orb",
+    "os": "Linux 6.1.158+ x86_64 GNU/Linux",
+    "node": "v26.10.0",
+    "pnpm": "12.0.0",
+    "typescript": "7.0.2"
+  },
+  "workload": {
+    "fixtureCount": 187,
+    "expectedFindings": 81,
+    "expectedSafe": 106,
+    "expectedAbstentions": 15,
+    "repetitions": 1,
+    "concurrency": 16,
+    "modelCalls": 189,
+    "casesWithModelCalls": 180,
+    "casesWithoutModelCalls": 7,
+    "fixtureCorpusSha256": "71e174d510cf3bf4ab92005a1f8ec493bce5697548380126f8331bdec5e3bf24"
+  },
+  "quality": {
+    "labelMatches": 145,
+    "diagnosticMatches": 151,
+    "strictMatches": 123,
+    "detection": {
+      "invalid": 0,
+      "truePositives": 51,
+      "falsePositives": 6,
+      "trueNegatives": 100,
+      "falseNegatives": 30,
+      "precision": 0.8947368421052632,
+      "recall": 0.6296296296296297,
+      "f1": 0.7391304347826088,
+      "falsePositiveRate": 0.05660377358490566,
+      "specificity": 0.9433962264150944
+    },
+    "abstention": {
+      "expected": 15,
+      "actual": 26,
+      "correct": 9,
+      "unexpected": 17
+    }
+  },
+  "performance": {
+    "caseLatencyMs": {
+      "mean": 195.36190822994655,
+      "p50": 155.8910289999999,
+      "p95": 427.7612879999997,
+      "total": 36532.67683900001
+    },
+    "commandWallSeconds": 2.8,
+    "commandThroughputCasesPerSecond": 66.78571428571429,
+    "maximumResidentKiB": 115060
+  },
+  "usage": {
+    "inputTokens": 81836,
+    "outputTokens": 0,
+    "modelCalls": 189
+  },
+  "cost": {
+    "inputUsdPerMillionTokens": 0.1,
+    "inputUsd": 0.0081836,
+    "outputUsd": 0,
+    "totalUsd": 0.0081836,
+    "calculation": "81836 * 0.10 / 1000000",
+    "pricingSource": "https://developers.openai.com/api/docs/guides/decisions#pricing-and-availability"
+  },
+  "compatibility": {
+    "harnessCompatible": true,
+    "operationalErrors": 0,
+    "refusals": 0,
+    "apiErrors": 0,
+    "stderrBytes": 0,
+    "evalExitCode": 1,
+    "evalExitMeaning": "quality mismatches"
+  },
+  "rawReport": "raw/eval-report.json.gz"
+}

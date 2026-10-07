@@ -1,0 +1,220 @@
+diff --git a/packages/eval/src/cli.ts b/packages/eval/src/cli.ts
+index 2ac78ec..0790bb4 100644
+--- a/packages/eval/src/cli.ts
++++ b/packages/eval/src/cli.ts
+@@ -1,6 +1,5 @@
+ import { readFile } from "node:fs/promises";
+ 
+-import type { DecisionProvider } from "@scruple/core";
+ import {
+   formatEvalRuns,
+   hasEvalFailures,
+@@ -18,11 +17,14 @@ import { createCloudflareProvider } from "./cloudflare-provider.js";
+ import { createDeciderProvider } from "./decider-provider.js";
+ import { createJevProvider } from "./jev-provider.js";
+ import { createKevProvider } from "./kev-provider.js";
++import { createOpenAIProvider } from "./openai-provider.js";
++
++type DecisionProvider = ReturnType<typeof createJevProvider>;
+ 
+ const plugins = evaluationPlugins();
+ 
+ const runModel = async (
+-  providerName: "jev" | "decider" | "cloudflare" | "kev",
++  providerName: "jev" | "decider" | "cloudflare" | "kev" | "openai",
+   model: string,
+   repetitions: number,
+   concurrency: number,
+@@ -38,7 +40,7 @@ const runModel = async (
+ };
+ 
+ const runRepetitions = async (
+-  providerName: "jev" | "decider" | "cloudflare" | "kev",
++  providerName: "jev" | "decider" | "cloudflare" | "kev" | "openai",
+   model: string,
+   repetitions: number,
+   concurrency: number,
+@@ -74,7 +76,7 @@ const runRepetitions = async (
+ };
+ 
+ const createProvider = (
+-  providerName: "jev" | "decider" | "cloudflare" | "kev",
++  providerName: "jev" | "decider" | "cloudflare" | "kev" | "openai",
+   model: string,
+   concurrency: number,
+   baseURL?: string,
+@@ -89,9 +91,12 @@ const createProvider = (
+   if (providerName === "decider") {
+     return createDeciderProvider(model, options);
+   }
+-  return providerName === "cloudflare"
+-    ? createCloudflareProvider(model, options)
+-    : createKevProvider(model, options);
++  if (providerName === "cloudflare") {
++    return createCloudflareProvider(model, options);
++  }
++  return providerName === "kev"
++    ? createKevProvider(model, options)
++    : createOpenAIProvider(model, options);
+ };
+ 
+ try {
+diff --git a/packages/eval/src/openai-provider.ts b/packages/eval/src/openai-provider.ts
+new file mode 100644
+index 0000000..67a13ec
+--- /dev/null
++++ b/packages/eval/src/openai-provider.ts
+@@ -0,0 +1,23 @@
++import type { DecisionProvider } from "@scruple/core";
++import { openaiProvider } from "@scruple/provider-openai";
++
++export interface OpenAIEvaluationProviderOptions {
++  baseURL?: string;
++  concurrency?: number;
++}
++
++export const createOpenAIProvider = (
++  model: string,
++  options: OpenAIEvaluationProviderOptions = {},
++): DecisionProvider => {
++  const apiKey = process.env["OPENAI_API_KEY"];
++  if (apiKey === undefined || apiKey.length === 0) {
++    throw new Error("OPENAI_API_KEY is required for OpenAI evaluations");
++  }
++  return openaiProvider({
++    apiKey,
++    model,
++    ...(options.baseURL === undefined ? {} : { baseURL: options.baseURL }),
++    ...(options.concurrency === undefined ? {} : { concurrency: options.concurrency }),
++  });
++};
+diff --git a/packages/eval/src/options.ts b/packages/eval/src/options.ts
+index 0ff7f28..3561f1b 100644
+--- a/packages/eval/src/options.ts
++++ b/packages/eval/src/options.ts
+@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
+ 
+ export const DEFAULT_EVAL_MODEL = "jev-1.13.0";
+ 
+-export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev";
++export type EvalProvider = "jev" | "decider" | "cloudflare" | "kev" | "openai";
+ 
+ export interface EvalOptions {
+   baseURL?: string;
+@@ -20,11 +20,11 @@ Usage:
+   pnpm eval [options]
+ 
+ Options:
+-  --provider <name>      Provider to evaluate: jev, decider, cloudflare, or kev (default: jev)
+-  --base-url <url>       Alternate Decider, Cloudflare, or Kev API base URL
++  --provider <name>      Provider to evaluate: jev, decider, cloudflare, kev, or openai (default: jev)
++  --base-url <url>       Alternate Decider, Cloudflare, Kev, or OpenAI API base URL
+   --model <model>        Model to evaluate; repeat to compare models
+   --repetitions <count>  Runs per model (default: 1)
+-  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 4 Cloudflare, 1 Decider/Kev)
++  --concurrency <count>  Maximum cases in flight (default: 64 Jev, 16 OpenAI, 4 Cloudflare, 1 Decider/Kev)
+   -f, --format <format>  json or stylish (default: json)
+   -h, --help             Show this help
+ 
+@@ -36,6 +36,7 @@ Examples:
+   pnpm eval --provider decider --base-url http://127.0.0.1:8000
+   pnpm eval --provider cloudflare --model clef --model clef-flash
+   pnpm eval --provider kev --base-url http://127.0.0.1:8009 --model jaredpalmer/kev-4b@v1.0
++  pnpm eval --provider openai --model gpt-6-luna
+ `;
+ 
+ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
+@@ -56,9 +57,10 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
+     values.provider !== "jev" &&
+     values.provider !== "decider" &&
+     values.provider !== "cloudflare" &&
+-    values.provider !== "kev"
++    values.provider !== "kev" &&
++    values.provider !== "openai"
+   ) {
+-    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
++    throw new Error(`--provider must be "jev", "decider", "cloudflare", "kev", or "openai"`);
+   }
+   const provider = values.provider ?? "jev";
+   const repetitions = Number(values.repetitions);
+@@ -66,7 +68,14 @@ export const parseEvalOptions = (argv: readonly string[]): EvalOptions => {
+     throw new Error("--repetitions must be a positive integer");
+   }
+   const concurrency = Number(
+-    values.concurrency ?? (provider === "jev" ? "64" : provider === "cloudflare" ? "4" : "1"),
++    values.concurrency ??
++      (provider === "jev"
++        ? "64"
++        : provider === "openai"
++          ? "16"
++          : provider === "cloudflare"
++            ? "4"
++            : "1"),
+   );
+   if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
+     throw new Error("--concurrency must be a positive integer");
+@@ -92,5 +101,8 @@ const defaultModel = (provider: EvalProvider): string => {
+   if (provider === "cloudflare") {
+     return "clef";
+   }
+-  return provider === "kev" ? "jaredpalmer/kev-4b@v1.0" : DEFAULT_EVAL_MODEL;
++  if (provider === "kev") {
++    return "jaredpalmer/kev-4b@v1.0";
++  }
++  return provider === "openai" ? "gpt-6-luna" : DEFAULT_EVAL_MODEL;
+ };
+diff --git a/tests/eval.test.ts b/tests/eval.test.ts
+index a16d448..65eb2d3 100644
+--- a/tests/eval.test.ts
++++ b/tests/eval.test.ts
+@@ -73,6 +73,14 @@ await test("evaluation options support providers, repeated models, and bounded c
+     provider: "kev",
+     repetitions: 1,
+   });
++  assert.deepEqual(parseEvalOptions(["--provider", "openai"]), {
++    concurrency: 16,
++    format: "json",
++    help: false,
++    models: ["gpt-6-luna"],
++    provider: "openai",
++    repetitions: 1,
++  });
+   assert.deepEqual(
+     parseEvalOptions([
+       "--provider",
+@@ -89,7 +97,10 @@ await test("evaluation options support providers, repeated models, and bounded c
+   assert.equal(parseEvalOptions(["--format", "stylish"]).format, "stylish");
+   assert.throws(() => parseEvalOptions(["--repetitions", "0"]), /positive integer/u);
+   assert.throws(() => parseEvalOptions(["--concurrency", "0"]), /positive integer/u);
+-  assert.throws(() => parseEvalOptions(["--provider", "other"]), /jev.*decider.*cloudflare.*kev/u);
++  assert.throws(
++    () => parseEvalOptions(["--provider", "other"]),
++    /jev.*decider.*cloudflare.*kev.*openai/u,
++  );
+   assert.throws(() => parseEvalOptions(["--format", "yaml"]), /Unknown output format/u);
+   assert.match(EVAL_HELP, /--format <format>\s+json or stylish \(default: json\)/u);
+ });
+@@ -126,6 +137,23 @@ await test("evaluation CLI reports the Cloudflare credentials it needs", () => {
+   assert.match(result.stderr, /CLOUDFLARE_ACCOUNT_ID is required for Cloudflare runs/u);
+ });
+ 
++await test("evaluation CLI reports the OpenAI credential it needs", () => {
++  const environment = { ...process.env };
++  delete environment["OPENAI_API_KEY"];
++  const result = spawnSync(
++    process.execPath,
++    ["packages/eval/dist/cli.js", "--provider", "openai"],
++    {
++      cwd: new URL("..", import.meta.url),
++      encoding: "utf8",
++      env: environment,
++    },
++  );
++
++  assert.equal(result.status, 2);
++  assert.match(result.stderr, /OPENAI_API_KEY is required for OpenAI evaluations/u);
++});
++
+ await test("evaluation corpus covers every registered rule with exact candidates and choices", async () => {
+   const raw: unknown = JSON.parse(
+     await readFile(new URL("./eval-fixtures.json", import.meta.url), "utf8"),

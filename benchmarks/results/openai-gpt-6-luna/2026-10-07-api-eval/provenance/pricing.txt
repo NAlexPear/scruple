@@ -1,0 +1,13 @@
+Pricing source cited by the repository's OpenAI provider documentation at the evaluated commit:
+https://developers.openai.com/api/docs/guides/decisions#pricing-and-availability
+
+Repository documentation at the evaluated base commit records:
+- gpt-6-luna Decisions input: $0.10 per million tokens
+- cache read: no charge
+- cache write: no charge
+- output tokens: no charge
+- long-context and regional-processing premiums can apply
+
+This run used the standard API endpoint, no regional-processing option, and bounded per-case inputs.
+Observed usage: 81,836 input tokens and 0 output tokens.
+Calculation: 81,836 * $0.10 / 1,000,000 = $0.0081836.

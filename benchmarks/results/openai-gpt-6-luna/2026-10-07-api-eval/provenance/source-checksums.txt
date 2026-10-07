@@ -1,0 +1,6 @@
+3c455de96ce2a9b8a161e44b8036e4294546aeb9d5f8dab8619a47c69f6f777d  packages/eval/src/options.ts
+74d230cd89f676a6df2af7e4c8d1f8f57795bb52889aacda61de5f84e3292870  packages/eval/src/cli.ts
+9ff66ceb99bc121ce367c0a7f03782541ae166359bfa1ef7894f5fd3acd5e6d9  packages/eval/src/openai-provider.ts
+6daceccf123abe060ccc7f336f4a53d5d9d374ca01d6675b1b76ac5649166abf  tests/eval.test.ts
+b82f4b99ebe6bb90a70a94b965098c695cc5fe9aa8a3fece77342ad05431a3ef  packages/provider-openai/src/index.ts
+71e174d510cf3bf4ab92005a1f8ec493bce5697548380126f8331bdec5e3bf24  tests/eval-fixtures.json
