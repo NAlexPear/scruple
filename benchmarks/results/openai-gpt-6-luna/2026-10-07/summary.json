@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-07",
+  "scrupleBaseCommit": "2fc48be1f99fb17680cf0bd87f643d83539b50db",
+  "provider": "openai",
+  "requestedModel": "gpt-6-luna",
+  "resolvedModels": ["gpt-6-luna"],
+  "environment": {
+    "node": "v26.10.0",
+    "platform": "linux",
+    "kernel": "6.1.158+",
+    "architecture": "x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+    "logicalCpuCount": 2,
+    "totalMemoryBytes": 4122030080
+  },
+  "workload": {
+    "fixtureCount": 10,
+    "warmupsPerConcurrency": 1,
+    "repetitions": 3,
+    "measuredCasesPerConcurrency": 30,
+    "concurrencies": [1, 2, 4, 8]
+  },
+  "qualityAtConcurrency1": {
+    "labelAgreement": 0.8,
+    "diagnosticAgreement": 0.7,
+    "abstentionAgreement": 1,
+    "strictAgreement": 0.6,
+    "actualAbstentions": 0
+  },
+  "results": [
+    {
+      "concurrency": 1,
+      "meanCaseLatencyMs": 193.26,
+      "p50CaseLatencyMs": 160.803,
+      "p95CaseLatencyMs": 345.044,
+      "meanRepetitionDurationMs": 1932.767,
+      "casesPerSecond": 5.174,
+      "inputTokens": 14916,
+      "outputTokens": 0,
+      "measuredCostUsd": 0.0014916,
+      "rawReport": "raw/concurrency-1.json.gz"
+    },
+    {
+      "concurrency": 2,
+      "meanCaseLatencyMs": 149.764,
+      "p50CaseLatencyMs": 140.68,
+      "p95CaseLatencyMs": 252.24,
+      "meanRepetitionDurationMs": 783.706,
+      "casesPerSecond": 12.76,
+      "inputTokens": 14916,
+      "outputTokens": 0,
+      "measuredCostUsd": 0.0014916,
+      "rawReport": "raw/concurrency-2.json.gz"
+    },
+    {
+      "concurrency": 4,
+      "meanCaseLatencyMs": 191.184,
+      "p50CaseLatencyMs": 167.983,
+      "p95CaseLatencyMs": 384.283,
+      "meanRepetitionDurationMs": 608.109,
+      "casesPerSecond": 16.444,
+      "inputTokens": 14916,
+      "outputTokens": 0,
+      "measuredCostUsd": 0.0014916,
+      "rawReport": "raw/concurrency-4.json.gz"
+    },
+    {
+      "concurrency": 8,
+      "meanCaseLatencyMs": 190.87,
+      "p50CaseLatencyMs": 166.203,
+      "p95CaseLatencyMs": 330.855,
+      "meanRepetitionDurationMs": 399.768,
+      "casesPerSecond": 25.015,
+      "inputTokens": 14916,
+      "outputTokens": 0,
+      "measuredCostUsd": 0.0014916,
+      "rawReport": "raw/concurrency-8.json.gz"
+    }
+  ],
+  "usageAndCost": {
+    "pricingSource": "https://developers.openai.com/api/docs/guides/decisions#pricing-and-availability",
+    "inputUsdPerMillionTokens": 0.1,
+    "outputUsdPerMillionTokens": 0,
+    "measuredInputTokens": 59664,
+    "warmupInputTokens": 19888,
+    "totalInputTokens": 79552,
+    "totalLogicalModelCalls": 160,
+    "measuredCostUsd": 0.0059664,
+    "warmupCostUsd": 0.0019888,
+    "totalEstimatedCostUsd": 0.0079552
+  },
+  "operations": {
+    "benchmarkExitFailures": 0,
+    "surfacedProviderErrors": 0,
+    "stderrFiles": [
+      "provenance/concurrency-1.stderr",
+      "provenance/concurrency-2.stderr",
+      "provenance/concurrency-4.stderr",
+      "provenance/concurrency-8.stderr"
+    ]
+  }
+}

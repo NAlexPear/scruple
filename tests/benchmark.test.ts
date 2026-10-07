@@ -68,6 +68,15 @@ await test("benchmark options support providers, repeated models, and run settin
   });
   assert.deepEqual(parseBenchmarkOptions(["--provider", "decider"]).models, ["decider-4b-v2.1"]);
   assert.deepEqual(parseBenchmarkOptions(["--provider", "cloudflare"]).models, ["clef"]);
+  assert.deepEqual(parseBenchmarkOptions(["--provider", "openai"]), {
+    concurrency: 1,
+    fixtureIds: [],
+    help: false,
+    models: ["gpt-6-luna"],
+    provider: "openai",
+    repetitions: 3,
+    warmups: 1,
+  });
   assert.deepEqual(parseBenchmarkOptions(["--provider", "kev"]), {
     concurrency: 1,
     fixtureIds: [],
@@ -86,8 +95,27 @@ await test("benchmark options support providers, repeated models, and run settin
   assert.throws(() => parseBenchmarkOptions(["--workload-size", "0"]), /positive integer/u);
   assert.throws(
     () => parseBenchmarkOptions(["--provider", "other"]),
-    /jev.*decider.*cloudflare.*kev/u,
+    /jev.*decider.*cloudflare.*kev.*openai/u,
   );
+});
+
+await test("benchmark CLI reports the OpenAI credential it needs", () => {
+  const environment = { ...process.env };
+  delete environment["OPENAI_API_KEY"];
+  const result = process
+    .getBuiltinModule("node:child_process")
+    .spawnSync(
+      process.execPath,
+      ["packages/eval/dist/benchmark-cli.js", "--provider", "openai", "--warmups", "0"],
+      {
+        cwd: new URL("..", import.meta.url),
+        encoding: "utf8",
+        env: environment,
+      },
+    );
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /OPENAI_API_KEY is required for OpenAI runs/u);
 });
 
 await test("benchmark workload is stable, unique, and covers every plugin", async () => {

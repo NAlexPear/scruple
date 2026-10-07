@@ -1,0 +1,15 @@
+# Build the benchmark harness from the recorded source.
+pnpm build
+
+# Run sequentially, preserving stdout and stderr separately.
+node packages/eval/dist/benchmark-cli.js --provider openai --model gpt-6-luna --warmups 1 --repetitions 3 --concurrency 1 > concurrency-1.json 2> concurrency-1.stderr
+node packages/eval/dist/benchmark-cli.js --provider openai --model gpt-6-luna --warmups 1 --repetitions 3 --concurrency 2 > concurrency-2.json 2> concurrency-2.stderr
+node packages/eval/dist/benchmark-cli.js --provider openai --model gpt-6-luna --warmups 1 --repetitions 3 --concurrency 4 > concurrency-4.json 2> concurrency-4.stderr
+node packages/eval/dist/benchmark-cli.js --provider openai --model gpt-6-luna --warmups 1 --repetitions 3 --concurrency 8 > concurrency-8.json 2> concurrency-8.stderr
+
+# Compress raw reports reproducibly and checksum the complete result set.
+gzip -n -9 -c concurrency-1.json > raw/concurrency-1.json.gz
+gzip -n -9 -c concurrency-2.json > raw/concurrency-2.json.gz
+gzip -n -9 -c concurrency-4.json > raw/concurrency-4.json.gz
+gzip -n -9 -c concurrency-8.json > raw/concurrency-8.json.gz
+find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS

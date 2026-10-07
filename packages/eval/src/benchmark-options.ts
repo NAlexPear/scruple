@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 
 import { DEFAULT_EVAL_MODEL } from "@scruple/eval/options";
 
-export type BenchmarkProvider = "jev" | "decider" | "cloudflare" | "kev";
+export type BenchmarkProvider = "jev" | "decider" | "cloudflare" | "kev" | "openai";
 
 export interface BenchmarkOptions {
   baseURL?: string;
@@ -22,8 +22,8 @@ Usage:
   pnpm benchmark [options]
 
 Options:
-  --provider <name>      Provider: jev, decider, cloudflare, or kev (default: jev)
-  --base-url <url>       Override the Decider, Cloudflare, or Kev API base URL
+  --provider <name>      Provider: jev, decider, cloudflare, kev, or openai (default: jev)
+  --base-url <url>       Override the Decider, Cloudflare, Kev, or OpenAI API base URL
   --model <model>        Model to benchmark; repeat to compare models
   --fixture <id>         Benchmark only this fixture; repeat to select several
   --workload-size <n>    Cycle selected fixtures to create exactly n cases
@@ -34,6 +34,7 @@ Options:
 
 Environment:
   TYPESAFE_API_KEY  Required by Jev
+  OPENAI_API_KEY    Required by OpenAI
   DECIDER_BASE_URL  Optional Decider API base URL
   DECIDER_API_KEY   Optional bearer token for a Decider proxy
   KEV_BASE_URL      Optional Kev API base URL
@@ -48,6 +49,7 @@ Examples:
   pnpm benchmark --provider decider --model decider-4b-v2.1
   pnpm benchmark --provider kev --model jaredpalmer/kev-4b@v1.0
   pnpm benchmark --provider cloudflare --model clef --model clef-flash
+  pnpm benchmark --provider openai --model gpt-6-luna
 `;
 
 export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions => {
@@ -70,9 +72,10 @@ export const parseBenchmarkOptions = (argv: readonly string[]): BenchmarkOptions
     values.provider !== "jev" &&
     values.provider !== "decider" &&
     values.provider !== "cloudflare" &&
-    values.provider !== "kev"
+    values.provider !== "kev" &&
+    values.provider !== "openai"
   ) {
-    throw new Error(`--provider must be "jev", "decider", "cloudflare", or "kev"`);
+    throw new Error(`--provider must be "jev", "decider", "cloudflare", "kev", or "openai"`);
   }
   const provider = values.provider ?? "jev";
   const warmups = parseCount(values.warmups, "--warmups", true);
@@ -101,6 +104,9 @@ const defaultModel = (provider: BenchmarkProvider): string => {
   }
   if (provider === "kev") {
     return "jaredpalmer/kev-4b@v1.0";
+  }
+  if (provider === "openai") {
+    return "gpt-6-luna";
   }
   return provider === "cloudflare" ? "clef" : DEFAULT_EVAL_MODEL;
 };

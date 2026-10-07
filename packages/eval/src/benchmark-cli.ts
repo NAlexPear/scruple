@@ -22,6 +22,7 @@ import {
   createDeciderProvider,
   createJevProvider,
   createKevProvider,
+  createOpenAIProvider,
 } from "./provider-factories.js";
 
 const plugins = evaluationPlugins();
@@ -65,7 +66,12 @@ const runModel = async (
               concurrency,
               ...(baseURL === undefined ? {} : { baseURL }),
             })
-          : createJevProvider(model, { concurrency });
+          : providerName === "openai"
+            ? createOpenAIProvider(model, {
+                concurrency,
+                ...(baseURL === undefined ? {} : { baseURL }),
+              })
+            : createJevProvider(model, { concurrency });
   try {
     return await runBenchmark({
       fixtures,

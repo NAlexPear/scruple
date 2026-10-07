@@ -282,6 +282,9 @@ importers:
       '@scruple/provider-kev':
         specifier: workspace:*
         version: link:../provider-kev
+      '@scruple/provider-openai':
+        specifier: workspace:*
+        version: link:../provider-openai
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:../relational-databases

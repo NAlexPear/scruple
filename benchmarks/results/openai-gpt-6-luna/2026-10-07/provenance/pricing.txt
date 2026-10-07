@@ -1,0 +1,6 @@
+Source: https://developers.openai.com/api/docs/guides/decisions#pricing-and-availability
+Retrieved: 2026-10-07
+
+With gpt-6-luna, input costs $0.10 per 1M tokens. You pay only for input tokens: there are no cache-read, cache-write, or output-token charges.
+
+Regional processing premiums and long-context input pricing multipliers apply. This text workload did not use long context. Any account-specific regional premium was not observable from benchmark responses and is excluded from the estimate.
