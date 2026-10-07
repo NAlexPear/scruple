@@ -47,6 +47,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: "Decider", link: "/providers/decider" },
       { text: "Jev", link: "/providers/jev" },
       { text: "Kev", link: "/providers/kev" },
+      { text: "OpenAI", link: "/providers/openai" },
     ],
   },
   {

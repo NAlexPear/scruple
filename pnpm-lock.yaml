@@ -148,6 +148,9 @@ importers:
       '@scruple/provider-kev':
         specifier: workspace:*
         version: link:packages/provider-kev
+      '@scruple/provider-openai':
+        specifier: workspace:*
+        version: link:packages/provider-openai
       '@scruple/relational-databases':
         specifier: workspace:*
         version: link:packages/relational-databases
@@ -332,6 +335,12 @@ importers:
         version: 0.6.0
 
   packages/provider-kev:
+    dependencies:
+      '@scruple/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/provider-openai:
     dependencies:
       '@scruple/core':
         specifier: workspace:*
